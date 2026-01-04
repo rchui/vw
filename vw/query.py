@@ -6,7 +6,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from vw.expr import Column, Expression
-from vw.render import RenderConfig, RenderContext
+from vw.render import RenderConfig, RenderContext, RenderResult
 
 
 @dataclass
@@ -117,16 +117,22 @@ class Statement:
     source: Source
     columns: list[Expression]
 
-    def render(self, *, config: RenderConfig) -> str:
+    def render(self, config: RenderConfig = RenderConfig()) -> RenderResult:
         """
-        Render the SQL statement string.
+        Render the SQL statement with parameter tracking.
+
+        Args:
+            config: Rendering configuration. Defaults to RenderConfig with COLON parameter style.
 
         Returns:
-            The constructed SQL statement.
+            RenderResult containing the SQL string and parameter dictionary.
         """
-
         context = RenderContext(config=config)
+        sql = self.__vw_render__(context)
+        return RenderResult(sql=sql, params=context.params)
 
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the statement."""
         # Render columns
         rendered_columns = [col.__vw_render__(context) for col in self.columns]
         columns_str = ", ".join(rendered_columns)

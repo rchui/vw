@@ -61,19 +61,21 @@ def describe_statement() -> None:
             """Should render SELECT * FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("*")])
-            assert statement.render(config=render_config) == "SELECT * FROM users"
+            assert statement.render(config=render_config) == vw.RenderResult(sql="SELECT * FROM users", params={})
 
         def it_renders_single_column(render_config: vw.RenderConfig) -> None:
             """Should render SELECT column FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("id")])
-            assert statement.render(config=render_config) == "SELECT id FROM users"
+            assert statement.render(config=render_config) == vw.RenderResult(sql="SELECT id FROM users", params={})
 
         def it_renders_multiple_columns(render_config: vw.RenderConfig) -> None:
             """Should render SELECT col1, col2 FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("id"), vw.col("name"), vw.col("email")])
-            assert statement.render(config=render_config) == "SELECT id, name, email FROM users"
+            assert statement.render(config=render_config) == vw.RenderResult(
+                sql="SELECT id, name, email FROM users", params={}
+            )
 
 
 def describe_inner_join():
@@ -148,7 +150,6 @@ def describe_source_with_joins() -> None:
         orders = Source("orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*"))
-        assert (
-            statement.render(config=render_config)
-            == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id", params={}
         )
