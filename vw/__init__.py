@@ -1,6 +1,18 @@
 """vw - A SQL builder library with method chaining."""
 
-from vw.expr import Column, Equals, Expression, NotEquals, Parameter, col, param
+from vw.expr import (
+    Column,
+    Equals,
+    Expression,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
+    NotEquals,
+    Parameter,
+    col,
+    param,
+)
 from vw.query import InnerJoin, Source, Statement
 from vw.render import ParameterStyle, RenderConfig, RenderContext, RenderResult
 
@@ -10,7 +22,11 @@ __all__: list[str] = [
     "Column",
     "Equals",
     "Expression",
+    "GreaterThan",
+    "GreaterThanOrEqual",
     "InnerJoin",
+    "LessThan",
+    "LessThanOrEqual",
     "NotEquals",
     "Parameter",
     "ParameterStyle",

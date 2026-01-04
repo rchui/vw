@@ -1,7 +1,16 @@
 """Tests for vw.expr module."""
 
 import vw
-from vw.expr import Column, Equals, NotEquals, col
+from vw.expr import (
+    Column,
+    Equals,
+    GreaterThan,
+    GreaterThanOrEqual,
+    LessThan,
+    LessThanOrEqual,
+    NotEquals,
+    col,
+)
 
 
 def describe_column() -> None:
@@ -54,6 +63,38 @@ def describe_column() -> None:
             assert isinstance(result, NotEquals)
             assert result.__vw_render__(render_context) == "status != 'active'"
 
+        def it_creates_less_than_with_lt_operator(render_context: vw.RenderContext) -> None:
+            """Should create LessThan expression with < operator."""
+            left = col("age")
+            right = col("18")
+            result = left < right
+            assert isinstance(result, LessThan)
+            assert result.__vw_render__(render_context) == "age < 18"
+
+        def it_creates_less_than_or_equal_with_le_operator(render_context: vw.RenderContext) -> None:
+            """Should create LessThanOrEqual expression with <= operator."""
+            left = col("price")
+            right = col("100.00")
+            result = left <= right
+            assert isinstance(result, LessThanOrEqual)
+            assert result.__vw_render__(render_context) == "price <= 100.00"
+
+        def it_creates_greater_than_with_gt_operator(render_context: vw.RenderContext) -> None:
+            """Should create GreaterThan expression with > operator."""
+            left = col("score")
+            right = col("90")
+            result = left > right
+            assert isinstance(result, GreaterThan)
+            assert result.__vw_render__(render_context) == "score > 90"
+
+        def it_creates_greater_than_or_equal_with_ge_operator(render_context: vw.RenderContext) -> None:
+            """Should create GreaterThanOrEqual expression with >= operator."""
+            left = col("quantity")
+            right = col("1")
+            result = left >= right
+            assert isinstance(result, GreaterThanOrEqual)
+            assert result.__vw_render__(render_context) == "quantity >= 1"
+
 
 def describe_col_function() -> None:
     """Tests for col() function."""
@@ -85,6 +126,42 @@ def describe_not_equals() -> None:
         """Should render inequality comparison with != operator."""
         not_equals = NotEquals(left=col("x"), right=col("y"))
         assert not_equals.__vw_render__(render_context) == "x != y"
+
+
+def describe_less_than() -> None:
+    """Tests for LessThan class."""
+
+    def it_renders_less_than_comparison(render_context: vw.RenderContext) -> None:
+        """Should render less than comparison with < operator."""
+        less_than = LessThan(left=col("a"), right=col("b"))
+        assert less_than.__vw_render__(render_context) == "a < b"
+
+
+def describe_less_than_or_equal() -> None:
+    """Tests for LessThanOrEqual class."""
+
+    def it_renders_less_than_or_equal_comparison(render_context: vw.RenderContext) -> None:
+        """Should render less than or equal comparison with <= operator."""
+        less_than_or_equal = LessThanOrEqual(left=col("x"), right=col("y"))
+        assert less_than_or_equal.__vw_render__(render_context) == "x <= y"
+
+
+def describe_greater_than() -> None:
+    """Tests for GreaterThan class."""
+
+    def it_renders_greater_than_comparison(render_context: vw.RenderContext) -> None:
+        """Should render greater than comparison with > operator."""
+        greater_than = GreaterThan(left=col("a"), right=col("b"))
+        assert greater_than.__vw_render__(render_context) == "a > b"
+
+
+def describe_greater_than_or_equal() -> None:
+    """Tests for GreaterThanOrEqual class."""
+
+    def it_renders_greater_than_or_equal_comparison(render_context: vw.RenderContext) -> None:
+        """Should render greater than or equal comparison with >= operator."""
+        greater_than_or_equal = GreaterThanOrEqual(left=col("x"), right=col("y"))
+        assert greater_than_or_equal.__vw_render__(render_context) == "x >= y"
 
 
 def describe_parameter() -> None:
