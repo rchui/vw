@@ -96,15 +96,38 @@ ruff check --fix .     # Fix auto-fixable issues
 ```python
 import vw
 
+# Basic SELECT
 sql = vw.Source("users").select(vw.col("*")).render()
 # Result: "SELECT * FROM users"
+
+# Qualified columns
+users = vw.Source("users")
+orders = vw.Source("orders")
+sql = users.select(users.col("id"), users.col("name")).render()
+# Result: "SELECT users.id, users.name FROM users"
+
+# INNER JOIN with ON condition
+joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+sql = joined.select(vw.col("*")).render()
+# Result: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+
+# Multiple joins
+products = vw.Source("products")
+joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
+sql = joined.select(vw.col("*")).render()
+# Result: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
 ```
 
 **Key Classes**:
 - `Expression`: Protocol defining `__vw_render__() -> str`
-- `Column`: Represents a column reference, implements Expression protocol
-- `Source`: Represents a table/view (FROM clause)
+- `Column`: Represents a column reference, implements Expression protocol. Supports `==` and `!=` operators.
+- `Equals`: Represents equality comparison (`=`) between two expressions
+- `NotEquals`: Represents inequality comparison (`!=`) between two expressions
+- `Source`: Represents a table/view (FROM clause). Has `.col()` method for qualified columns and `.join` accessor for joins.
 - `Statement`: Represents a SQL statement (combines Source + columns)
+- `InnerJoin`: Represents an INNER JOIN operation with optional ON conditions
+- `JoinAccessor`: Accessor class providing `.inner()` method for joins
 
 **Escape Hatch**: Columns accept raw SQL strings for unsupported features:
 ```python
@@ -116,8 +139,11 @@ vw.col("CAST(price AS DECIMAL(10,2))")  # Complex expressions
 - `col(name)` - Create a column reference
 - `Column` - Column class
 - `Expression` - Expression protocol
+- `Equals` - Equality comparison operator class
+- `NotEquals` - Inequality comparison operator class
 - `Source` - Table/view source
 - `Statement` - SQL statement
+- `InnerJoin` - Inner join operation class
 
 ## Design Decisions
 
@@ -131,6 +157,11 @@ vw.col("CAST(price AS DECIMAL(10,2))")  # Complex expressions
 8. **Version 0.0.1**: Starting version set to 0.0.1 instead of 0.1.0
 9. **Minimal version pins**: Using `>=` for dependencies to maximize compatibility
 10. **pytest-describe**: BDD-style test organization for better readability
+11. **Separate operator classes**: Each comparison operator (Equals, NotEquals) is its own class instead of a generic BinaryOp
+12. **Join accessor pattern**: Joins accessed via `.join.inner()` property accessor instead of direct `.inner_join()` method
+13. **Sequence for ON conditions**: Join ON conditions use `Sequence[Expression]` instead of tuples for flexibility
+14. **Qualified columns via Source.col()**: `Source.col("id")` creates qualified column references like "table.id"
+15. **Column comparisons return Expression classes**: `col("a") == col("b")` returns an `Equals` instance, not a boolean
 
 ## Repository Information
 
@@ -181,9 +212,14 @@ pytest tests/test_expr.py    # Run specific test file
 - ✅ Expression Protocol with __vw_render__()
 - ✅ Escape hatch for raw SQL expressions
 - ✅ Star extensions via escape hatch (REPLACE, EXCLUDE)
+- ✅ Column comparison operators (`==` and `!=`)
+- ✅ Qualified column references via `Source.col()`
+- ✅ INNER JOIN support with accessor pattern (`Source.join.inner()`)
+- ✅ Multiple ON conditions in joins (combined with AND)
+- ✅ Chaining multiple joins
 
 ### Test Coverage
-- 24 tests passing
+- 38 tests passing
 - Unit tests for expr.py and query.py
 - Integration tests for SQL generation
 - All linters passing (ruff)
@@ -192,8 +228,9 @@ pytest tests/test_expr.py    # Run specific test file
 
 ### Planned Features
 - Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
+- Additional join types: LEFT, RIGHT, ANTI, SEMI
+- Additional comparison operators: `<`, `>`, `<=`, `>=`, `LIKE`, `IN`, etc.
 - WHERE clause support
-- JOIN operations
 - GROUP BY / HAVING
 - ORDER BY / LIMIT
 - Subqueries
