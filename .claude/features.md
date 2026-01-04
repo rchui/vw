@@ -1,86 +1,81 @@
 # Features
 
-## Implemented
+## Query Building
+- [x] Basic SELECT statements
+- [x] SELECT * FROM table
+- [x] SELECT col1, col2 FROM table
+- [x] Method chaining (Source → join → select → render)
+- [x] Qualified column references via `Source.col()`
+- [ ] WHERE clause support
+- [ ] GROUP BY / HAVING
+- [ ] ORDER BY / LIMIT / OFFSET
+- [ ] DISTINCT
 
-### Query Building
-- ✅ Basic SELECT statements
-- ✅ SELECT * FROM table
-- ✅ SELECT col1, col2 FROM table
-- ✅ Method chaining (Source → join → select → render)
-- ✅ Qualified column references via `Source.col()`
+## Joins
+- [x] INNER JOIN support with accessor pattern (`Source.join.inner()`)
+- [x] Multiple ON conditions in joins (combined with AND)
+- [x] Chaining multiple joins
+- [x] Cross joins (INNER JOIN without ON condition)
+- [ ] LEFT JOIN / LEFT OUTER JOIN
+- [ ] RIGHT JOIN / RIGHT OUTER JOIN
+- [ ] FULL OUTER JOIN
+- [ ] ANTI JOIN
+- [ ] SEMI JOIN
+- [ ] CROSS JOIN (explicit)
 
-### Joins
-- ✅ INNER JOIN support with accessor pattern (`Source.join.inner()`)
-- ✅ Multiple ON conditions in joins (combined with AND)
-- ✅ Chaining multiple joins
-- ✅ Cross joins (INNER JOIN without ON condition)
+## Parameters
+- [x] Parameterized values via `param(name, value)`
+- [x] Supported types: str, int, float, bool
+- [x] Parameter reuse in multiple places
+- [x] Type validation in param() function
+- [x] Multiple parameter styles (colon, dollar, at)
 
-### Parameters
-- ✅ Parameterized values via `param(name, value)`
-- ✅ Supported types: str, int, float, bool
-- ✅ Parameter reuse in multiple places
-- ✅ Type validation in param() function
-- ✅ Multiple parameter styles (colon, dollar, at)
+## Operators
+- [x] Equality comparison (`==`)
+- [x] Inequality comparison (`!=`)
+- [x] Less than comparison (`<`)
+- [x] Less than or equal comparison (`<=`)
+- [x] Greater than comparison (`>`)
+- [x] Greater than or equal comparison (`>=`)
+- [ ] LIKE comparison
+- [ ] IN comparison
+- [ ] Logical operators: AND, OR, NOT
 
-### Operators
-- ✅ Equality comparison (`==`)
-- ✅ Inequality comparison (`!=`)
-- ✅ Less than comparison (`<`)
-- ✅ Less than or equal comparison (`<=`)
-- ✅ Greater than comparison (`>`)
-- ✅ Greater than or equal comparison (`>=`)
+## Functions
+- [ ] Aggregate functions: COUNT, SUM, AVG, MIN, MAX
+- [ ] Window functions
+- [ ] String operations
+- [ ] Date/time operations
+- [ ] Type casting
+- [ ] NULL handling (IS NULL, IS NOT NULL, COALESCE)
+- [ ] CASE expressions
 
-### Rendering
-- ✅ Expression Protocol with `__vw_render__(context)`
-- ✅ RenderContext for parameter collection
-- ✅ RenderResult with SQL and params dict
-- ✅ Configurable parameter styles
+## Advanced Query Features
+- [ ] Subqueries in SELECT, FROM, WHERE
+- [ ] CTEs (Common Table Expressions / WITH clause)
+- [ ] UNION / UNION ALL / INTERSECT / EXCEPT
 
-### Escape Hatch
-- ✅ Raw SQL strings in columns for unsupported features
-- ✅ Star extensions (REPLACE, EXCLUDE)
-- ✅ Complex expressions (CAST, ROUND, etc.)
+## Rendering
+- [x] Expression Protocol with `__vw_render__(context)`
+- [x] RenderContext for parameter collection
+- [x] RenderResult with SQL and params dict
+- [x] Configurable parameter styles
 
-## Future Considerations
+## Escape Hatch
+- [x] Raw SQL strings in columns for unsupported features
+- [x] Star extensions (REPLACE, EXCLUDE)
+- [x] Complex expressions (CAST, ROUND, etc.)
 
-### Query Features
-- WHERE clause support
-- Additional comparison operators: `LIKE`, `IN`
-- Logical operators: AND, OR, NOT
-- GROUP BY / HAVING
-- ORDER BY / LIMIT / OFFSET
-- DISTINCT
-- Aggregate functions: COUNT, SUM, AVG, MIN, MAX
-- Window functions
-- UNION / UNION ALL / INTERSECT / EXCEPT
+## Developer Experience
+- [ ] Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
+- [ ] Type checking (mypy or pyright)
+- [ ] Better error messages
+- [ ] Query validation
+- [ ] SQL formatting/pretty-printing
 
-### Join Types
-- LEFT JOIN / LEFT OUTER JOIN
-- RIGHT JOIN / RIGHT OUTER JOIN  
-- FULL OUTER JOIN
-- ANTI JOIN
-- SEMI JOIN
-- CROSS JOIN (explicit)
-
-### Advanced Features
-- Subqueries in SELECT, FROM, WHERE
-- CTEs (Common Table Expressions / WITH clause)
-- CASE expressions
-- String operations
-- Date/time operations
-- Type casting
-- NULL handling (IS NULL, IS NOT NULL, COALESCE)
-
-### Developer Experience
-- Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
-- Type checking (mypy or pyright)
-- Better error messages
-- Query validation
-- SQL formatting/pretty-printing
-
-### Infrastructure
-- CI/CD configuration
-- Expand CLI functionality beyond basic --version flag
-- Documentation site
-- Performance benchmarks
-- Database driver integration examples
+## Infrastructure
+- [ ] CI/CD configuration
+- [ ] Expand CLI functionality beyond basic --version flag
+- [ ] Documentation site
+- [ ] Performance benchmarks
+- [ ] Database driver integration examples
