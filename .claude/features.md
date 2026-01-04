@@ -25,6 +25,10 @@
 ### Operators
 - ✅ Equality comparison (`==`)
 - ✅ Inequality comparison (`!=`)
+- ✅ Less than comparison (`<`)
+- ✅ Less than or equal comparison (`<=`)
+- ✅ Greater than comparison (`>`)
+- ✅ Greater than or equal comparison (`>=`)
 
 ### Rendering
 - ✅ Expression Protocol with `__vw_render__(context)`
@@ -41,7 +45,7 @@
 
 ### Query Features
 - WHERE clause support
-- Additional comparison operators: `<`, `>`, `<=`, `>=`, `LIKE`, `IN`
+- Additional comparison operators: `LIKE`, `IN`
 - Logical operators: AND, OR, NOT
 - GROUP BY / HAVING
 - ORDER BY / LIMIT / OFFSET

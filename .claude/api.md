@@ -13,6 +13,10 @@ All public exports from `vw/__init__.py`:
 - `Parameter` - Parameterized value class
 - `Equals` - Equality comparison operator (=)
 - `NotEquals` - Inequality comparison operator (!=)
+- `LessThan` - Less than comparison operator (<)
+- `LessThanOrEqual` - Less than or equal comparison operator (<=)
+- `GreaterThan` - Greater than comparison operator (>)
+- `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
 - `Source` - Table/view source
 - `Statement` - SQL statement
 - `InnerJoin` - Inner join operation
