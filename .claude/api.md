@@ -30,7 +30,18 @@ All public exports from `vw/__init__.py`:
 
 ## Usage Examples
 
+For comprehensive examples, see the integration tests in `tests/test_sql.py`:
+- `describe_basic_select` - Basic SELECT statements
+- `describe_star_extensions` - Star expression extensions (REPLACE, EXCLUDE)
+- `describe_method_chaining` - Method chaining patterns
+- `describe_complex_expressions` - Complex SQL expressions via escape hatch
+- `describe_joins` - INNER JOIN operations
+- `describe_where` - WHERE clause support
+- `describe_parameters` - Parameterized queries
+
 ### Basic SELECT
+
+See `tests/test_sql.py::describe_basic_select` for more examples.
 
 ```python
 import vw
@@ -41,18 +52,7 @@ result = vw.Source("users").select(vw.col("*")).render()
 # result.params: {}
 ```
 
-### SELECT with Multiple Columns
-
-```python
-result = vw.Source("users").select(
-    vw.col("id"),
-    vw.col("name"),
-    vw.col("email")
-).render()
-# result.sql: "SELECT id, name, email FROM users"
-```
-
-### Qualified Columns
+### SELECT with Qualified Columns
 
 ```python
 users = vw.Source("users")
@@ -65,52 +65,18 @@ result = users.select(
 
 ### INNER JOIN
 
+See `tests/test_sql.py::describe_joins` for comprehensive examples including multiple conditions and chained joins.
+
 ```python
 users = vw.Source("users")
 orders = vw.Source("orders")
 
-joined = users.join.inner(
-    orders,
-    on=[users.col("id") == orders.col("user_id")]
+result = (
+    users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+    .select(vw.col("*"))
+    .render()
 )
-
-result = joined.select(vw.col("*")).render()
 # result.sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
-```
-
-### Multiple JOIN Conditions
-
-```python
-users = vw.Source("users")
-orders = vw.Source("orders")
-
-joined = users.join.inner(
-    orders,
-    on=[
-        users.col("id") == orders.col("user_id"),
-        users.col("status") == vw.col("'active'")
-    ]
-)
-
-result = joined.select(vw.col("*")).render()
-# result.sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id AND users.status = 'active'"
-```
-
-### Chaining Multiple JOINs
-
-```python
-users = vw.Source("users")
-orders = vw.Source("orders")
-products = vw.Source("products")
-
-joined = (
-    users
-    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-    .join.inner(products, on=[orders.col("product_id") == products.col("id")])
-)
-
-result = joined.select(vw.col("*")).render()
-# result.sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
 ```
 
 ### WHERE Clause
@@ -135,6 +101,8 @@ result = vw.Source("users").select(vw.col("*")).where(
 
 ### Parameterized Queries
 
+See `tests/test_sql.py::describe_parameters` for comprehensive examples including parameter reuse and different types.
+
 ```python
 users = vw.Source("users")
 orders = vw.Source("orders")
@@ -143,46 +111,19 @@ orders = vw.Source("orders")
 user_id = vw.param("user_id", 123)
 status = vw.param("status", "active")
 
-joined = users.join.inner(
-    orders,
-    on=[
-        users.col("id") == user_id,
-        orders.col("status") == status
-    ]
+result = (
+    users.join.inner(
+        orders,
+        on=[
+            users.col("id") == user_id,
+            orders.col("status") == status
+        ]
+    )
+    .select(users.col("name"), orders.col("total"))
+    .render()
 )
-
-result = joined.select(users.col("name"), orders.col("total")).render()
 # result.sql: "SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = :user_id AND orders.status = :status"
 # result.params: {"user_id": 123, "status": "active"}
-```
-
-### Reusing Parameters
-
-```python
-# Same parameter can be used multiple times
-threshold = vw.param("threshold", 100)
-
-joined = users.join.inner(
-    orders,
-    on=[
-        users.col("age") == threshold,
-        orders.col("quantity") == threshold
-    ]
-)
-
-result = joined.select(vw.col("*")).render()
-# result.sql: "SELECT * FROM users INNER JOIN orders ON users.age = :threshold AND orders.quantity = :threshold"
-# result.params: {"threshold": 100}  # Only appears once in params
-```
-
-### Different Parameter Types
-
-```python
-# Supports str, int, float, bool
-name = vw.param("name", "Alice")         # str
-age = vw.param("age", 25)                # int
-price = vw.param("price", 19.99)         # float
-active = vw.param("active", True)        # bool
 ```
 
 ### Custom Parameter Styles
@@ -202,6 +143,8 @@ result = query.render(config)  # Uses @name
 ```
 
 ### Escape Hatch for Raw SQL
+
+See `tests/test_sql.py::describe_star_extensions` and `tests/test_sql.py::describe_complex_expressions` for more examples.
 
 ```python
 # Use raw SQL strings for unsupported features
