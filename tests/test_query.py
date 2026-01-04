@@ -12,6 +12,26 @@ def describe_source():
         source = Source("products")
         assert source.__vw_render__() == "products"
 
+    def describe_col():
+        """Tests for Source.col() method."""
+
+        def it_returns_qualified_column():
+            """Should return Column with source name prefix."""
+            source = Source("users")
+            column = source.col("id")
+            assert column.__vw_render__() == "users.id"
+
+        def it_returns_column_equal_to_manually_constructed():
+            """Should return Column equal to manually constructed qualified column."""
+            source = Source("orders")
+            assert source.col("user_id") == vw.Column("orders.user_id")
+
+        def it_works_with_different_column_names():
+            """Should qualify any column name."""
+            source = Source("orders")
+            assert source.col("user_id").__vw_render__() == "orders.user_id"
+            assert source.col("total").__vw_render__() == "orders.total"
+
     def describe_select():
         """Tests for Source.select() method."""
 

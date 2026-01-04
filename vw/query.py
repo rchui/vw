@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from vw.expr import Expression
+from vw.expr import Column, Expression
 
 
 @dataclass
@@ -10,6 +10,21 @@ class Source:
     """Represents a SQL data source (table, view, etc.)."""
 
     name: str
+
+    def col(self, column_name: str, /) -> Column:
+        """
+        Create a column reference qualified with this source's name.
+
+        Args:
+            column_name: Column name to qualify.
+
+        Returns:
+            A Column with the source name as a prefix.
+
+        Example:
+            >>> Source("users").col("id")  # Returns Column("users.id")
+        """
+        return Column(f"{self.name}.{column_name}")
 
     def select(self, *columns: Expression) -> "Statement":
         """
