@@ -6,7 +6,7 @@
 - [x] SELECT col1, col2 FROM table
 - [x] Method chaining (Source → join → select → render)
 - [x] Qualified column references via `Source.col()`
-- [ ] WHERE clause support
+- [x] WHERE clause support
 - [ ] GROUP BY / HAVING
 - [ ] ORDER BY / LIMIT / OFFSET
 - [ ] DISTINCT

@@ -116,8 +116,30 @@ class Statement:
 
     source: Source
     columns: list[Expression]
+    where_conditions: list[Expression] = field(default_factory=list)
 
-    def render(self, config: RenderConfig = RenderConfig()) -> RenderResult:
+    def where(self, *exprs: Expression) -> Statement:
+        """
+        Add WHERE conditions to the statement.
+
+        Args:
+            *exprs: Expression objects for WHERE clause. Multiple expressions are combined with AND.
+
+        Returns:
+            A new Statement with the WHERE conditions applied.
+
+        Example:
+            >>> from vw import col, param
+            >>> Source("users").select(col("*")).where(col("age") >= param("min_age", 18))
+            >>> Source("users").select(col("*")).where(col("status") == col("'active'"), col("age") >= col("18"))
+        """
+        return Statement(
+            source=self.source,
+            columns=self.columns,
+            where_conditions=self.where_conditions + list(exprs),
+        )
+
+    def render(self, config: RenderConfig | None = None) -> RenderResult:
         """
         Render the SQL statement with parameter tracking.
 
@@ -127,6 +149,8 @@ class Statement:
         Returns:
             RenderResult containing the SQL string and parameter dictionary.
         """
+        if config is None:
+            config = RenderConfig()
         context = RenderContext(config=config)
         sql = self.__vw_render__(context)
         return RenderResult(sql=sql, params=context.params)
@@ -138,4 +162,11 @@ class Statement:
         columns_str = ", ".join(rendered_columns)
         source_str = self.source.__vw_render__(context)
 
-        return f"SELECT {columns_str} FROM {source_str}"
+        sql = f"SELECT {columns_str} FROM {source_str}"
+
+        # Add WHERE clause if conditions exist
+        if self.where_conditions:
+            conditions = [expr.__vw_render__(context) for expr in self.where_conditions]
+            sql += f" WHERE {' AND '.join(conditions)}"
+
+        return sql

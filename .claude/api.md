@@ -113,6 +113,26 @@ result = joined.select(vw.col("*")).render()
 # result.sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
 ```
 
+### WHERE Clause
+
+The `where()` method adds WHERE conditions to a statement. Multiple expressions are combined with AND.
+
+See `tests/test_sql.py::describe_where` for comprehensive examples including:
+- Single and multiple conditions
+- WHERE with parameters
+- Chaining multiple where() calls
+- WHERE with JOIN
+- All comparison operators
+
+Basic example:
+```python
+result = vw.Source("users").select(vw.col("*")).where(
+    vw.col("age") >= vw.param("min_age", 18)
+).render()
+# result.sql: "SELECT * FROM users WHERE age >= :min_age"
+# result.params: {"min_age": 18}
+```
+
 ### Parameterized Queries
 
 ```python

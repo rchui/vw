@@ -197,6 +197,101 @@ def describe_joins():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_where():
+    """Tests for WHERE clause."""
+
+    def it_generates_where_with_single_condition(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users WHERE age >= 18
+        """
+        result = (
+            vw.Source("users").select(vw.col("*")).where(vw.col("age") >= vw.col("18")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_where_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users WHERE age >= 18 AND status = 'active'
+        """
+        result = (
+            vw.Source("users")
+            .select(vw.col("*"))
+            .where(vw.col("age") >= vw.col("18"), vw.col("status") == vw.col("'active'"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_where_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users WHERE age >= :min_age AND status = :status
+        """
+        min_age = vw.param("min_age", 18)
+        status = vw.param("status", "active")
+        result = (
+            vw.Source("users")
+            .select(vw.col("*"))
+            .where(vw.col("age") >= min_age, vw.col("status") == status)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"min_age": 18, "status": "active"})
+
+    def it_chains_multiple_where_calls(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users WHERE age >= 18 AND status = 'active'
+        """
+        result = (
+            vw.Source("users")
+            .select(vw.col("*"))
+            .where(vw.col("age") >= vw.col("18"))
+            .where(vw.col("status") == vw.col("'active'"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_where_with_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            INNER JOIN orders ON users.id = orders.user_id
+            WHERE orders.total > 100
+        """
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        result = (
+            users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+            .select(vw.col("*"))
+            .where(orders.col("total") > vw.col("100"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_where_with_all_comparison_operators(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM products
+            WHERE price > 10
+                AND stock >= 5
+                AND discount < 50
+                AND rating <= 4.5
+                AND active = true
+                AND deleted != true
+        """
+        result = (
+            vw.Source("products")
+            .select(vw.col("*"))
+            .where(
+                vw.col("price") > vw.col("10"),
+                vw.col("stock") >= vw.col("5"),
+                vw.col("discount") < vw.col("50"),
+                vw.col("rating") <= vw.col("4.5"),
+                vw.col("active") == vw.col("true"),
+                vw.col("deleted") != vw.col("true"),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_parameters():
     """Tests for parameterized values."""
 
@@ -211,7 +306,9 @@ def describe_parameters():
         users = vw.Source("users")
         orders = vw.Source("orders")
         status_param = vw.param("status", "active")
-        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == status_param])
+        joined = users.join.inner(
+            orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == status_param]
+        )
         result = joined.select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
@@ -230,9 +327,7 @@ def describe_parameters():
         orders = vw.Source("orders")
         user_id_param = vw.param("user_id", 123)
         status_param = vw.param("status", "pending")
-        joined = users.join.inner(
-            orders, on=[users.col("id") == user_id_param, orders.col("status") == status_param]
-        )
+        joined = users.join.inner(orders, on=[users.col("id") == user_id_param, orders.col("status") == status_param])
         result = joined.select(users.col("name"), orders.col("total")).render(config=render_config)
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
@@ -275,7 +370,12 @@ def describe_parameters():
         active = vw.param("active", True)
         joined = users.join.inner(
             orders,
-            on=[users.col("name") == name, users.col("age") == age, orders.col("price") == price, users.col("active") == active],
+            on=[
+                users.col("name") == name,
+                users.col("age") == age,
+                orders.col("price") == price,
+                users.col("active") == active,
+            ],
         )
         result = joined.select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(

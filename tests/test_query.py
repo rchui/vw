@@ -153,3 +153,81 @@ def describe_source_with_joins() -> None:
         assert statement.render(config=render_config) == vw.RenderResult(
             sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id", params={}
         )
+
+
+def describe_where() -> None:
+    """Tests for WHERE clause functionality."""
+
+    def it_returns_statement() -> None:
+        """Should return a Statement object."""
+        source = Source("users")
+        statement = source.select(vw.col("*")).where(vw.col("age") >= vw.col("18"))
+        assert isinstance(statement, Statement)
+
+    def it_renders_where_with_single_condition(render_config: vw.RenderConfig) -> None:
+        """Should render SELECT with WHERE clause."""
+        source = Source("users")
+        statement = source.select(vw.col("*")).where(vw.col("age") >= vw.col("18"))
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users WHERE age >= 18", params={}
+        )
+
+    def it_renders_where_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
+        """Should render WHERE with multiple conditions combined with AND."""
+        source = Source("users")
+        statement = source.select(vw.col("*")).where(
+            vw.col("age") >= vw.col("18"), vw.col("status") == vw.col("'active'")
+        )
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users WHERE age >= 18 AND status = 'active'", params={}
+        )
+
+    def it_renders_where_with_parameters(render_config: vw.RenderConfig) -> None:
+        """Should render WHERE clause with parameterized values."""
+        source = Source("users")
+        min_age = vw.param("min_age", 18)
+        status = vw.param("status", "active")
+        statement = source.select(vw.col("*")).where(vw.col("age") >= min_age, vw.col("status") == status)
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users WHERE age >= :min_age AND status = :status",
+            params={"min_age": 18, "status": "active"},
+        )
+
+    def it_chains_multiple_where_calls(render_config: vw.RenderConfig) -> None:
+        """Should support chaining multiple where() calls."""
+        source = Source("users")
+        statement = (
+            source.select(vw.col("*"))
+            .where(vw.col("age") >= vw.col("18"))
+            .where(vw.col("status") == vw.col("'active'"))
+        )
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users WHERE age >= 18 AND status = 'active'", params={}
+        )
+
+    def it_renders_where_with_join(render_config: vw.RenderConfig) -> None:
+        """Should render WHERE clause with JOIN."""
+        users = Source("users")
+        orders = Source("orders")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        statement = joined.select(vw.col("*")).where(orders.col("total") > vw.col("100"))
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id WHERE orders.total > 100",
+            params={},
+        )
+
+    def it_renders_where_with_all_comparison_operators(render_config: vw.RenderConfig) -> None:
+        """Should render WHERE clause with all comparison operators."""
+        source = Source("products")
+        statement = source.select(vw.col("*")).where(
+            vw.col("price") > vw.col("10"),
+            vw.col("stock") >= vw.col("5"),
+            vw.col("discount") < vw.col("50"),
+            vw.col("rating") <= vw.col("4.5"),
+            vw.col("active") == vw.col("true"),
+            vw.col("deleted") != vw.col("true"),
+        )
+        assert statement.render(config=render_config) == vw.RenderResult(
+            sql="SELECT * FROM products WHERE price > 10 AND stock >= 5 AND discount < 50 AND rating <= 4.5 AND active = true AND deleted != true",
+            params={},
+        )
