@@ -138,3 +138,64 @@ def describe_joins():
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id", params={})
+
+
+def describe_parameters():
+    """Tests for parameterized values."""
+
+    def it_generates_select_with_parameter_in_join(render_config: vw.RenderConfig) -> None:
+        """Should generate query with parameter in join condition."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        status_param = vw.param("status", "active")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == status_param])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id AND users.status = :status",
+            params={"status": "active"},
+        )
+
+    def it_generates_select_with_multiple_parameters(render_config: vw.RenderConfig) -> None:
+        """Should generate query with multiple parameters."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        user_id_param = vw.param("user_id", 123)
+        status_param = vw.param("status", "pending")
+        joined = users.join.inner(
+            orders, on=[users.col("id") == user_id_param, orders.col("status") == status_param]
+        )
+        result = joined.select(users.col("name"), orders.col("total")).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = :user_id AND orders.status = :status",
+            params={"user_id": 123, "status": "pending"},
+        )
+
+    def it_reuses_same_parameter_multiple_times(render_config: vw.RenderConfig) -> None:
+        """Should reuse the same parameter in multiple places."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        threshold = vw.param("threshold", 100)
+        joined = users.join.inner(orders, on=[users.col("age") == threshold, orders.col("quantity") == threshold])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users INNER JOIN orders ON users.age = :threshold AND orders.quantity = :threshold",
+            params={"threshold": 100},
+        )
+
+    def it_supports_different_parameter_types(render_config: vw.RenderConfig) -> None:
+        """Should support string, int, float, and bool parameters."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        name = vw.param("name", "Alice")
+        age = vw.param("age", 25)
+        price = vw.param("price", 19.99)
+        active = vw.param("active", True)
+        joined = users.join.inner(
+            orders,
+            on=[users.col("name") == name, users.col("age") == age, orders.col("price") == price, users.col("active") == active],
+        )
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users INNER JOIN orders ON users.name = :name AND users.age = :age AND orders.price = :price AND users.active = :active",
+            params={"name": "Alice", "age": 25, "price": 19.99, "active": True},
+        )
