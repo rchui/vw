@@ -4,33 +4,33 @@ import vw
 from vw.query import InnerJoin, Source, Statement
 
 
-def describe_source():
+def describe_source() -> None:
     """Tests for Source class."""
 
-    def it_renders_source_name():
+    def it_renders_source_name(render_context: vw.RenderContext) -> None:
         """Should render Source as its name."""
         source = Source("products")
-        assert source.__vw_render__() == "products"
+        assert source.__vw_render__(render_context) == "products"
 
-    def describe_col():
+    def describe_col() -> None:
         """Tests for Source.col() method."""
 
-        def it_returns_qualified_column():
+        def it_returns_qualified_column(render_context: vw.RenderContext) -> None:
             """Should return Column with source name prefix."""
             source = Source("users")
             column = source.col("id")
-            assert column.__vw_render__() == "users.id"
+            assert column.__vw_render__(render_context) == "users.id"
 
         def it_returns_column_equal_to_manually_constructed():
             """Should return Column equal to manually constructed qualified column."""
             source = Source("orders")
             assert source.col("user_id") == vw.Column("orders.user_id")
 
-        def it_works_with_different_column_names():
+        def it_works_with_different_column_names(render_context: vw.RenderContext) -> None:
             """Should qualify any column name."""
             source = Source("orders")
-            assert source.col("user_id").__vw_render__() == "orders.user_id"
-            assert source.col("total").__vw_render__() == "orders.total"
+            assert source.col("user_id").__vw_render__(render_context) == "orders.user_id"
+            assert source.col("total").__vw_render__(render_context) == "orders.total"
 
     def describe_select():
         """Tests for Source.select() method."""
@@ -51,69 +51,65 @@ def describe_source():
             assert statement.columns == [col1, col2]
 
 
-def describe_statement():
+def describe_statement() -> None:
     """Tests for Statement class."""
 
-    def describe_render():
+    def describe_render() -> None:
         """Tests for Statement.render() method."""
 
-        def it_renders_select_star():
+        def it_renders_select_star(render_config: vw.RenderConfig) -> None:
             """Should render SELECT * FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("*")])
-            assert statement.render() == "SELECT * FROM users"
+            assert statement.render(config=render_config) == "SELECT * FROM users"
 
-        def it_renders_single_column():
+        def it_renders_single_column(render_config: vw.RenderConfig) -> None:
             """Should render SELECT column FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("id")])
-            assert statement.render() == "SELECT id FROM users"
+            assert statement.render(config=render_config) == "SELECT id FROM users"
 
-        def it_renders_multiple_columns():
+        def it_renders_multiple_columns(render_config: vw.RenderConfig) -> None:
             """Should render SELECT col1, col2 FROM table."""
             source = Source("users")
             statement = Statement(source=source, columns=[vw.col("id"), vw.col("name"), vw.col("email")])
-            assert statement.render() == "SELECT id, name, email FROM users"
-
-    def it_vw_render_calls_render():
-        """Should delegate __vw_render__ to render()."""
-        source = Source("products")
-        statement = Statement(source=source, columns=[vw.col("*")])
-        assert statement.__vw_render__() == statement.render()
+            assert statement.render(config=render_config) == "SELECT id, name, email FROM users"
 
 
 def describe_inner_join():
     """Tests for InnerJoin class."""
 
-    def it_renders_inner_join_without_condition():
+    def it_renders_inner_join_without_condition(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN without ON clause."""
-        users = Source("users")
         orders = Source("orders")
         join = InnerJoin(right=orders)
-        assert join.__vw_render__() == "INNER JOIN orders"
+        assert join.__vw_render__(render_context) == "INNER JOIN orders"
 
-    def it_renders_inner_join_with_single_condition():
+    def it_renders_inner_join_with_single_condition(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN with ON clause."""
         users = Source("users")
         orders = Source("orders")
         condition = users.col("id") == orders.col("user_id")
         join = InnerJoin(right=orders, on=[condition])
-        assert join.__vw_render__() == "INNER JOIN orders ON users.id = orders.user_id"
+        assert join.__vw_render__(render_context) == "INNER JOIN orders ON users.id = orders.user_id"
 
-    def it_renders_inner_join_with_multiple_conditions():
+    def it_renders_inner_join_with_multiple_conditions(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN with multiple conditions combined with AND."""
         users = Source("users")
         orders = Source("orders")
         condition1 = users.col("id") == orders.col("user_id")
         condition2 = users.col("status") == vw.col("'active'")
         join = InnerJoin(right=orders, on=[condition1, condition2])
-        assert join.__vw_render__() == "INNER JOIN orders ON users.id = orders.user_id AND users.status = 'active'"
+        assert (
+            join.__vw_render__(render_context)
+            == "INNER JOIN orders ON users.id = orders.user_id AND users.status = 'active'"
+        )
 
 
-def describe_join_accessor():
+def describe_join_accessor() -> None:
     """Tests for JoinAccessor class."""
 
-    def it_creates_source_with_inner_join():
+    def it_creates_source_with_inner_join() -> None:
         """Should create a new Source with inner join."""
         users = Source("users")
         orders = Source("orders")
@@ -122,7 +118,7 @@ def describe_join_accessor():
         assert len(joined.joins) == 1
         assert isinstance(joined.joins[0], InnerJoin)
 
-    def it_chains_multiple_joins():
+    def it_chains_multiple_joins(render_context: vw.RenderContext) -> None:
         """Should support chaining multiple joins."""
         users = Source("users")
         orders = Source("orders")
@@ -130,23 +126,29 @@ def describe_join_accessor():
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
         assert len(joined.joins) == 2
-        assert joined.__vw_render__() == "users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
+        assert (
+            joined.__vw_render__(render_context)
+            == "users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
+        )
 
 
-def describe_source_with_joins():
+def describe_source_with_joins() -> None:
     """Tests for Source rendering with joins."""
 
-    def it_renders_source_with_single_join():
+    def it_renders_source_with_single_join(render_context: vw.RenderContext) -> None:
         """Should render source with INNER JOIN."""
         users = Source("users")
         orders = Source("orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-        assert joined.__vw_render__() == "users INNER JOIN orders ON users.id = orders.user_id"
+        assert joined.__vw_render__(render_context) == "users INNER JOIN orders ON users.id = orders.user_id"
 
-    def it_renders_select_statement_with_join():
+    def it_renders_select_statement_with_join(render_config: vw.RenderConfig) -> None:
         """Should render SELECT statement with join."""
         users = Source("users")
         orders = Source("orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*"))
-        assert statement.render() == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+        assert (
+            statement.render(config=render_config)
+            == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+        )

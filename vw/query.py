@@ -1,23 +1,27 @@
 """SQL query builder with method chaining."""
 
+from __future__ import annotations
+
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from vw.expr import Column, Expression
+from vw.render import RenderConfig, RenderContext
 
 
 @dataclass
 class InnerJoin:
     """Represents an INNER JOIN operation."""
 
-    right: "Source"
+    right: Source
     on: Sequence[Expression] = field(default_factory=list)
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the inner join."""
-        join_sql = f"INNER JOIN {self.right.__vw_render__()}"
+
+        join_sql = f"INNER JOIN {self.right.__vw_render__(context)}"
         if self.on:
-            conditions = [expr.__vw_render__() for expr in self.on]
+            conditions = [expr.__vw_render__(context) for expr in self.on]
             join_sql += f" ON {' AND '.join(conditions)}"
         return join_sql
 
@@ -25,10 +29,10 @@ class InnerJoin:
 class JoinAccessor:
     """Accessor for join operations on a Source."""
 
-    def __init__(self, source: "Source"):
+    def __init__(self, source: Source):
         self._source = source
 
-    def inner(self, right: "Source", *, on: Sequence[Expression] = ()) -> "Source":
+    def inner(self, right: Source, *, on: Sequence[Expression] = ()) -> Source:
         """
         Perform an INNER JOIN with another source.
 
@@ -75,9 +79,10 @@ class Source:
         Example:
             >>> Source("users").col("id")  # Returns Column("users.id")
         """
+
         return Column(f"{self.name}.{column_name}")
 
-    def select(self, *columns: Expression) -> "Statement":
+    def select(self, *columns: Expression) -> Statement:
         """
         Select columns from this source.
 
@@ -92,14 +97,16 @@ class Source:
             >>> Source("users").select(col("*"))
             >>> Source("users").select(col("id"), col("name"))
         """
+
         return Statement(source=self, columns=list(columns))
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""
+
         sql = self.name
         if self.joins:
             for join_obj in self.joins:
-                sql += f" {join_obj.__vw_render__()}"
+                sql += f" {join_obj.__vw_render__(context)}"
         return sql
 
 
@@ -110,20 +117,19 @@ class Statement:
     source: Source
     columns: list[Expression]
 
-    def render(self) -> str:
+    def render(self, *, config: RenderConfig) -> str:
         """
         Render the SQL statement string.
 
         Returns:
             The constructed SQL statement.
         """
+
+        context = RenderContext(config=config)
+
         # Render columns
-        rendered_columns = [col.__vw_render__() for col in self.columns]
+        rendered_columns = [col.__vw_render__(context) for col in self.columns]
         columns_str = ", ".join(rendered_columns)
-        source_str = self.source.__vw_render__()
+        source_str = self.source.__vw_render__(context)
 
         return f"SELECT {columns_str} FROM {source_str}"
-
-    def __vw_render__(self) -> str:
-        """Return the SQL representation of the statement."""
-        return self.render()

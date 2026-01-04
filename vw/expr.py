@@ -1,13 +1,16 @@
 """Expression classes for SQL query building."""
 
 from dataclasses import dataclass
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
+
+if TYPE_CHECKING:
+    from vw.render import RenderContext
 
 
 class Expression(Protocol):
     """Protocol for SQL expressions."""
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the expression."""
         ...
 
@@ -19,9 +22,9 @@ class Equals:
     left: Expression
     right: Expression
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the equality comparison."""
-        return f"{self.left.__vw_render__()} = {self.right.__vw_render__()}"
+        return f"{self.left.__vw_render__(context)} = {self.right.__vw_render__(context)}"
 
 
 @dataclass
@@ -31,9 +34,9 @@ class NotEquals:
     left: Expression
     right: Expression
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the inequality comparison."""
-        return f"{self.left.__vw_render__()} != {self.right.__vw_render__()}"
+        return f"{self.left.__vw_render__(context)} != {self.right.__vw_render__(context)}"
 
 
 @dataclass
@@ -72,7 +75,7 @@ class Column:
         """
         return NotEquals(left=self, right=other)
 
-    def __vw_render__(self) -> str:
+    def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the column."""
         return self.name
 
