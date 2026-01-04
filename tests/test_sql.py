@@ -73,3 +73,62 @@ def describe_complex_expressions():
             .render()
         )
         assert sql == "SELECT id, ROUND(total, 2) AS rounded_total, status FROM orders"
+
+
+def describe_joins():
+    """Tests for JOIN operations."""
+
+    def it_generates_inner_join_with_qualified_columns():
+        """Should generate INNER JOIN with qualified columns."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        sql = joined.select(vw.col("*")).render()
+        assert sql == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+
+    def it_generates_inner_join_with_selected_columns():
+        """Should generate INNER JOIN with specific columns selected."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        sql = joined.select(users.col("name"), orders.col("total")).render()
+        assert sql == "SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = orders.user_id"
+
+    def it_generates_inner_join_with_multiple_conditions():
+        """Should generate INNER JOIN with multiple ON conditions."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        joined = users.join.inner(
+            orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == vw.col("'active'")]
+        )
+        sql = joined.select(vw.col("*")).render()
+        assert sql == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id AND users.status = 'active'"
+
+    def it_generates_multiple_joins():
+        """Should generate multiple JOINs."""
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        products = vw.Source("products")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
+        sql = joined.select(users.col("name"), orders.col("quantity"), products.col("price")).render()
+        expected = "SELECT users.name, orders.quantity, products.price FROM users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
+        assert sql == expected
+
+    def it_generates_join_without_on_condition():
+        """Should generate INNER JOIN without ON clause (cross join)."""
+        users = vw.Source("users")
+        settings = vw.Source("settings")
+        joined = users.join.inner(settings)
+        sql = joined.select(vw.col("*")).render()
+        assert sql == "SELECT * FROM users INNER JOIN settings"
+
+    def it_chains_join_and_select():
+        """Should support chaining join and select in fluent style."""
+        sql = (
+            vw.Source("users")
+            .join.inner(vw.Source("orders"), on=[vw.Source("users").col("id") == vw.Source("orders").col("user_id")])
+            .select(vw.col("*"))
+            .render()
+        )
+        assert sql == "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
