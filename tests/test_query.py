@@ -93,7 +93,7 @@ def describe_inner_join():
         orders = Source("orders")
         condition = users.col("id") == orders.col("user_id")
         join = InnerJoin(right=orders, on=[condition])
-        assert join.__vw_render__(render_context) == "INNER JOIN orders ON users.id = orders.user_id"
+        assert join.__vw_render__(render_context) == "INNER JOIN orders ON (users.id = orders.user_id)"
 
     def it_renders_inner_join_with_multiple_conditions(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN with multiple conditions combined with AND."""
@@ -104,7 +104,7 @@ def describe_inner_join():
         join = InnerJoin(right=orders, on=[condition1, condition2])
         assert (
             join.__vw_render__(render_context)
-            == "INNER JOIN orders ON users.id = orders.user_id AND users.status = 'active'"
+            == "INNER JOIN orders ON (users.id = orders.user_id) AND (users.status = 'active')"
         )
 
 
@@ -130,7 +130,7 @@ def describe_join_accessor() -> None:
         assert len(joined.joins) == 2
         assert (
             joined.__vw_render__(render_context)
-            == "users INNER JOIN orders ON users.id = orders.user_id INNER JOIN products ON orders.product_id = products.id"
+            == "users INNER JOIN orders ON (users.id = orders.user_id) INNER JOIN products ON (orders.product_id = products.id)"
         )
 
 
@@ -142,7 +142,7 @@ def describe_source_with_joins() -> None:
         users = Source("users")
         orders = Source("orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-        assert joined.__vw_render__(render_context) == "users INNER JOIN orders ON users.id = orders.user_id"
+        assert joined.__vw_render__(render_context) == "users INNER JOIN orders ON (users.id = orders.user_id)"
 
     def it_renders_select_statement_with_join(render_config: vw.RenderConfig) -> None:
         """Should render SELECT statement with join."""
@@ -151,7 +151,7 @@ def describe_source_with_joins() -> None:
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*"))
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id", params={}
+            sql="SELECT * FROM users INNER JOIN orders ON (users.id = orders.user_id)", params={}
         )
 
 
@@ -169,7 +169,7 @@ def describe_where() -> None:
         source = Source("users")
         statement = source.select(vw.col("*")).where(vw.col("age") >= vw.col("18"))
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users WHERE age >= 18", params={}
+            sql="SELECT * FROM users WHERE (age >= 18)", params={}
         )
 
     def it_renders_where_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
@@ -179,7 +179,7 @@ def describe_where() -> None:
             vw.col("age") >= vw.col("18"), vw.col("status") == vw.col("'active'")
         )
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users WHERE age >= 18 AND status = 'active'", params={}
+            sql="SELECT * FROM users WHERE (age >= 18) AND (status = 'active')", params={}
         )
 
     def it_renders_where_with_parameters(render_config: vw.RenderConfig) -> None:
@@ -189,7 +189,7 @@ def describe_where() -> None:
         status = vw.param("status", "active")
         statement = source.select(vw.col("*")).where(vw.col("age") >= min_age, vw.col("status") == status)
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users WHERE age >= :min_age AND status = :status",
+            sql="SELECT * FROM users WHERE (age >= :min_age) AND (status = :status)",
             params={"min_age": 18, "status": "active"},
         )
 
@@ -202,7 +202,7 @@ def describe_where() -> None:
             .where(vw.col("status") == vw.col("'active'"))
         )
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users WHERE age >= 18 AND status = 'active'", params={}
+            sql="SELECT * FROM users WHERE (age >= 18) AND (status = 'active')", params={}
         )
 
     def it_renders_where_with_join(render_config: vw.RenderConfig) -> None:
@@ -212,7 +212,7 @@ def describe_where() -> None:
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*")).where(orders.col("total") > vw.col("100"))
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id WHERE orders.total > 100",
+            sql="SELECT * FROM users INNER JOIN orders ON (users.id = orders.user_id) WHERE (orders.total > 100)",
             params={},
         )
 
@@ -228,6 +228,6 @@ def describe_where() -> None:
             vw.col("deleted") != vw.col("true"),
         )
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM products WHERE price > 10 AND stock >= 5 AND discount < 50 AND rating <= 4.5 AND active = true AND deleted != true",
+            sql="SELECT * FROM products WHERE (price > 10) AND (stock >= 5) AND (discount < 50) AND (rating <= 4.5) AND (active = true) AND (deleted <> true)",
             params={},
         )

@@ -2,6 +2,7 @@
 
 import vw
 from vw.expr import (
+    And,
     Column,
     Equals,
     GreaterThan,
@@ -9,6 +10,7 @@ from vw.expr import (
     LessThan,
     LessThanOrEqual,
     NotEquals,
+    Or,
     col,
 )
 
@@ -61,7 +63,7 @@ def describe_column() -> None:
             right = col("'active'")
             result = left != right
             assert isinstance(result, NotEquals)
-            assert result.__vw_render__(render_context) == "status != 'active'"
+            assert result.__vw_render__(render_context) == "status <> 'active'"
 
         def it_creates_less_than_with_lt_operator(render_context: vw.RenderContext) -> None:
             """Should create LessThan expression with < operator."""
@@ -110,6 +112,46 @@ def describe_col_function() -> None:
         assert column.__vw_render__(render_context) == "* REPLACE (old_name AS new_name)"
 
 
+def describe_comparison_expressions() -> None:
+    """Tests for comparison expression classes."""
+
+    def describe_and() -> None:
+        """Tests for And class."""
+
+        def it_renders_and_expression(render_context: vw.RenderContext) -> None:
+            """Should render AND expression."""
+
+            and_expr = And(
+                left=Equals(left=col("a"), right=col("b")),
+                right=GreaterThan(left=col("c"), right=col("d")),
+            )
+            assert and_expr.__vw_render__(render_context) == "(a = b) AND (c > d)"
+
+    def describe_or() -> None:
+        """Tests for Or class."""
+
+        def it_renders_or_expression(render_context: vw.RenderContext) -> None:
+            """Should render OR expression."""
+
+            or_expr = Or(
+                left=NotEquals(left=col("x"), right=col("y")),
+                right=LessThan(left=col("m"), right=col("n")),
+            )
+            assert or_expr.__vw_render__(render_context) == "(x <> y) OR (m < n)"
+
+    def it_renders_chained_comparisons(render_context: vw.RenderContext) -> None:
+        """Should render chained comparison expressions."""
+
+        expr = And(
+            left=Equals(left=col("a"), right=col("b")),
+            right=Or(
+                left=LessThan(left=col("c"), right=col("d")),
+                right=GreaterThanOrEqual(left=col("e"), right=col("f")),
+            ),
+        )
+        assert expr.__vw_render__(render_context) == "(a = b) AND ((c < d) OR (e >= f))"
+
+
 def describe_equals() -> None:
     """Tests for Equals class."""
 
@@ -125,7 +167,7 @@ def describe_not_equals() -> None:
     def it_renders_inequality_comparison(render_context: vw.RenderContext) -> None:
         """Should render inequality comparison with != operator."""
         not_equals = NotEquals(left=col("x"), right=col("y"))
-        assert not_equals.__vw_render__(render_context) == "x != y"
+        assert not_equals.__vw_render__(render_context) == "x <> y"
 
 
 def describe_less_than() -> None:
@@ -216,7 +258,7 @@ def describe_param_function() -> None:
         import pytest
 
         with pytest.raises(TypeError, match="Unsupported parameter type: list"):
-            vw.param("data", [1, 2, 3])
+            vw.param("data", [1, 2, 3])  # type: ignore
 
         with pytest.raises(TypeError, match="Unsupported parameter type: dict"):
-            vw.param("config", {"key": "value"})
+            vw.param("config", {"key": "value"})  # type: ignore

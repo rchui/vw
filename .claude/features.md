@@ -39,7 +39,8 @@
 - [x] Greater than or equal comparison (`>=`)
 - [ ] LIKE comparison
 - [ ] IN comparison
-- [ ] Logical operators: AND, OR, NOT
+- [x] Logical operators: AND, OR
+- [ ] Logical operators: NOT
 
 ## Functions
 - [ ] Aggregate functions: COUNT, SUM, AVG, MIN, MAX
@@ -68,9 +69,7 @@
 
 ## Developer Experience
 - [ ] Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
-- [ ] Type checking (mypy or pyright)
 - [ ] Better error messages
-- [ ] Query validation
 - [ ] SQL formatting/pretty-printing
 
 ## Infrastructure

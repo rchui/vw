@@ -1,22 +1,56 @@
 """Expression classes for SQL query building."""
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from vw.render import RenderContext
 
 
-class Expression(Protocol):
+class Expression:
     """Protocol for SQL expressions."""
 
     def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the expression."""
-        ...
+        raise NotImplementedError
+
+    def __and__(self, other: "Expression") -> "And":
+        """Create a logical AND expression with another expression
+
+        Args:
+            other: The other expression to combine with.
+
+        Returns:
+            An And expression representing the logical AND of this and the other expression.
+
+        Example:
+            >>> expr1 = col("age") > param("min_age", 18)
+            >>> expr2 = col("status") == param("active_status", "active")
+            >>> combined_expr = expr1 & expr2
+        """
+
+        return And(left=self, right=other)
+
+    def __or__(self, other: "Expression") -> "Or":
+        """Create a logical OR expression with another expression
+
+        Args:
+            other: The other expression to combine with.
+
+        Returns:
+            An Or expression representing the logical OR of this and the other expression.
+
+        Example:
+            >>> expr1 = col("age") < param("max_age", 65)
+            >>> expr2 = col("status") == param("inactive_status", "inactive")
+            >>> combined_expr = expr1 | expr2
+        """
+
+        return Or(left=self, right=other)
 
 
 @dataclass
-class Equals:
+class Equals(Expression):
     """Represents an equality comparison (=) between two expressions."""
 
     left: Expression
@@ -28,19 +62,19 @@ class Equals:
 
 
 @dataclass
-class NotEquals:
-    """Represents an inequality comparison (!=) between two expressions."""
+class NotEquals(Expression):
+    """Represents an inequality comparison (<>) between two expressions."""
 
     left: Expression
     right: Expression
 
     def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the inequality comparison."""
-        return f"{self.left.__vw_render__(context)} != {self.right.__vw_render__(context)}"
+        return f"{self.left.__vw_render__(context)} <> {self.right.__vw_render__(context)}"
 
 
 @dataclass
-class LessThan:
+class LessThan(Expression):
     """Represents a less than comparison (<) between two expressions."""
 
     left: Expression
@@ -52,7 +86,7 @@ class LessThan:
 
 
 @dataclass
-class LessThanOrEqual:
+class LessThanOrEqual(Expression):
     """Represents a less than or equal comparison (<=) between two expressions."""
 
     left: Expression
@@ -64,7 +98,7 @@ class LessThanOrEqual:
 
 
 @dataclass
-class GreaterThan:
+class GreaterThan(Expression):
     """Represents a greater than comparison (>) between two expressions."""
 
     left: Expression
@@ -76,7 +110,7 @@ class GreaterThan:
 
 
 @dataclass
-class GreaterThanOrEqual:
+class GreaterThanOrEqual(Expression):
     """Represents a greater than or equal comparison (>=) between two expressions."""
 
     left: Expression
@@ -88,7 +122,31 @@ class GreaterThanOrEqual:
 
 
 @dataclass
-class Column:
+class And(Expression):
+    """Represents a logical AND between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: "RenderContext") -> str:
+        """Return the SQL representation of the AND expression with parentheses."""
+        return f"({self.left.__vw_render__(context)}) AND ({self.right.__vw_render__(context)})"
+
+
+@dataclass
+class Or(Expression):
+    """Represents a logical OR between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: "RenderContext") -> str:
+        """Return the SQL representation of the OR expression with parentheses."""
+        return f"({self.left.__vw_render__(context)}) OR ({self.right.__vw_render__(context)})"
+
+
+@dataclass
+class Column(Expression):
     """Represents a column reference in SQL."""
 
     name: str
@@ -119,7 +177,7 @@ class Column:
             A NotEquals representing the inequality comparison.
 
         Example:
-            >>> col("status") != col("'active'")
+            >>> col("status") <> col("'active'")
         """
         return NotEquals(left=self, right=other)
 
@@ -189,7 +247,7 @@ class Column:
 
 
 @dataclass
-class Parameter:
+class Parameter(Expression):
     """Represents a parameterized value in SQL."""
 
     name: str

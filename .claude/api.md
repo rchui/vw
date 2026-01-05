@@ -9,7 +9,9 @@ All public exports from `vw/__init__.py`:
 - `param(name, value)` - Create a parameterized value
 
 ### Classes
+- `And` - Logical combination operator (AND)
 - `Column` - Column reference class
+- `Expression` - Expression base classes
 - `Parameter` - Parameterized value class
 - `Equals` - Equality comparison operator (=)
 - `NotEquals` - Inequality comparison operator (!=)
@@ -17,6 +19,7 @@ All public exports from `vw/__init__.py`:
 - `LessThanOrEqual` - Less than or equal comparison operator (<=)
 - `GreaterThan` - Greater than comparison operator (>)
 - `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
+- `Or` - Logical combination operator (OR)
 - `Source` - Table/view source
 - `Statement` - SQL statement
 - `InnerJoin` - Inner join operation
@@ -24,9 +27,6 @@ All public exports from `vw/__init__.py`:
 - `RenderConfig` - Rendering configuration
 - `RenderContext` - Rendering context (for advanced use)
 - `ParameterStyle` - Parameter style enum
-
-### Protocols
-- `Expression` - Protocol for SQL expressions
 
 ## Usage Examples
 

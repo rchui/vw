@@ -2,20 +2,7 @@
 
 ## Core Design Principles
 
-### 1. Expression Protocol
-All SQL expressions implement the `__vw_render__(context: RenderContext) -> str` protocol method.
-
-```python
-class Expression(Protocol):
-    def __vw_render__(self, context: RenderContext) -> str: ...
-```
-
-**Why Protocol instead of base class?**
-- Better type checking without inheritance
-- More flexible - any class can be an Expression
-- Follows Python's structural typing philosophy
-
-### 2. Rendering System
+### 1. Rendering System
 
 The rendering system uses a context pattern to collect parameters during tree traversal:
 
@@ -42,7 +29,7 @@ params = context.params
 3. Parameters register themselves in the context
 4. Returns `RenderResult` with SQL and collected params
 
-### 3. Parameter Handling
+### 2. Parameter Handling
 
 Parameters are explicitly declared and reusable:
 
@@ -62,7 +49,7 @@ query = users.join.inner(
 - Clearer intent - distinguishes parameters from raw SQL
 - Prevents accidental parameter creation
 
-### 4. Source-First API
+### 3. Source-First API
 
 Queries start with `Source()` then chain operations (polars-inspired):
 
@@ -75,12 +62,12 @@ Not:
 vw.select(...).from_("users")  # SQL-style
 ```
 
-**Why?** 
+**Why?**
 - More natural for method chaining
 - Source is the foundation of the query
 - Matches polars/pandas mental model
 
-### 5. Accessor Pattern for Joins
+### 4. Accessor Pattern for Joins
 
 Joins use a property accessor `.join.inner()` instead of direct methods:
 
@@ -129,7 +116,7 @@ Join ON conditions use `Sequence[Expression]` instead of tuples.
 ### 7. __vw_render__() Convention
 Custom render method instead of `__str__()`.
 
-**Rationale**: 
+**Rationale**:
 - `__str__()` is for human-readable output
 - `__vw_render__()` is for SQL generation with context
 - Clear separation of concerns
@@ -137,7 +124,7 @@ Custom render method instead of `__str__()`.
 ### 8. Escape Hatch via Strings
 Columns accept raw SQL strings for unsupported features.
 
-**Rationale**: 
+**Rationale**:
 - Unblocks users when library doesn't support a feature
 - Gradual feature adoption - can add proper support later
 - Example: `col("* REPLACE (foo AS bar)")`

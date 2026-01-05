@@ -117,7 +117,7 @@ def describe_joins():
         expected_sql = """
             SELECT *
             FROM users
-            INNER JOIN orders ON users.id = orders.user_id
+            INNER JOIN orders ON (users.id = orders.user_id)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -129,7 +129,7 @@ def describe_joins():
         expected_sql = """
             SELECT users.name, orders.total
             FROM users
-            INNER JOIN orders ON users.id = orders.user_id
+            INNER JOIN orders ON (users.id = orders.user_id)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -142,8 +142,8 @@ def describe_joins():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON users.id = orders.user_id
-                AND users.status = 'active'
+                ON (users.id = orders.user_id)
+                AND (users.status = 'active')
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -157,8 +157,8 @@ def describe_joins():
         expected_sql = """
             SELECT users.name, orders.quantity, products.price
             FROM users
-            INNER JOIN orders ON users.id = orders.user_id
-            INNER JOIN products ON orders.product_id = products.id
+            INNER JOIN orders ON (users.id = orders.user_id)
+            INNER JOIN products ON (orders.product_id = products.id)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -186,7 +186,7 @@ def describe_joins():
         expected_sql = """
             SELECT *
             FROM users
-            INNER JOIN orders ON users.id = orders.user_id
+            INNER JOIN orders ON (users.id = orders.user_id)
         """
         result = (
             vw.Source("users")
@@ -196,13 +196,33 @@ def describe_joins():
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
+    def it_generates_complex_logical_conditions_in_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            INNER JOIN orders
+                ON ((users.id = orders.user_id) OR (users.email = orders.contact_email))
+                AND (orders.status = 'completed')
+        """
+        users = vw.Source("users")
+        orders = vw.Source("orders")
+        joined = users.join.inner(
+            orders,
+            on=[
+                (users.col("id") == orders.col("user_id")) | (users.col("email") == orders.col("contact_email")),
+                orders.col("status") == vw.col("'completed'"),
+            ],
+        )
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
 
 def describe_where():
     """Tests for WHERE clause."""
 
     def it_generates_where_with_single_condition(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE age >= 18
+            SELECT * FROM users WHERE (age >= 18)
         """
         result = (
             vw.Source("users").select(vw.col("*")).where(vw.col("age") >= vw.col("18")).render(config=render_config)
@@ -211,7 +231,7 @@ def describe_where():
 
     def it_generates_where_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE age >= 18 AND status = 'active'
+            SELECT * FROM users WHERE (age >= 18) AND (status = 'active')
         """
         result = (
             vw.Source("users")
@@ -223,7 +243,7 @@ def describe_where():
 
     def it_generates_where_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE age >= :min_age AND status = :status
+            SELECT * FROM users WHERE (age >= :min_age) AND (status = :status)
         """
         min_age = vw.param("min_age", 18)
         status = vw.param("status", "active")
@@ -237,7 +257,7 @@ def describe_where():
 
     def it_chains_multiple_where_calls(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE age >= 18 AND status = 'active'
+            SELECT * FROM users WHERE (age >= 18) AND (status = 'active')
         """
         result = (
             vw.Source("users")
@@ -252,8 +272,8 @@ def describe_where():
         expected_sql = """
             SELECT *
             FROM users
-            INNER JOIN orders ON users.id = orders.user_id
-            WHERE orders.total > 100
+            INNER JOIN orders ON (users.id = orders.user_id)
+            WHERE (orders.total > 100)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -269,12 +289,12 @@ def describe_where():
         expected_sql = """
             SELECT *
             FROM products
-            WHERE price > 10
-                AND stock >= 5
-                AND discount < 50
-                AND rating <= 4.5
-                AND active = true
-                AND deleted != true
+            WHERE (price > 10)
+                AND (stock >= 5)
+                AND (discount < 50)
+                AND (rating <= 4.5)
+                AND (active = true)
+                AND (deleted <> true)
         """
         result = (
             vw.Source("products")
@@ -291,6 +311,24 @@ def describe_where():
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
+    def it_generates_where_with_logical_operators(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM employees
+            WHERE ((department = 'Sales') OR (department = 'Marketing'))
+                AND ((hire_date >= '2020-01-01') AND (active = true))
+        """
+        result = (
+            vw.Source("employees")
+            .select(vw.col("*"))
+            .where(
+                ((vw.col("department") == vw.col("'Sales'")) | (vw.col("department") == vw.col("'Marketing'"))),
+                ((vw.col("hire_date") >= vw.col("'2020-01-01'")) & (vw.col("active") == vw.col("true"))),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
 
 def describe_parameters():
     """Tests for parameterized values."""
@@ -300,8 +338,8 @@ def describe_parameters():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON users.id = orders.user_id
-                AND users.status = :status
+                ON (users.id = orders.user_id)
+                AND (users.status = :status)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -320,8 +358,8 @@ def describe_parameters():
             SELECT users.name, orders.total
             FROM users
             INNER JOIN orders
-                ON users.id = :user_id
-                AND orders.status = :status
+                ON (users.id = :user_id)
+                AND (orders.status = :status)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -339,8 +377,8 @@ def describe_parameters():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON users.age = :threshold
-                AND orders.quantity = :threshold
+                ON (users.age = :threshold)
+                AND (orders.quantity = :threshold)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")
@@ -357,10 +395,10 @@ def describe_parameters():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON users.name = :name
-                AND users.age = :age
-                AND orders.price = :price
-                AND users.active = :active
+                ON (users.name = :name)
+                AND (users.age = :age)
+                AND (orders.price = :price)
+                AND (users.active = :active)
         """
         users = vw.Source("users")
         orders = vw.Source("orders")

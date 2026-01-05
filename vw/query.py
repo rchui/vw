@@ -21,7 +21,7 @@ class InnerJoin:
 
         join_sql = f"INNER JOIN {self.right.__vw_render__(context)}"
         if self.on:
-            conditions = [expr.__vw_render__(context) for expr in self.on]
+            conditions = [f"({expr.__vw_render__(context)})" for expr in self.on]
             join_sql += f" ON {' AND '.join(conditions)}"
         return join_sql
 
@@ -166,7 +166,7 @@ class Statement:
 
         # Add WHERE clause if conditions exist
         if self.where_conditions:
-            conditions = [expr.__vw_render__(context) for expr in self.where_conditions]
+            conditions: list[str] = [f"({expr.__vw_render__(context)})" for expr in self.where_conditions]
             sql += f" WHERE {' AND '.join(conditions)}"
 
         return sql
