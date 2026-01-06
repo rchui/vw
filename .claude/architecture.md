@@ -133,8 +133,13 @@ Columns accept raw SQL strings for unsupported features.
 
 ### vw/expr.py
 Expression classes that represent SQL components:
-- `RowSet` - Base class for row-producing objects (tables, subqueries)
-- `AliasedRowSet` - Aliased row set wrapper
+- `RowSet` - Base class for row-producing objects (tables, subqueries) with:
+  - `_alias` field for aliasing
+  - `_joins` field for join accumulation
+  - `.alias()` method returns aliased copy
+  - `.col()` method for qualified column references
+  - `.join` property accessor for join operations
+  - `.select()` method for creating statements
 - `Expression` - Base class for SQL expressions
 - `Column` - Column references
 - `Parameter` - Parameterized values
@@ -144,10 +149,10 @@ Expression classes that represent SQL components:
 
 ### vw/query.py
 Query builder classes:
-- `Source` - Table/view sources (extends RowSet)
+- `Source` - Table/view sources (extends RowSet), overrides `.col()` to use table name as fallback
 - `Statement` - Complete SQL statements (extends Expression and RowSet)
 - `InnerJoin` - Join operations
-- `JoinAccessor` - Join accessor for method chaining
+- `JoinAccessor` - Join accessor for method chaining, works with any RowSet
 
 ### vw/render.py
 Rendering infrastructure:
@@ -162,9 +167,18 @@ The type system separates row-producing objects from expressions:
 
 ```
 RowSet (things in FROM/JOIN)
+├── _alias: str | None (aliasing)
+├── _joins: list[InnerJoin] (join accumulation)
+├── .alias() -> Self (create aliased copy)
+├── .col() -> Column (qualified column reference)
+├── .join -> JoinAccessor (join operations)
+├── .select() -> Statement (create statement)
+│
 ├── Source (table name)
-├── AliasedRowSet (aliased row set)
+│   └── .col() uses _alias or table name as prefix
+│
 └── Statement (subquery)
+    └── .col() uses _alias as prefix
 
 Expression (things in SELECT/WHERE/ON conditions)
 ├── Column
@@ -175,6 +189,8 @@ Expression (things in SELECT/WHERE/ON conditions)
 ```
 
 `Statement` inherits from both, allowing it to be used as a subquery in either context.
+
+All RowSets share `.alias()`, `.join`, and `.select()` methods through inheritance. The `.col()` method behavior differs: `Source` uses the alias or table name, while base `RowSet` uses only the alias.
 
 ### Depth Tracking for Subqueries
 

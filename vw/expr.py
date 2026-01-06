@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
+    from vw.query import InnerJoin, JoinAccessor, Statement
     from vw.render import RenderContext
 
 
@@ -17,6 +18,7 @@ class RowSet:
     """
 
     _alias: str | None = None
+    _joins: list[InnerJoin] = field(default_factory=list)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the row set."""
@@ -52,6 +54,32 @@ class RowSet:
         if self._alias:
             return Column(f"{self._alias}.{column_name}")
         return Column(column_name)
+
+    @property
+    def join(self) -> JoinAccessor:
+        """Access join operations."""
+        from vw.query import JoinAccessor
+
+        return JoinAccessor(self)
+
+    def select(self, *columns: Expression) -> Statement:
+        """
+        Select columns from this row set.
+
+        Args:
+            *columns: Expression objects to select.
+
+        Returns:
+            A Statement object for method chaining.
+
+        Example:
+            >>> from vw import col
+            >>> Source("users").select(col("*"))
+            >>> subquery.alias("sq").select(col("*"))
+        """
+        from vw.query import Statement
+
+        return Statement(source=self, columns=list(columns))
 
 
 class Expression:

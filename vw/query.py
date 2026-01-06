@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 from vw.expr import Column, Expression, RowSet
 from vw.render import RenderConfig, RenderContext, RenderResult
@@ -27,30 +27,30 @@ class InnerJoin:
 
 
 class JoinAccessor:
-    """Accessor for join operations on a Source."""
+    """Accessor for join operations on a RowSet."""
 
-    def __init__(self, source: Source):
-        self._source = source
+    def __init__(self, row_set: RowSet):
+        self._row_set = row_set
 
-    def inner(self, right: RowSet, *, on: Sequence[Expression] = ()) -> Source:
+    def inner(self, right: RowSet, *, on: Sequence[Expression] = ()) -> RowSet:
         """
-        Perform an INNER JOIN with another source.
+        Perform an INNER JOIN with another row set.
 
         Args:
             right: The row set to join with (table, subquery, or CTE).
             on: Sequence of join condition expressions. Multiple conditions are combined with AND.
 
         Returns:
-            A new Source with the join applied.
+            A new RowSet with the join applied.
 
         Example:
             >>> users = Source("users")
             >>> orders = Source("orders")
             >>> users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         """
-        return Source(
-            name=self._source.name,
-            joins=self._source.joins + [InnerJoin(right=right, on=on)],
+        return replace(
+            self._row_set,
+            _joins=self._row_set._joins + [InnerJoin(right=right, on=on)],
         )
 
 
@@ -59,12 +59,6 @@ class Source(RowSet):
     """Represents a SQL data source (table, view, etc.)."""
 
     name: str
-    joins: list[InnerJoin] = field(default_factory=list)
-
-    @property
-    def join(self) -> JoinAccessor:
-        """Access join operations."""
-        return JoinAccessor(self)
 
     def col(self, column_name: str, /) -> Column:
         """
@@ -83,33 +77,13 @@ class Source(RowSet):
         prefix = self._alias or self.name
         return Column(f"{prefix}.{column_name}")
 
-    def select(self, *columns: Expression) -> Statement:
-        """
-        Select columns from this source.
-
-        Args:
-            *columns: Expression objects to select.
-
-        Returns:
-            A Statement object for method chaining.
-
-        Example:
-            >>> from vw import col
-            >>> Source("users").select(col("*"))
-            >>> Source("users").select(col("id"), col("name"))
-        """
-
-        return Statement(source=self, columns=list(columns))
-
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""
-
         sql = self.name
         if self._alias:
             sql += f" AS {self._alias}"
-        if self.joins:
-            for join_obj in self.joins:
-                sql += f" {join_obj.__vw_render__(context)}"
+        for join_obj in self._joins:
+            sql += f" {join_obj.__vw_render__(context)}"
         return sql
 
 

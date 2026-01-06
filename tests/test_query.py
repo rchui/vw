@@ -117,8 +117,8 @@ def describe_join_accessor() -> None:
         orders = Source("orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         assert isinstance(joined, Source)
-        assert len(joined.joins) == 1
-        assert isinstance(joined.joins[0], InnerJoin)
+        assert len(joined._joins) == 1
+        assert isinstance(joined._joins[0], InnerJoin)
 
     def it_chains_multiple_joins(render_context: vw.RenderContext) -> None:
         """Should support chaining multiple joins."""
@@ -127,7 +127,7 @@ def describe_join_accessor() -> None:
         products = Source("products")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
-        assert len(joined.joins) == 2
+        assert len(joined._joins) == 2
         assert (
             joined.__vw_render__(render_context)
             == "users INNER JOIN orders ON (users.id = orders.user_id) INNER JOIN products ON (orders.product_id = products.id)"

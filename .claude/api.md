@@ -11,8 +11,7 @@ All public exports from `vw/__init__.py`:
 ### Classes
 - `Column` - Column reference class
 - `Expression` - Expression base class
-- `RowSet` - Base class for row-producing objects (tables, subqueries)
-- `AliasedRowSet` - Aliased row set (created via `.alias()`)
+- `RowSet` - Base class for row-producing objects (tables, subqueries) with `.select()`, `.join`, `.alias()`, `.col()` methods
 - `Parameter` - Parameterized value class
 - `Equals` - Equality comparison operator (=)
 - `NotEquals` - Inequality comparison operator (<>)
