@@ -1,4 +1,4 @@
-"""Tests for vw.build module."""
+"""Tests for vw/build.py module."""
 
 import vw
 from vw.build import InnerJoin, Source, Statement
@@ -21,7 +21,7 @@ def describe_source() -> None:
             column = source.col("id")
             assert column.__vw_render__(render_context) == "users.id"
 
-        def it_returns_column_equal_to_manually_constructed():
+        def it_returns_column_equal_to_manually_constructed() -> None:
             """Should return Column equal to manually constructed qualified column."""
             source = Source(name="orders")
             assert source.col("user_id") == vw.Column(name="orders.user_id")
@@ -32,16 +32,16 @@ def describe_source() -> None:
             assert source.col("user_id").__vw_render__(render_context) == "orders.user_id"
             assert source.col("total").__vw_render__(render_context) == "orders.total"
 
-    def describe_select():
+    def describe_select() -> None:
         """Tests for Source.select() method."""
 
-        def it_returns_statement():
+        def it_returns_statement() -> None:
             """Should return a Statement object."""
             source = Source(name="users")
             statement = source.select(vw.col("*"))
             assert isinstance(statement, Statement)
 
-        def it_creates_statement_with_source_and_columns():
+        def it_creates_statement_with_source_and_columns() -> None:
             """Should create Statement with correct source and columns."""
             source = Source(name="orders")
             col1 = vw.col("id")
@@ -78,7 +78,7 @@ def describe_statement() -> None:
             )
 
 
-def describe_inner_join():
+def describe_inner_join() -> None:
     """Tests for InnerJoin class."""
 
     def it_renders_inner_join_without_condition(render_context: vw.RenderContext) -> None:

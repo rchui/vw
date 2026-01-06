@@ -2,8 +2,13 @@
 
 ## Test Structure
 
-- **tests/test_expr.py** - Unit tests for expression classes from `vw/base.py`, `vw/column.py`, `vw/parameter.py`, and `vw/operators.py` (Column, Parameter, comparison operators, logical operators)
-- **tests/test_query.py** - Unit tests for query builder classes from `vw/build.py` (Source, Statement, InnerJoin)
+Test files mirror the library module structure:
+
+- **tests/test_base.py** - Unit tests for `vw/base.py` (RowSet, alias)
+- **tests/test_column.py** - Unit tests for `vw/column.py` (Column, col)
+- **tests/test_parameter.py** - Unit tests for `vw/parameter.py` (Parameter, param)
+- **tests/test_operators.py** - Unit tests for `vw/operators.py` (Equals, NotEquals, LessThan, etc., And, Or, Not)
+- **tests/test_build.py** - Unit tests for `vw/build.py` (Source, Statement, InnerJoin, JoinAccessor, WHERE)
 - **tests/test_sql.py** - Integration tests for complete SQL generation
 - **tests/conftest.py** - Pytest fixtures (render_config, render_context)
 
