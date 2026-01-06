@@ -1,8 +1,9 @@
 """Rendering infrastructure for SQL generation."""
 
 from dataclasses import dataclass, field
-from enum import StrEnum
 from typing import Any
+
+from strenum import StrEnum
 
 
 class ParameterStyle(StrEnum):

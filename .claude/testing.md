@@ -15,7 +15,7 @@ Uses BDD-style organization for better readability:
 ```python
 def describe_parameter():
     """Tests for Parameter class."""
-    
+
     def it_renders_parameter_with_colon_style():
         """Should render parameter with colon prefix."""
         # test code
@@ -68,17 +68,17 @@ Test complete SQL generation:
 ```python
 def it_generates_select_with_parameter_in_join(render_config: vw.RenderConfig) -> None:
     """Should generate query with parameter in join condition."""
-    users = vw.Source("users")
-    orders = vw.Source("orders")
+    users = vw.Source(name="users")
+    orders = vw.Source(name="orders")
     status_param = vw.param("status", "active")
-    
+
     joined = users.join.inner(
-        orders, 
+        orders,
         on=[users.col("id") == orders.col("user_id"), users.col("status") == status_param]
     )
-    
+
     result = joined.select(vw.col("*")).render(config=render_config)
-    
+
     assert result == vw.RenderResult(
         sql="SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id AND users.status = :status",
         params={"status": "active"}

@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, Self
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from vw.query import InnerJoin, JoinAccessor, Statement
     from vw.render import RenderContext
+
+from typing_extensions import Self
 
 
 @dataclass(kw_only=True)
@@ -34,7 +36,7 @@ class RowSet:
             A copy of this row set with the alias set.
 
         Example:
-            >>> Source("users").alias("u")
+            >>> Source(name="users").alias("u")
             >>> subquery.alias("sq")
         """
         return replace(self, _alias=name)
@@ -49,7 +51,7 @@ class RowSet:
             A Column with the alias as prefix.
 
         Example:
-            >>> Source("users").alias("u").col("id")  # Returns Column("u.id")
+            >>> Source(name="users").alias("u").col("id")  # Returns Column("u.id")
         """
         if self._alias:
             return Column(f"{self._alias}.{column_name}")
@@ -74,7 +76,7 @@ class RowSet:
 
         Example:
             >>> from vw import col
-            >>> Source("users").select(col("*"))
+            >>> Source(name="users").select(col("*"))
             >>> subquery.alias("sq").select(col("*"))
         """
         from vw.query import Statement
@@ -250,7 +252,7 @@ class Column(Expression):
 
     name: str
 
-    def __eq__(self, other: Expression) -> Equals:
+    def __eq__(self, other: Expression) -> Equals:  # ty: ignore
         """
         Create an equality comparison expression.
 
@@ -265,7 +267,7 @@ class Column(Expression):
         """
         return Equals(left=self, right=other)
 
-    def __ne__(self, other: Expression) -> NotEquals:
+    def __ne__(self, other: Expression) -> NotEquals:  # ty: ignore
         """
         Create an inequality comparison expression.
 

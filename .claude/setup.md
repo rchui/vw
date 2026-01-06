@@ -18,6 +18,7 @@ Key configurations:
 - Python version requirement
 - Dependencies (production and dev)
 - Ruff linting/formatting rules
+- Ty type checking
 - CLI entry points
 
 To view: `cat pyproject.toml`
@@ -36,6 +37,11 @@ uv run pytest -xvs                  # Stop on first failure, verbose, no capture
 uv run ruff check .           # Check code
 uv run ruff format .          # Format code
 uv run ruff check --fix .     # Fix auto-fixable issues
+```
+
+### Type Checking
+```bash
+uv run ty check .     # Check types
 ```
 
 ## Development Conventions
@@ -63,7 +69,12 @@ When a piece of work is completed, always run the following before committing:
    uv run ruff format .
    ```
 
-3. **Commit** - Use conventional commit format
+3. **Run type checker** - Check types
+   ```bash
+   uv run ty check .
+   ```
+
+4. **Commit** - Use conventional commit format
    ```bash
    git add -A && git commit -m "type: description"
    ```

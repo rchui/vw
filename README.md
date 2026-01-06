@@ -14,8 +14,8 @@ from sqlalchemy import create_engine, text
 engine = create_engine("postgresql://user:password@localhost/mydb")
 
 # Build a query with vw
-users = vw.Source("users")
-orders = vw.Source("orders")
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
 
 user_id = vw.param("user_id", 123)
 status = vw.param("status", "active")
@@ -23,7 +23,7 @@ status = vw.param("status", "active")
 query = (
     users
     .join.inner(
-        orders, 
+        orders,
         on=[
             users.col("id") == user_id,
             orders.col("status") == status

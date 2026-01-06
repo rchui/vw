@@ -21,14 +21,14 @@ def describe_basic_select() -> None:
         expected_sql = """
             SELECT * FROM users
         """
-        result = vw.Source("users").select(vw.col("*")).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_select_single_column(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT id FROM products
         """
-        result = vw.Source("products").select(vw.col("id")).render(config=render_config)
+        result = vw.Source(name="products").select(vw.col("id")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_select_multiple_columns(render_config: vw.RenderConfig) -> None:
@@ -36,7 +36,7 @@ def describe_basic_select() -> None:
             SELECT id, customer_id, total FROM orders
         """
         result = (
-            vw.Source("orders")
+            vw.Source(name="orders")
             .select(vw.col("id"), vw.col("customer_id"), vw.col("total"))
             .render(config=render_config)
         )
@@ -50,21 +50,21 @@ def describe_star_extensions() -> None:
         expected_sql = """
             SELECT * REPLACE (name AS full_name) FROM users
         """
-        result = vw.Source("users").select(vw.col("* REPLACE (name AS full_name)")).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("* REPLACE (name AS full_name)")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_star_exclude(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * EXCLUDE (password) FROM users
         """
-        result = vw.Source("users").select(vw.col("* EXCLUDE (password)")).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("* EXCLUDE (password)")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_star_exclude_multiple(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * EXCLUDE (password, ssn) FROM users
         """
-        result = vw.Source("users").select(vw.col("* EXCLUDE (password, ssn)")).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("* EXCLUDE (password, ssn)")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
@@ -75,14 +75,14 @@ def describe_method_chaining() -> None:
         expected_sql = """
             SELECT id, name FROM employees
         """
-        result = vw.Source("employees").select(vw.col("id"), vw.col("name")).render(config=vw.RenderConfig())
+        result = vw.Source(name="employees").select(vw.col("id"), vw.col("name")).render(config=vw.RenderConfig())
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_allows_breaking_chain_into_steps() -> None:
         expected_sql = """
             SELECT * FROM products
         """
-        source = vw.Source("products")
+        source = vw.Source(name="products")
         statement = source.select(vw.col("*"))
         result = statement.render(config=vw.RenderConfig())
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -95,7 +95,7 @@ def describe_complex_expressions() -> None:
         expected_sql = """
             SELECT CAST(price AS DECIMAL(10,2)) FROM sales
         """
-        result = vw.Source("sales").select(vw.col("CAST(price AS DECIMAL(10,2))")).render(config=render_config)
+        result = vw.Source(name="sales").select(vw.col("CAST(price AS DECIMAL(10,2))")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_mixes_simple_and_complex_columns(render_config: vw.RenderConfig) -> None:
@@ -103,7 +103,7 @@ def describe_complex_expressions() -> None:
             SELECT id, ROUND(total, 2) AS rounded_total, status FROM orders
         """
         result = (
-            vw.Source("orders")
+            vw.Source(name="orders")
             .select(vw.col("id"), vw.col("ROUND(total, 2) AS rounded_total"), vw.col("status"))
             .render(config=render_config)
         )
@@ -119,8 +119,8 @@ def describe_joins():
             FROM users
             INNER JOIN orders ON (users.id = orders.user_id)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         result = joined.select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -131,8 +131,8 @@ def describe_joins():
             FROM users
             INNER JOIN orders ON (users.id = orders.user_id)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         result = joined.select(users.col("name"), orders.col("total")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -145,8 +145,8 @@ def describe_joins():
                 ON (users.id = orders.user_id)
                 AND (users.status = 'active')
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         joined = users.join.inner(
             orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == vw.col("'active'")]
         )
@@ -160,9 +160,9 @@ def describe_joins():
             INNER JOIN orders ON (users.id = orders.user_id)
             INNER JOIN products ON (orders.product_id = products.id)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
-        products = vw.Source("products")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        products = vw.Source(name="products")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
         result = joined.select(users.col("name"), orders.col("quantity"), products.col("price")).render(
@@ -176,8 +176,8 @@ def describe_joins():
             FROM users
             INNER JOIN settings
         """
-        users = vw.Source("users")
-        settings = vw.Source("settings")
+        users = vw.Source(name="users")
+        settings = vw.Source(name="settings")
         joined = users.join.inner(settings)
         result = joined.select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -189,8 +189,11 @@ def describe_joins():
             INNER JOIN orders ON (users.id = orders.user_id)
         """
         result = (
-            vw.Source("users")
-            .join.inner(vw.Source("orders"), on=[vw.Source("users").col("id") == vw.Source("orders").col("user_id")])
+            vw.Source(name="users")
+            .join.inner(
+                vw.Source(name="orders"),
+                on=[vw.Source(name="users").col("id") == vw.Source(name="orders").col("user_id")],
+            )
             .select(vw.col("*"))
             .render(config=render_config)
         )
@@ -204,8 +207,8 @@ def describe_joins():
                 ON ((users.id = orders.user_id) OR (users.email = orders.contact_email))
                 AND (orders.status = 'completed')
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         joined = users.join.inner(
             orders,
             on=[
@@ -225,7 +228,10 @@ def describe_where():
             SELECT * FROM users WHERE (age >= 18)
         """
         result = (
-            vw.Source("users").select(vw.col("*")).where(vw.col("age") >= vw.col("18")).render(config=render_config)
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .where(vw.col("age") >= vw.col("18"))
+            .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -234,7 +240,7 @@ def describe_where():
             SELECT * FROM users WHERE (age >= 18) AND (status = 'active')
         """
         result = (
-            vw.Source("users")
+            vw.Source(name="users")
             .select(vw.col("*"))
             .where(vw.col("age") >= vw.col("18"), vw.col("status") == vw.col("'active'"))
             .render(config=render_config)
@@ -248,7 +254,7 @@ def describe_where():
         min_age = vw.param("min_age", 18)
         status = vw.param("status", "active")
         result = (
-            vw.Source("users")
+            vw.Source(name="users")
             .select(vw.col("*"))
             .where(vw.col("age") >= min_age, vw.col("status") == status)
             .render(config=render_config)
@@ -260,7 +266,7 @@ def describe_where():
             SELECT * FROM users WHERE (age >= 18) AND (status = 'active')
         """
         result = (
-            vw.Source("users")
+            vw.Source(name="users")
             .select(vw.col("*"))
             .where(vw.col("age") >= vw.col("18"))
             .where(vw.col("status") == vw.col("'active'"))
@@ -275,8 +281,8 @@ def describe_where():
             INNER JOIN orders ON (users.id = orders.user_id)
             WHERE (orders.total > 100)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         result = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
             .select(vw.col("*"))
@@ -297,7 +303,7 @@ def describe_where():
                 AND (deleted <> true)
         """
         result = (
-            vw.Source("products")
+            vw.Source(name="products")
             .select(vw.col("*"))
             .where(
                 vw.col("price") > vw.col("10"),
@@ -319,7 +325,7 @@ def describe_where():
                 AND ((hire_date >= '2020-01-01') AND (active = true))
         """
         result = (
-            vw.Source("employees")
+            vw.Source(name="employees")
             .select(vw.col("*"))
             .where(
                 ((vw.col("department") == vw.col("'Sales'")) | (vw.col("department") == vw.col("'Marketing'"))),
@@ -334,7 +340,7 @@ def describe_where():
             SELECT * FROM users WHERE (NOT (deleted = true))
         """
         result = (
-            vw.Source("users")
+            vw.Source(name="users")
             .select(vw.col("*"))
             .where(~(vw.col("deleted") == vw.col("true")))
             .render(config=render_config)
@@ -348,7 +354,7 @@ def describe_where():
             WHERE ((NOT (deleted = true)) AND (status = 'active'))
         """
         result = (
-            vw.Source("users")
+            vw.Source(name="users")
             .select(vw.col("*"))
             .where(~(vw.col("deleted") == vw.col("true")) & (vw.col("status") == vw.col("'active'")))
             .render(config=render_config)
@@ -365,8 +371,8 @@ def describe_subqueries():
             FROM users
             INNER JOIN (SELECT user_id, total FROM orders) AS order_totals
         """
-        users = vw.Source("users")
-        order_totals = vw.Source("orders").select(vw.col("user_id"), vw.col("total")).alias("order_totals")
+        users = vw.Source(name="users")
+        order_totals = vw.Source(name="orders").select(vw.col("user_id"), vw.col("total")).alias("order_totals")
         result = users.join.inner(order_totals).select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -377,8 +383,8 @@ def describe_subqueries():
             INNER JOIN (SELECT user_id, total FROM orders) AS ot
                 ON (users.id = ot.user_id)
         """
-        users = vw.Source("users")
-        ot = vw.Source("orders").select(vw.col("user_id"), vw.col("total")).alias("ot")
+        users = vw.Source(name="users")
+        ot = vw.Source(name="orders").select(vw.col("user_id"), vw.col("total")).alias("ot")
         result = (
             users.join.inner(ot, on=[users.col("id") == ot.col("user_id")])
             .select(users.col("name"), ot.col("total"))
@@ -391,7 +397,7 @@ def describe_subqueries():
             SELECT *
             FROM (SELECT * FROM (SELECT id FROM users) AS inner_q) AS outer_q
         """
-        inner = vw.Source("users").select(vw.col("id")).alias("inner_q")
+        inner = vw.Source(name="users").select(vw.col("id")).alias("inner_q")
         middle = vw.Statement(source=inner, columns=[vw.col("*")]).alias("outer_q")
         outer = vw.Statement(source=middle, columns=[vw.col("*")])
         result = outer.render(config=render_config)
@@ -403,9 +409,9 @@ def describe_subqueries():
             FROM users
             INNER JOIN (SELECT user_id FROM orders WHERE (status = :status)) AS active_orders
         """
-        users = vw.Source("users")
+        users = vw.Source(name="users")
         active_orders = (
-            vw.Source("orders")
+            vw.Source(name="orders")
             .select(vw.col("user_id"))
             .where(vw.col("status") == vw.param("status", "active"))
             .alias("active_orders")
@@ -419,8 +425,8 @@ def describe_subqueries():
             FROM users
             INNER JOIN orders AS o ON (users.id = o.user_id)
         """
-        users = vw.Source("users")
-        o = vw.Source("orders").alias("o")
+        users = vw.Source(name="users")
+        o = vw.Source(name="orders").alias("o")
         result = (
             users.join.inner(o, on=[users.col("id") == o.col("user_id")])
             .select(users.col("name"), o.col("total"))
@@ -440,8 +446,8 @@ def describe_parameters():
                 ON (users.id = orders.user_id)
                 AND (users.status = :status)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         status_param = vw.param("status", "active")
         joined = users.join.inner(
             orders, on=[users.col("id") == orders.col("user_id"), users.col("status") == status_param]
@@ -460,8 +466,8 @@ def describe_parameters():
                 ON (users.id = :user_id)
                 AND (orders.status = :status)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         user_id_param = vw.param("user_id", 123)
         status_param = vw.param("status", "pending")
         joined = users.join.inner(orders, on=[users.col("id") == user_id_param, orders.col("status") == status_param])
@@ -479,8 +485,8 @@ def describe_parameters():
                 ON (users.age = :threshold)
                 AND (orders.quantity = :threshold)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         threshold = vw.param("threshold", 100)
         joined = users.join.inner(orders, on=[users.col("age") == threshold, orders.col("quantity") == threshold])
         result = joined.select(vw.col("*")).render(config=render_config)
@@ -499,8 +505,8 @@ def describe_parameters():
                 AND (orders.price = :price)
                 AND (users.active = :active)
         """
-        users = vw.Source("users")
-        orders = vw.Source("orders")
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
         name = vw.param("name", "Alice")
         age = vw.param("age", 25)
         price = vw.param("price", 19.99)

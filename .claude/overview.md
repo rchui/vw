@@ -5,7 +5,7 @@
 **vw** is a SQL builder library that uses polars-inspired method chaining syntax for constructing SQL queries with parameterized values.
 
 ### Purpose
-- Build SQL queries using method chaining (e.g., `Source("users").select(col("*")).render()`)
+- Build SQL queries using method chaining (e.g., `Source(name="users").select(col("*")).render()`)
 - Support parameterized queries for security and performance
 - Inspired by polars syntax for a fluent, readable API
 - Type-safe query construction with Python protocols
@@ -50,8 +50,8 @@ vw/
 import vw
 
 # Create sources
-users = vw.Source("users")
-orders = vw.Source("orders")
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
 
 # Create parameters
 user_id = vw.param("user_id", 123)
@@ -59,7 +59,7 @@ status = vw.param("status", "active")
 
 # Build query with joins and parameters
 query = users.join.inner(
-    orders, 
+    orders,
     on=[users.col("id") == user_id, orders.col("status") == status]
 )
 

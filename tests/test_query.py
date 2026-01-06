@@ -9,7 +9,7 @@ def describe_source() -> None:
 
     def it_renders_source_name(render_context: vw.RenderContext) -> None:
         """Should render Source as its name."""
-        source = Source("products")
+        source = Source(name="products")
         assert source.__vw_render__(render_context) == "products"
 
     def describe_col() -> None:
@@ -17,18 +17,18 @@ def describe_source() -> None:
 
         def it_returns_qualified_column(render_context: vw.RenderContext) -> None:
             """Should return Column with source name prefix."""
-            source = Source("users")
+            source = Source(name="users")
             column = source.col("id")
             assert column.__vw_render__(render_context) == "users.id"
 
         def it_returns_column_equal_to_manually_constructed():
             """Should return Column equal to manually constructed qualified column."""
-            source = Source("orders")
+            source = Source(name="orders")
             assert source.col("user_id") == vw.Column("orders.user_id")
 
         def it_works_with_different_column_names(render_context: vw.RenderContext) -> None:
             """Should qualify any column name."""
-            source = Source("orders")
+            source = Source(name="orders")
             assert source.col("user_id").__vw_render__(render_context) == "orders.user_id"
             assert source.col("total").__vw_render__(render_context) == "orders.total"
 
@@ -37,13 +37,13 @@ def describe_source() -> None:
 
         def it_returns_statement():
             """Should return a Statement object."""
-            source = Source("users")
+            source = Source(name="users")
             statement = source.select(vw.col("*"))
             assert isinstance(statement, Statement)
 
         def it_creates_statement_with_source_and_columns():
             """Should create Statement with correct source and columns."""
-            source = Source("orders")
+            source = Source(name="orders")
             col1 = vw.col("id")
             col2 = vw.col("name")
             statement = source.select(col1, col2)
@@ -59,19 +59,19 @@ def describe_statement() -> None:
 
         def it_renders_select_star(render_config: vw.RenderConfig) -> None:
             """Should render SELECT * FROM table."""
-            source = Source("users")
+            source = Source(name="users")
             statement = Statement(source=source, columns=[vw.col("*")])
             assert statement.render(config=render_config) == vw.RenderResult(sql="SELECT * FROM users", params={})
 
         def it_renders_single_column(render_config: vw.RenderConfig) -> None:
             """Should render SELECT column FROM table."""
-            source = Source("users")
+            source = Source(name="users")
             statement = Statement(source=source, columns=[vw.col("id")])
             assert statement.render(config=render_config) == vw.RenderResult(sql="SELECT id FROM users", params={})
 
         def it_renders_multiple_columns(render_config: vw.RenderConfig) -> None:
             """Should render SELECT col1, col2 FROM table."""
-            source = Source("users")
+            source = Source(name="users")
             statement = Statement(source=source, columns=[vw.col("id"), vw.col("name"), vw.col("email")])
             assert statement.render(config=render_config) == vw.RenderResult(
                 sql="SELECT id, name, email FROM users", params={}
@@ -83,22 +83,22 @@ def describe_inner_join():
 
     def it_renders_inner_join_without_condition(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN without ON clause."""
-        orders = Source("orders")
+        orders = Source(name="orders")
         join = InnerJoin(right=orders)
         assert join.__vw_render__(render_context) == "INNER JOIN orders"
 
     def it_renders_inner_join_with_single_condition(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN with ON clause."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         condition = users.col("id") == orders.col("user_id")
         join = InnerJoin(right=orders, on=[condition])
         assert join.__vw_render__(render_context) == "INNER JOIN orders ON (users.id = orders.user_id)"
 
     def it_renders_inner_join_with_multiple_conditions(render_context: vw.RenderContext) -> None:
         """Should render INNER JOIN with multiple conditions combined with AND."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         condition1 = users.col("id") == orders.col("user_id")
         condition2 = users.col("status") == vw.col("'active'")
         join = InnerJoin(right=orders, on=[condition1, condition2])
@@ -113,8 +113,8 @@ def describe_join_accessor() -> None:
 
     def it_creates_source_with_inner_join() -> None:
         """Should create a new Source with inner join."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         assert isinstance(joined, Source)
         assert len(joined._joins) == 1
@@ -122,9 +122,9 @@ def describe_join_accessor() -> None:
 
     def it_chains_multiple_joins(render_context: vw.RenderContext) -> None:
         """Should support chaining multiple joins."""
-        users = Source("users")
-        orders = Source("orders")
-        products = Source("products")
+        users = Source(name="users")
+        orders = Source(name="orders")
+        products = Source(name="products")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         joined = joined.join.inner(products, on=[orders.col("product_id") == products.col("id")])
         assert len(joined._joins) == 2
@@ -139,15 +139,15 @@ def describe_source_with_joins() -> None:
 
     def it_renders_source_with_single_join(render_context: vw.RenderContext) -> None:
         """Should render source with INNER JOIN."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         assert joined.__vw_render__(render_context) == "users INNER JOIN orders ON (users.id = orders.user_id)"
 
     def it_renders_select_statement_with_join(render_config: vw.RenderConfig) -> None:
         """Should render SELECT statement with join."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*"))
         assert statement.render(config=render_config) == vw.RenderResult(
@@ -160,13 +160,13 @@ def describe_where() -> None:
 
     def it_returns_statement() -> None:
         """Should return a Statement object."""
-        source = Source("users")
+        source = Source(name="users")
         statement = source.select(vw.col("*")).where(vw.col("age") >= vw.col("18"))
         assert isinstance(statement, Statement)
 
     def it_renders_where_with_single_condition(render_config: vw.RenderConfig) -> None:
         """Should render SELECT with WHERE clause."""
-        source = Source("users")
+        source = Source(name="users")
         statement = source.select(vw.col("*")).where(vw.col("age") >= vw.col("18"))
         assert statement.render(config=render_config) == vw.RenderResult(
             sql="SELECT * FROM users WHERE (age >= 18)", params={}
@@ -174,7 +174,7 @@ def describe_where() -> None:
 
     def it_renders_where_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
         """Should render WHERE with multiple conditions combined with AND."""
-        source = Source("users")
+        source = Source(name="users")
         statement = source.select(vw.col("*")).where(
             vw.col("age") >= vw.col("18"), vw.col("status") == vw.col("'active'")
         )
@@ -184,7 +184,7 @@ def describe_where() -> None:
 
     def it_renders_where_with_parameters(render_config: vw.RenderConfig) -> None:
         """Should render WHERE clause with parameterized values."""
-        source = Source("users")
+        source = Source(name="users")
         min_age = vw.param("min_age", 18)
         status = vw.param("status", "active")
         statement = source.select(vw.col("*")).where(vw.col("age") >= min_age, vw.col("status") == status)
@@ -195,7 +195,7 @@ def describe_where() -> None:
 
     def it_chains_multiple_where_calls(render_config: vw.RenderConfig) -> None:
         """Should support chaining multiple where() calls."""
-        source = Source("users")
+        source = Source(name="users")
         statement = (
             source.select(vw.col("*"))
             .where(vw.col("age") >= vw.col("18"))
@@ -207,8 +207,8 @@ def describe_where() -> None:
 
     def it_renders_where_with_join(render_config: vw.RenderConfig) -> None:
         """Should render WHERE clause with JOIN."""
-        users = Source("users")
-        orders = Source("orders")
+        users = Source(name="users")
+        orders = Source(name="orders")
         joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         statement = joined.select(vw.col("*")).where(orders.col("total") > vw.col("100"))
         assert statement.render(config=render_config) == vw.RenderResult(
@@ -218,7 +218,7 @@ def describe_where() -> None:
 
     def it_renders_where_with_all_comparison_operators(render_config: vw.RenderConfig) -> None:
         """Should render WHERE clause with all comparison operators."""
-        source = Source("products")
+        source = Source(name="products")
         statement = source.select(vw.col("*")).where(
             vw.col("price") > vw.col("10"),
             vw.col("stock") >= vw.col("5"),

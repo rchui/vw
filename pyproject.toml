@@ -5,14 +5,16 @@ description = "A Python library"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "click>=8.0",
+    "strenum",
 ]
 
 [project.optional-dependencies]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-describe>=2.0.0",
-    "ruff>=0.8.0",
+    "pytest",
+    "pytest-describe",
+    "ruff",
+    "ty",
+    "typing_extensions",
 ]
 
 [project.scripts]

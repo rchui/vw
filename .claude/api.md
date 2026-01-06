@@ -52,7 +52,7 @@ See `tests/test_sql.py::describe_basic_select` for more examples.
 import vw
 
 # SELECT * FROM users
-result = vw.Source("users").select(vw.col("*")).render()
+result = vw.Source(name="users").select(vw.col("*")).render()
 # result.sql: "SELECT * FROM users"
 # result.params: {}
 ```
@@ -60,7 +60,7 @@ result = vw.Source("users").select(vw.col("*")).render()
 ### SELECT with Qualified Columns
 
 ```python
-users = vw.Source("users")
+users = vw.Source(name="users")
 result = users.select(
     users.col("id"),
     users.col("name")
@@ -73,8 +73,8 @@ result = users.select(
 See `tests/test_sql.py::describe_joins` for comprehensive examples including multiple conditions and chained joins.
 
 ```python
-users = vw.Source("users")
-orders = vw.Source("orders")
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
 
 result = (
     users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
@@ -98,7 +98,7 @@ See `tests/test_sql.py::describe_where` for comprehensive examples including:
 
 Basic example:
 ```python
-result = vw.Source("users").select(vw.col("*")).where(
+result = vw.Source(name="users").select(vw.col("*")).where(
     vw.col("age") >= vw.param("min_age", 18)
 ).render()
 # result.sql: "SELECT * FROM users WHERE age >= :min_age"
@@ -132,8 +132,8 @@ expr = ~(vw.col("deleted") == vw.col("true")) & (vw.col("status") == vw.col("'ac
 See `tests/test_sql.py::describe_parameters` for comprehensive examples including parameter reuse and different types.
 
 ```python
-users = vw.Source("users")
-orders = vw.Source("orders")
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
 
 # Create parameters
 user_id = vw.param("user_id", 123)
@@ -178,9 +178,9 @@ Statements can be used as subqueries in FROM/JOIN clauses. Use `.alias()` to giv
 
 ```python
 # Subquery in JOIN
-users = vw.Source("users")
+users = vw.Source(name="users")
 order_totals = (
-    vw.Source("orders")
+    vw.Source(name="orders")
     .select(vw.col("user_id"), vw.col("total"))
     .alias("ot")
 )
@@ -196,9 +196,9 @@ result = (
 Table aliasing also works:
 
 ```python
-o = vw.Source("orders").alias("o")
+o = vw.Source(name="orders").alias("o")
 result = (
-    vw.Source("users")
+    vw.Source(name="users")
     .join.inner(o, on=[vw.col("users.id") == o.col("user_id")])
     .select(vw.col("*"))
     .render()
@@ -224,8 +224,8 @@ The API follows a fluent, polars-inspired method chaining pattern:
 
 ```python
 result = (
-    vw.Source("users")
-    .join.inner(vw.Source("orders"), on=[...])
+    vw.Source(name="users")
+    .join.inner(vw.Source(name="orders"), on=[...])
     .select(vw.col("*"))
     .render()
 )

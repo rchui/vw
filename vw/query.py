@@ -44,8 +44,8 @@ class JoinAccessor:
             A new RowSet with the join applied.
 
         Example:
-            >>> users = Source("users")
-            >>> orders = Source("orders")
+            >>> users = Source(name="users")
+            >>> orders = Source(name="orders")
             >>> users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
         """
         return replace(
@@ -71,8 +71,8 @@ class Source(RowSet):
             A Column with the alias (if set) or source name as a prefix.
 
         Example:
-            >>> Source("users").col("id")  # Returns Column("users.id")
-            >>> Source("users").alias("u").col("id")  # Returns Column("u.id")
+            >>> Source(name="users").col("id")  # Returns Column("users.id")
+            >>> Source(name="users").alias("u").col("id")  # Returns Column("u.id")
         """
         prefix = self._alias or self.name
         return Column(f"{prefix}.{column_name}")
@@ -113,8 +113,8 @@ class Statement(Expression, RowSet):
 
         Example:
             >>> from vw import col, param
-            >>> Source("users").select(col("*")).where(col("age") >= param("min_age", 18))
-            >>> Source("users").select(col("*")).where(col("status") == col("'active'"), col("age") >= col("18"))
+            >>> Source(name="users").select(col("*")).where(col("age") >= param("min_age", 18))
+            >>> Source(name="users").select(col("*")).where(col("status") == col("'active'"), col("age") >= col("18"))
         """
         return Statement(
             source=self.source,

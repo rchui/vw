@@ -54,7 +54,7 @@ query = users.join.inner(
 Queries start with `Source()` then chain operations (polars-inspired):
 
 ```python
-vw.Source("users").join.inner(...).select(...)
+vw.Source(name="users").join.inner(...).select(...)
 ```
 
 Not:
