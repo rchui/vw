@@ -47,3 +47,23 @@ Uses **Conventional Commits** format:
 - `docs:` - Documentation changes
 - `test:` - Test changes
 - `refactor:` - Code refactoring
+
+### Workflow: Completing Work
+
+When a piece of work is completed, always run the following before committing:
+
+1. **Run tests** - Ensure all tests pass
+   ```bash
+   uv run pytest -v
+   ```
+
+2. **Run linters** - Check and fix code style
+   ```bash
+   uv run ruff check .
+   uv run ruff format .
+   ```
+
+3. **Commit** - Use conventional commit format
+   ```bash
+   git add -A && git commit -m "type: description"
+   ```
