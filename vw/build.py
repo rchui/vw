@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     pass
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class InnerJoin:
     """Represents an INNER JOIN operation."""
 
@@ -59,7 +59,7 @@ class JoinAccessor:
         )
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Source(RowSet):
     """Represents a SQL data source (table, view, etc.)."""
 
@@ -80,7 +80,7 @@ class Source(RowSet):
             >>> Source(name="users").alias("u").col("id")  # Returns Column("u.id")
         """
         prefix = self._alias or self.name
-        return Column(f"{prefix}.{column_name}")
+        return Column(name=f"{prefix}.{column_name}")
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""
@@ -92,7 +92,7 @@ class Source(RowSet):
         return sql
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Statement(Expression, RowSet):
     """Represents a SQL statement.
 

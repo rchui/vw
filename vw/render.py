@@ -19,7 +19,7 @@ class ParameterStyle(StrEnum):
     """At-prefixed named parameters: @name (SQL Server)"""
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, frozen=True)
 class RenderConfig:
     """Configuration for SQL rendering."""
 
@@ -62,7 +62,7 @@ class RenderContext:
         raise ValueError(f"Unsupported parameter style: {self.config.parameter_style}")
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, frozen=True)
 class RenderResult:
     """Result of rendering a SQL statement."""
 

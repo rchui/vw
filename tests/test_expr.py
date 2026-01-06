@@ -21,12 +21,12 @@ def describe_column() -> None:
 
     def it_renders_column_name(render_context: vw.RenderContext) -> None:
         """Should render Column as its name."""
-        column = Column("username")
+        column = Column(name="username")
         assert column.__vw_render__(render_context) == "username"
 
     def it_renders_star(render_context: vw.RenderContext) -> None:
         """Should render star for wildcard."""
-        column = Column("*")
+        column = Column(name="*")
         assert column.__vw_render__(render_context) == "*"
 
     def describe_escape_hatch() -> None:
@@ -34,17 +34,17 @@ def describe_column() -> None:
 
         def it_renders_star_replace(render_context: vw.RenderContext) -> None:
             """Should render star REPLACE extension."""
-            column = Column("* REPLACE (foo AS bar)")
+            column = Column(name="* REPLACE (foo AS bar)")
             assert column.__vw_render__(render_context) == "* REPLACE (foo AS bar)"
 
         def it_renders_star_exclude(render_context: vw.RenderContext) -> None:
             """Should render star EXCLUDE extension."""
-            column = Column("* EXCLUDE (foo, bar)")
+            column = Column(name="* EXCLUDE (foo, bar)")
             assert column.__vw_render__(render_context) == "* EXCLUDE (foo, bar)"
 
         def it_renders_complex_expression(render_context: vw.RenderContext) -> None:
             """Should allow any SQL expression as escape hatch."""
-            column = Column("CAST(price AS DECIMAL(10,2))")
+            column = Column(name="CAST(price AS DECIMAL(10,2))")
             assert column.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2))"
 
     def describe_comparison_operators() -> None:

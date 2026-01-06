@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 from typing_extensions import Self
 
 
-@dataclass(kw_only=True)
+@dataclass(kw_only=True, frozen=True)
 class RowSet:
     """Base class for things that produce rows (tables, subqueries, CTEs).
 
@@ -58,8 +58,8 @@ class RowSet:
         from vw.column import Column
 
         if self._alias:
-            return Column(f"{self._alias}.{column_name}")
-        return Column(column_name)
+            return Column(name=f"{self._alias}.{column_name}")
+        return Column(name=column_name)
 
     @property
     def join(self) -> JoinAccessor:

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from vw.render import RenderContext
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Equals(Expression):
     """Represents an equality comparison (=) between two expressions."""
 
@@ -23,7 +23,7 @@ class Equals(Expression):
         return f"{self.left.__vw_render__(context)} = {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class NotEquals(Expression):
     """Represents an inequality comparison (<>) between two expressions."""
 
@@ -35,7 +35,7 @@ class NotEquals(Expression):
         return f"{self.left.__vw_render__(context)} <> {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class LessThan(Expression):
     """Represents a less than comparison (<) between two expressions."""
 
@@ -47,7 +47,7 @@ class LessThan(Expression):
         return f"{self.left.__vw_render__(context)} < {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class LessThanOrEqual(Expression):
     """Represents a less than or equal comparison (<=) between two expressions."""
 
@@ -59,7 +59,7 @@ class LessThanOrEqual(Expression):
         return f"{self.left.__vw_render__(context)} <= {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class GreaterThan(Expression):
     """Represents a greater than comparison (>) between two expressions."""
 
@@ -71,7 +71,7 @@ class GreaterThan(Expression):
         return f"{self.left.__vw_render__(context)} > {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class GreaterThanOrEqual(Expression):
     """Represents a greater than or equal comparison (>=) between two expressions."""
 
@@ -83,7 +83,7 @@ class GreaterThanOrEqual(Expression):
         return f"{self.left.__vw_render__(context)} >= {self.right.__vw_render__(context)}"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Not(Expression):
     """Represents a logical NOT of an expression."""
 
@@ -94,7 +94,7 @@ class Not(Expression):
         return f"NOT ({self.operand.__vw_render__(context)})"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class And(Expression):
     """Represents a logical AND between two expressions."""
 
@@ -106,7 +106,7 @@ class And(Expression):
         return f"({self.left.__vw_render__(context)}) AND ({self.right.__vw_render__(context)})"
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Or(Expression):
     """Represents a logical OR between two expressions."""
 

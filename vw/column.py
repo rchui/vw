@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from vw.render import RenderContext
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Column(Expression):
     """Represents a column reference in SQL."""
 
@@ -135,4 +135,4 @@ def col(name: str, /) -> Column:
         >>> col("name")
         >>> col("*")
     """
-    return Column(name)
+    return Column(name=name)

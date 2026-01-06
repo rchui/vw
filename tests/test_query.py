@@ -24,7 +24,7 @@ def describe_source() -> None:
         def it_returns_column_equal_to_manually_constructed():
             """Should return Column equal to manually constructed qualified column."""
             source = Source(name="orders")
-            assert source.col("user_id") == vw.Column("orders.user_id")
+            assert source.col("user_id") == vw.Column(name="orders.user_id")
 
         def it_works_with_different_column_names(render_context: vw.RenderContext) -> None:
             """Should qualify any column name."""

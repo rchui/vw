@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from vw.render import RenderContext
 
 
-@dataclass
+@dataclass(kw_only=True, frozen=True)
 class Parameter(Expression):
     """Represents a parameterized value in SQL."""
 
