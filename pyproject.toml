@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
     "strenum",
+    "typing_extensions",
 ]
 
 [project.optional-dependencies]
@@ -14,7 +15,6 @@ dev = [
     "pytest-describe",
     "ruff",
     "ty",
-    "typing_extensions",
 ]
 
 [project.scripts]

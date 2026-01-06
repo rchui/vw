@@ -4,9 +4,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
+from typing import TYPE_CHECKING
 
-from vw.expr import Column, Expression, RowSet
+from vw.base import Expression, RowSet
+from vw.column import Column
 from vw.render import RenderConfig, RenderContext, RenderResult
+
+if TYPE_CHECKING:
+    pass
 
 
 @dataclass

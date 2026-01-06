@@ -1,9 +1,10 @@
-"""Tests for vw.expr module."""
+"""Tests for expression classes."""
 
 import vw
-from vw.expr import (
+from vw.base import RowSet
+from vw.column import Column, col
+from vw.operators import (
     And,
-    Column,
     Equals,
     GreaterThan,
     GreaterThanOrEqual,
@@ -12,8 +13,6 @@ from vw.expr import (
     Not,
     NotEquals,
     Or,
-    RowSet,
-    col,
 )
 
 

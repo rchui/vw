@@ -1,7 +1,7 @@
-"""Tests for vw.query module."""
+"""Tests for vw.build module."""
 
 import vw
-from vw.query import InnerJoin, Source, Statement
+from vw.build import InnerJoin, Source, Statement
 
 
 def describe_source() -> None:
