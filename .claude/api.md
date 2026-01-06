@@ -11,6 +11,8 @@ All public exports from `vw/__init__.py`:
 ### Classes
 - `Column` - Column reference class
 - `Expression` - Expression base class
+- `RowSet` - Base class for row-producing objects (tables, subqueries)
+- `AliasedRowSet` - Aliased row set (created via `.alias()`)
 - `Parameter` - Parameterized value class
 - `Equals` - Equality comparison operator (=)
 - `NotEquals` - Inequality comparison operator (<>)
@@ -18,8 +20,8 @@ All public exports from `vw/__init__.py`:
 - `LessThanOrEqual` - Less than or equal comparison operator (<=)
 - `GreaterThan` - Greater than comparison operator (>)
 - `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
-- `Source` - Table/view source
-- `Statement` - SQL statement
+- `Source` - Table/view source (extends RowSet)
+- `Statement` - SQL statement (extends Expression and RowSet)
 - `InnerJoin` - Inner join operation
 - `RenderResult` - Rendering result with SQL and params
 - `RenderConfig` - Rendering configuration
@@ -40,6 +42,7 @@ For comprehensive examples, see the integration tests in `tests/test_sql.py`:
 - `describe_complex_expressions` - Complex SQL expressions via escape hatch
 - `describe_joins` - INNER JOIN operations
 - `describe_where` - WHERE clause support
+- `describe_subqueries` - Subqueries and aliasing
 - `describe_parameters` - Parameterized queries
 
 ### Basic SELECT
@@ -166,6 +169,42 @@ result = query.render(config)  # Uses $name
 # At style (@name) - SQL Server
 config = vw.RenderConfig(parameter_style=vw.ParameterStyle.AT)
 result = query.render(config)  # Uses @name
+```
+
+### Subqueries and Aliasing
+
+See `tests/test_sql.py::describe_subqueries` for comprehensive examples.
+
+Statements can be used as subqueries in FROM/JOIN clauses. Use `.alias()` to give them a name:
+
+```python
+# Subquery in JOIN
+users = vw.Source("users")
+order_totals = (
+    vw.Source("orders")
+    .select(vw.col("user_id"), vw.col("total"))
+    .alias("ot")
+)
+
+result = (
+    users.join.inner(order_totals, on=[users.col("id") == order_totals.col("user_id")])
+    .select(users.col("name"), order_totals.col("total"))
+    .render()
+)
+# result.sql: "SELECT users.name, ot.total FROM users INNER JOIN (SELECT user_id, total FROM orders) AS ot ON (users.id = ot.user_id)"
+```
+
+Table aliasing also works:
+
+```python
+o = vw.Source("orders").alias("o")
+result = (
+    vw.Source("users")
+    .join.inner(o, on=[vw.col("users.id") == o.col("user_id")])
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users INNER JOIN orders AS o ON (users.id = o.user_id)"
 ```
 
 ### Escape Hatch for Raw SQL

@@ -356,6 +356,79 @@ def describe_where():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_subqueries():
+    """Tests for subquery support."""
+
+    def it_generates_subquery_in_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            INNER JOIN (SELECT user_id, total FROM orders) AS order_totals
+        """
+        users = vw.Source("users")
+        order_totals = vw.Source("orders").select(vw.col("user_id"), vw.col("total")).alias("order_totals")
+        result = users.join.inner(order_totals).select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_subquery_in_join_with_condition(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT users.name, ot.total
+            FROM users
+            INNER JOIN (SELECT user_id, total FROM orders) AS ot
+                ON (users.id = ot.user_id)
+        """
+        users = vw.Source("users")
+        ot = vw.Source("orders").select(vw.col("user_id"), vw.col("total")).alias("ot")
+        result = (
+            users.join.inner(ot, on=[users.col("id") == ot.col("user_id")])
+            .select(users.col("name"), ot.col("total"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_nested_subqueries(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM (SELECT * FROM (SELECT id FROM users) AS inner_q) AS outer_q
+        """
+        inner = vw.Source("users").select(vw.col("id")).alias("inner_q")
+        middle = vw.Statement(source=inner, columns=[vw.col("*")]).alias("outer_q")
+        outer = vw.Statement(source=middle, columns=[vw.col("*")])
+        result = outer.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_subquery_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            INNER JOIN (SELECT user_id FROM orders WHERE (status = :status)) AS active_orders
+        """
+        users = vw.Source("users")
+        active_orders = (
+            vw.Source("orders")
+            .select(vw.col("user_id"))
+            .where(vw.col("status") == vw.param("status", "active"))
+            .alias("active_orders")
+        )
+        result = users.join.inner(active_orders).select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"status": "active"})
+
+    def it_generates_aliased_table_in_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT users.name, o.total
+            FROM users
+            INNER JOIN orders AS o ON (users.id = o.user_id)
+        """
+        users = vw.Source("users")
+        o = vw.Source("orders").alias("o")
+        result = (
+            users.join.inner(o, on=[users.col("id") == o.col("user_id")])
+            .select(users.col("name"), o.col("total"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_parameters():
     """Tests for parameterized values."""
 

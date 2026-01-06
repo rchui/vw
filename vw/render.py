@@ -31,6 +31,11 @@ class RenderContext:
 
     config: RenderConfig
     params: dict[str, Any] = field(default_factory=dict)
+    depth: int = 0
+
+    def recurse(self) -> "RenderContext":
+        """Create a child context for nested rendering."""
+        return RenderContext(config=self.config, params=self.params, depth=self.depth + 1)
 
     def add_param(self, name: str, value: Any) -> str:
         """

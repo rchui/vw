@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
-from vw.expr import Column, Expression
+from vw.expr import Column, Expression, RowSet
 from vw.render import RenderConfig, RenderContext, RenderResult
 
 
@@ -13,7 +13,7 @@ from vw.render import RenderConfig, RenderContext, RenderResult
 class InnerJoin:
     """Represents an INNER JOIN operation."""
 
-    right: Source
+    right: RowSet
     on: Sequence[Expression] = field(default_factory=list)
 
     def __vw_render__(self, context: RenderContext) -> str:
@@ -32,12 +32,12 @@ class JoinAccessor:
     def __init__(self, source: Source):
         self._source = source
 
-    def inner(self, right: Source, *, on: Sequence[Expression] = ()) -> Source:
+    def inner(self, right: RowSet, *, on: Sequence[Expression] = ()) -> Source:
         """
         Perform an INNER JOIN with another source.
 
         Args:
-            right: The source to join with.
+            right: The row set to join with (table, subquery, or CTE).
             on: Sequence of join condition expressions. Multiple conditions are combined with AND.
 
         Returns:
@@ -55,7 +55,7 @@ class JoinAccessor:
 
 
 @dataclass
-class Source:
+class Source(RowSet):
     """Represents a SQL data source (table, view, etc.)."""
 
     name: str
@@ -68,19 +68,20 @@ class Source:
 
     def col(self, column_name: str, /) -> Column:
         """
-        Create a column reference qualified with this source's name.
+        Create a column reference qualified with this source's alias or name.
 
         Args:
             column_name: Column name to qualify.
 
         Returns:
-            A Column with the source name as a prefix.
+            A Column with the alias (if set) or source name as a prefix.
 
         Example:
             >>> Source("users").col("id")  # Returns Column("users.id")
+            >>> Source("users").alias("u").col("id")  # Returns Column("u.id")
         """
-
-        return Column(f"{self.name}.{column_name}")
+        prefix = self._alias or self.name
+        return Column(f"{prefix}.{column_name}")
 
     def select(self, *columns: Expression) -> Statement:
         """
@@ -104,6 +105,8 @@ class Source:
         """Return the SQL representation of the source."""
 
         sql = self.name
+        if self._alias:
+            sql += f" AS {self._alias}"
         if self.joins:
             for join_obj in self.joins:
                 sql += f" {join_obj.__vw_render__(context)}"
@@ -111,10 +114,16 @@ class Source:
 
 
 @dataclass
-class Statement:
-    """Represents a SQL statement."""
+class Statement(Expression, RowSet):
+    """Represents a SQL statement.
 
-    source: Source
+    Statement extends both Expression and RowSet, allowing it to be used:
+    - As a top-level query (via render())
+    - As a subquery in WHERE clauses (as Expression)
+    - As a subquery in FROM/JOIN clauses (as RowSet)
+    """
+
+    source: RowSet
     columns: list[Expression]
     where_conditions: list[Expression] = field(default_factory=list)
 
@@ -157,16 +166,19 @@ class Statement:
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the statement."""
-        # Render columns
         rendered_columns = [col.__vw_render__(context) for col in self.columns]
         columns_str = ", ".join(rendered_columns)
-        source_str = self.source.__vw_render__(context)
+        source_str = self.source.__vw_render__(context.recurse())
 
         sql = f"SELECT {columns_str} FROM {source_str}"
 
-        # Add WHERE clause if conditions exist
         if self.where_conditions:
             conditions: list[str] = [f"({expr.__vw_render__(context)})" for expr in self.where_conditions]
             sql += f" WHERE {' AND '.join(conditions)}"
 
+        # Parenthesize if nested
+        if context.depth > 0:
+            sql = f"({sql})"
+            if self._alias:
+                sql += f" AS {self._alias}"
         return sql

@@ -52,7 +52,9 @@
 - [ ] CASE expressions
 
 ## Advanced Query Features
-- [ ] Subqueries in SELECT, FROM, WHERE
+- [x] Subqueries in FROM/JOIN (via Statement as RowSet)
+- [x] Table/subquery aliasing via `.alias()`
+- [ ] Subqueries in WHERE (IN, EXISTS)
 - [ ] CTEs (Common Table Expressions / WITH clause)
 - [ ] UNION / UNION ALL / INTERSECT / EXCEPT
 

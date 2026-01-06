@@ -133,15 +133,19 @@ Columns accept raw SQL strings for unsupported features.
 
 ### vw/expr.py
 Expression classes that represent SQL components:
+- `RowSet` - Base class for row-producing objects (tables, subqueries)
+- `AliasedRowSet` - Aliased row set wrapper
+- `Expression` - Base class for SQL expressions
 - `Column` - Column references
 - `Parameter` - Parameterized values
-- `Equals`, `NotEquals` - Comparison operators
+- `Equals`, `NotEquals`, `LessThan`, etc. - Comparison operators
+- `And`, `Or`, `Not` - Logical operators
 - Helper functions: `col()`, `param()`
 
 ### vw/query.py
 Query builder classes:
-- `Source` - Table/view sources
-- `Statement` - Complete SQL statements
+- `Source` - Table/view sources (extends RowSet)
+- `Statement` - Complete SQL statements (extends Expression and RowSet)
 - `InnerJoin` - Join operations
 - `JoinAccessor` - Join accessor for method chaining
 
@@ -149,25 +153,52 @@ Query builder classes:
 Rendering infrastructure:
 - `ParameterStyle` - Enum for parameter styles (:name, $name, @name)
 - `RenderConfig` - Rendering configuration
-- `RenderContext` - Stateful rendering context
+- `RenderContext` - Stateful rendering context with depth tracking
 - `RenderResult` - Final rendering result (SQL + params)
+
+## Type Hierarchy
+
+The type system separates row-producing objects from expressions:
+
+```
+RowSet (things in FROM/JOIN)
+├── Source (table name)
+├── AliasedRowSet (aliased row set)
+└── Statement (subquery)
+
+Expression (things in SELECT/WHERE/ON conditions)
+├── Column
+├── Parameter
+├── Equals, NotEquals, LessThan, ...
+├── And, Or, Not
+└── Statement (subquery as expression)
+```
+
+`Statement` inherits from both, allowing it to be used as a subquery in either context.
+
+### Depth Tracking for Subqueries
+
+`RenderContext` tracks rendering depth to handle parenthesization:
+- Depth 0 = top-level query (no parentheses)
+- Depth > 0 = nested subquery (parenthesized)
+
+The `.recurse()` method creates a child context with incremented depth.
 
 ## Future Architectural Considerations
 
 ### Additional Operators
-When adding operators like `<`, `>`, `<=`, `>=`, `LIKE`, `IN`:
+When adding operators like `LIKE`, `IN`:
 - Follow the same pattern as `Equals` and `NotEquals`
 - Create separate classes for each operator
 - Add operator overloading methods to `Column` class
 
-### WHERE Clause
-Will need to handle AND/OR logic:
-- Consider `WhereClause` class
-- May need `And`, `Or` expression classes
-- Design for composability
+### CTEs (Common Table Expressions)
+CTEs would be another `RowSet` subclass:
+- Named query that can be referenced like a table
+- Rendered in WITH clause before main query
+- Could support recursive CTEs
 
-### Subqueries
-Subqueries can appear in multiple places (SELECT, FROM, WHERE):
-- `Source` might need to accept another `Statement`
-- Consider `Subquery` wrapper class
-- Ensure proper parenthesization in rendering
+### Subqueries in WHERE
+For `IN (SELECT ...)` and `EXISTS (SELECT ...)`:
+- Statement is already an Expression
+- Need `In` and `Exists` operator classes that accept Statement

@@ -1,20 +1,67 @@
 """Expression classes for SQL query building."""
 
-from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from __future__ import annotations
+
+from dataclasses import dataclass, replace
+from typing import TYPE_CHECKING, Self
 
 if TYPE_CHECKING:
     from vw.render import RenderContext
 
 
+@dataclass(kw_only=True)
+class RowSet:
+    """Base class for things that produce rows (tables, subqueries, CTEs).
+
+    Used in FROM and JOIN clauses.
+    """
+
+    _alias: str | None = None
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the row set."""
+        raise NotImplementedError
+
+    def alias(self, name: str, /) -> Self:
+        """Create an aliased copy of this row set.
+
+        Args:
+            name: The alias name.
+
+        Returns:
+            A copy of this row set with the alias set.
+
+        Example:
+            >>> Source("users").alias("u")
+            >>> subquery.alias("sq")
+        """
+        return replace(self, _alias=name)
+
+    def col(self, column_name: str, /) -> Column:
+        """Create a column reference qualified with this row set's alias.
+
+        Args:
+            column_name: Column name to qualify.
+
+        Returns:
+            A Column with the alias as prefix.
+
+        Example:
+            >>> Source("users").alias("u").col("id")  # Returns Column("u.id")
+        """
+        if self._alias:
+            return Column(f"{self._alias}.{column_name}")
+        return Column(column_name)
+
+
 class Expression:
     """Protocol for SQL expressions."""
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the expression."""
         raise NotImplementedError
 
-    def __and__(self, other: "Expression") -> "And":
+    def __and__(self, other: Expression) -> And:
         """Create a logical AND expression with another expression
 
         Args:
@@ -31,7 +78,7 @@ class Expression:
 
         return And(left=self, right=other)
 
-    def __or__(self, other: "Expression") -> "Or":
+    def __or__(self, other: Expression) -> Or:
         """Create a logical OR expression with another expression
 
         Args:
@@ -48,7 +95,7 @@ class Expression:
 
         return Or(left=self, right=other)
 
-    def __invert__(self) -> "Not":
+    def __invert__(self) -> Not:
         """Create a logical NOT expression
 
         Returns:
@@ -69,7 +116,7 @@ class Equals(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the equality comparison."""
         return f"{self.left.__vw_render__(context)} = {self.right.__vw_render__(context)}"
 
@@ -81,7 +128,7 @@ class NotEquals(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the inequality comparison."""
         return f"{self.left.__vw_render__(context)} <> {self.right.__vw_render__(context)}"
 
@@ -93,7 +140,7 @@ class LessThan(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the less than comparison."""
         return f"{self.left.__vw_render__(context)} < {self.right.__vw_render__(context)}"
 
@@ -105,7 +152,7 @@ class LessThanOrEqual(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the less than or equal comparison."""
         return f"{self.left.__vw_render__(context)} <= {self.right.__vw_render__(context)}"
 
@@ -117,7 +164,7 @@ class GreaterThan(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the greater than comparison."""
         return f"{self.left.__vw_render__(context)} > {self.right.__vw_render__(context)}"
 
@@ -129,7 +176,7 @@ class GreaterThanOrEqual(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the greater than or equal comparison."""
         return f"{self.left.__vw_render__(context)} >= {self.right.__vw_render__(context)}"
 
@@ -140,7 +187,7 @@ class Not(Expression):
 
     operand: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the NOT expression."""
         return f"NOT ({self.operand.__vw_render__(context)})"
 
@@ -152,7 +199,7 @@ class And(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the AND expression with parentheses."""
         return f"({self.left.__vw_render__(context)}) AND ({self.right.__vw_render__(context)})"
 
@@ -164,7 +211,7 @@ class Or(Expression):
     left: Expression
     right: Expression
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the OR expression with parentheses."""
         return f"({self.left.__vw_render__(context)}) OR ({self.right.__vw_render__(context)})"
 
@@ -265,7 +312,7 @@ class Column(Expression):
         """
         return GreaterThanOrEqual(left=self, right=other)
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the column."""
         return self.name
 
@@ -277,7 +324,7 @@ class Parameter(Expression):
     name: str
     value: str | int | float | bool
 
-    def __vw_render__(self, context: "RenderContext") -> str:
+    def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL placeholder for the parameter and register it in the context."""
         return context.add_param(self.name, self.value)
 
