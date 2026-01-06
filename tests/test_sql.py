@@ -329,6 +329,32 @@ def describe_where():
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
+    def it_generates_where_with_not_operator(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users WHERE (NOT (deleted = true))
+        """
+        result = (
+            vw.Source("users")
+            .select(vw.col("*"))
+            .where(~(vw.col("deleted") == vw.col("true")))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_where_with_not_combined_with_and(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            WHERE ((NOT (deleted = true)) AND (status = 'active'))
+        """
+        result = (
+            vw.Source("users")
+            .select(vw.col("*"))
+            .where(~(vw.col("deleted") == vw.col("true")) & (vw.col("status") == vw.col("'active'")))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
 
 def describe_parameters():
     """Tests for parameterized values."""

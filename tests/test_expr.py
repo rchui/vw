@@ -9,6 +9,7 @@ from vw.expr import (
     GreaterThanOrEqual,
     LessThan,
     LessThanOrEqual,
+    Not,
     NotEquals,
     Or,
     col,
@@ -138,6 +139,32 @@ def describe_comparison_expressions() -> None:
                 right=LessThan(left=col("m"), right=col("n")),
             )
             assert or_expr.__vw_render__(render_context) == "(x <> y) OR (m < n)"
+
+    def describe_not() -> None:
+        """Tests for Not class."""
+
+        def it_renders_not_expression(render_context: vw.RenderContext) -> None:
+            """Should render NOT expression."""
+            not_expr = Not(operand=Equals(left=col("active"), right=col("true")))
+            assert not_expr.__vw_render__(render_context) == "NOT (active = true)"
+
+        def it_creates_not_with_invert_operator(render_context: vw.RenderContext) -> None:
+            """Should create Not expression with ~ operator."""
+            result = ~(col("active") == col("true"))
+            assert isinstance(result, Not)
+            assert result.__vw_render__(render_context) == "NOT (active = true)"
+
+        def it_negates_compound_expressions(render_context: vw.RenderContext) -> None:
+            """Should negate compound AND/OR expressions."""
+            expr = (col("a") == col("b")) & (col("c") > col("d"))
+            negated = ~expr
+            assert isinstance(negated, Not)
+            assert negated.__vw_render__(render_context) == "NOT ((a = b) AND (c > d))"
+
+        def it_combines_not_with_other_operators(render_context: vw.RenderContext) -> None:
+            """Should combine NOT with AND/OR operators."""
+            expr = ~(col("active") == col("true")) & (col("age") >= col("18"))
+            assert expr.__vw_render__(render_context) == "(NOT (active = true)) AND (age >= 18)"
 
     def it_renders_chained_comparisons(render_context: vw.RenderContext) -> None:
         """Should render chained comparison expressions."""

@@ -40,7 +40,7 @@
 - [ ] LIKE comparison
 - [ ] IN comparison
 - [x] Logical operators: AND, OR
-- [ ] Logical operators: NOT
+- [x] Logical operators: NOT
 
 ## Functions
 - [ ] Aggregate functions: COUNT, SUM, AVG, MIN, MAX

@@ -48,6 +48,19 @@ class Expression:
 
         return Or(left=self, right=other)
 
+    def __invert__(self) -> "Not":
+        """Create a logical NOT expression
+
+        Returns:
+            A Not expression representing the logical NOT of this expression.
+
+        Example:
+            >>> expr = col("active") == col("true")
+            >>> negated = ~expr
+        """
+
+        return Not(operand=self)
+
 
 @dataclass
 class Equals(Expression):
@@ -119,6 +132,17 @@ class GreaterThanOrEqual(Expression):
     def __vw_render__(self, context: "RenderContext") -> str:
         """Return the SQL representation of the greater than or equal comparison."""
         return f"{self.left.__vw_render__(context)} >= {self.right.__vw_render__(context)}"
+
+
+@dataclass
+class Not(Expression):
+    """Represents a logical NOT of an expression."""
+
+    operand: Expression
+
+    def __vw_render__(self, context: "RenderContext") -> str:
+        """Return the SQL representation of the NOT expression."""
+        return f"NOT ({self.operand.__vw_render__(context)})"
 
 
 @dataclass
