@@ -1,6 +1,6 @@
 """vw - A SQL builder library with method chaining."""
 
-from vw.build import InnerJoin, Source, Statement
+from vw.build import InnerJoin, Source, Statement, cte
 from vw.column import Column, col
 from vw.parameter import Parameter, param
 from vw.render import ParameterStyle, RenderConfig, RenderContext, RenderResult
@@ -18,5 +18,6 @@ __all__: list[str] = [
     "Source",
     "Statement",
     "col",
+    "cte",
     "param",
 ]

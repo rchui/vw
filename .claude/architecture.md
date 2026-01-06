@@ -163,13 +163,20 @@ Query builder classes:
 - `Statement` - Complete SQL statements (extends Expression and RowSet)
 - `InnerJoin` - Join operations
 - `JoinAccessor` - Join accessor for method chaining, works with any RowSet
+- `CommonTableExpression` - CTE for WITH clauses (extends RowSet)
+- `cte()` - Helper function to create CTEs
 
 ### vw/render.py
 Rendering infrastructure:
 - `ParameterStyle` - Enum for parameter styles (:name, $name, @name)
 - `RenderConfig` - Rendering configuration
-- `RenderContext` - Stateful rendering context with depth tracking
+- `RenderContext` - Stateful rendering context with depth tracking, CTE collection
 - `RenderResult` - Final rendering result (SQL + params)
+
+### vw/exceptions.py
+Custom exceptions (import from `vw.exceptions`, not exported from main package):
+- `VWError` - Base exception for all vw errors
+- `CTENameCollisionError` - Raised when multiple CTEs with the same name are registered
 
 ## Type Hierarchy
 
@@ -187,8 +194,11 @@ RowSet (things in FROM/JOIN)
 ├── Source (table name)
 │   └── .col() uses _alias or table name as prefix
 │
-└── Statement (subquery)
-    └── .col() uses _alias as prefix
+├── Statement (subquery)
+│   └── .col() uses _alias as prefix
+│
+└── CommonTableExpression (CTE)
+    └── .col() uses _alias or CTE name as prefix
 
 Expression (things in SELECT/WHERE/ON conditions)
 ├── Column
@@ -219,10 +229,14 @@ When adding operators like `LIKE`, `IN`:
 - Add operator overloading methods to `Column` class
 
 ### CTEs (Common Table Expressions)
-CTEs would be another `RowSet` subclass:
+CTEs are implemented as a `RowSet` subclass (`CommonTableExpression`):
 - Named query that can be referenced like a table
-- Rendered in WITH clause before main query
-- Could support recursive CTEs
+- Registers in `RenderContext.ctes` during tree traversal (similar to Parameters)
+- Pre-renders body SQL during registration to discover dependencies
+- CTE body SQL is cached in context to avoid double rendering
+- Dependencies are automatically ordered (CTEs registered after their dependencies)
+- Name collision detection raises `CTENameCollisionError`
+- Could support recursive CTEs in future
 
 ### Subqueries in WHERE
 For `IN (SELECT ...)` and `EXISTS (SELECT ...)`:

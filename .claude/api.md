@@ -7,6 +7,7 @@ All public exports from `vw/__init__.py`:
 ### Functions
 - `col(name)` - Create a column reference
 - `param(name, value)` - Create a parameterized value
+- `cte(name, query)` - Create a Common Table Expression
 
 ### Classes
 - `Column` - Column reference class
@@ -169,6 +170,42 @@ result = query.render(config)  # Uses $name
 config = vw.RenderConfig(parameter_style=vw.ParameterStyle.AT)
 result = query.render(config)  # Uses @name
 ```
+
+### Common Table Expressions (CTEs)
+
+CTEs allow you to define named temporary result sets that can be referenced like tables:
+
+```python
+# Define a CTE
+active_users = vw.cte(
+    "active_users",
+    vw.Source(name="users").select(vw.col("*")).where(vw.col("status") == vw.param("status", "active"))
+)
+
+# Use it like any RowSet
+result = active_users.select(vw.col("*")).render()
+# result.sql: "WITH active_users AS (SELECT * FROM users WHERE (status = :status)) SELECT * FROM active_users"
+# result.params: {"status": "active"}
+
+# Use in joins
+orders = vw.Source(name="orders")
+result = (
+    orders.join.inner(active_users, on=[orders.col("user_id") == active_users.col("id")])
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "WITH active_users AS (...) SELECT * FROM orders INNER JOIN active_users ON (...)"
+
+# Multiple CTEs - dependencies are automatically ordered
+cte_a = vw.cte("a", vw.Source(name="table_a").select(vw.col("*")))
+cte_b = vw.cte("b", cte_a.select(vw.col("*")))  # References cte_a
+result = cte_b.select(vw.col("*")).render()
+# WITH a AS (...), b AS (SELECT * FROM a) SELECT * FROM b
+```
+
+CTEs register themselves in the RenderContext during tree traversal, similar to Parameters. Dependencies are automatically discovered and ordered correctly.
+
+**Note**: CTE names must be unique. Using multiple CTEs with the same name raises `CTENameCollisionError` (import from `vw.exceptions`).
 
 ### Subqueries and Aliasing
 

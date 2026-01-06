@@ -1,7 +1,10 @@
 """Tests for vw/build.py module."""
 
+import pytest
+
 import vw
-from vw.build import InnerJoin, Source, Statement
+from vw.build import CommonTableExpression, InnerJoin, Source, Statement
+from vw.exceptions import CTENameCollisionError
 
 
 def describe_source() -> None:
@@ -231,3 +234,101 @@ def describe_where() -> None:
             sql="SELECT * FROM products WHERE (price > 10) AND (stock >= 5) AND (discount < 50) AND (rating <= 4.5) AND (active = true) AND (deleted <> true)",
             params={},
         )
+
+
+def describe_common_table_expression() -> None:
+    """Tests for CommonTableExpression class."""
+
+    def it_renders_cte_name(render_context: vw.RenderContext) -> None:
+        """Should render CTE as its name and register in context."""
+        query = Source(name="users").select(vw.col("*"))
+        cte = CommonTableExpression(name="active_users", query=query)
+        assert cte.__vw_render__(render_context) == "active_users"
+        assert render_context.ctes == [(cte, "(SELECT * FROM users)")]
+
+    def it_renders_cte_with_alias(render_context: vw.RenderContext) -> None:
+        """Should render CTE with alias."""
+        query = Source(name="users").select(vw.col("*"))
+        cte = CommonTableExpression(name="active_users", query=query).alias("au")
+        assert cte.__vw_render__(render_context) == "active_users AS au"
+
+    def describe_col() -> None:
+        """Tests for CommonTableExpression.col() method."""
+
+        def it_returns_qualified_column(render_context: vw.RenderContext) -> None:
+            """Should return Column with CTE name prefix."""
+            query = Source(name="users").select(vw.col("*"))
+            cte = CommonTableExpression(name="active_users", query=query)
+            column = cte.col("id")
+            assert column.__vw_render__(render_context) == "active_users.id"
+
+        def it_uses_alias_when_set(render_context: vw.RenderContext) -> None:
+            """Should use alias as prefix when set."""
+            query = Source(name="users").select(vw.col("*"))
+            cte = CommonTableExpression(name="active_users", query=query).alias("au")
+            column = cte.col("id")
+            assert column.__vw_render__(render_context) == "au.id"
+
+    def describe_select() -> None:
+        """Tests for CommonTableExpression.select() method."""
+
+        def it_returns_statement() -> None:
+            """Should return a Statement object."""
+            query = Source(name="users").select(vw.col("*"))
+            cte = CommonTableExpression(name="active_users", query=query)
+            statement = cte.select(vw.col("*"))
+            assert isinstance(statement, Statement)
+
+        def it_renders_with_clause(render_config: vw.RenderConfig) -> None:
+            """Should render WITH clause when CTE is used."""
+            query = Source(name="users").select(vw.col("*"))
+            cte = CommonTableExpression(name="active_users", query=query)
+            result = cte.select(vw.col("*")).render(config=render_config)
+            assert result == vw.RenderResult(
+                sql="WITH active_users AS (SELECT * FROM users) SELECT * FROM active_users",
+                params={},
+            )
+
+    def describe_join() -> None:
+        """Tests for CommonTableExpression in joins."""
+
+        def it_renders_cte_in_join(render_config: vw.RenderConfig) -> None:
+            """Should render CTE in JOIN clause."""
+            query = Source(name="users").select(vw.col("id"), vw.col("name"))
+            active_users = CommonTableExpression(name="active_users", query=query)
+            orders = Source(name="orders")
+            result = (
+                orders.join.inner(active_users, on=[orders.col("user_id") == active_users.col("id")])
+                .select(vw.col("*"))
+                .render(config=render_config)
+            )
+            assert result == vw.RenderResult(
+                sql="WITH active_users AS (SELECT id, name FROM users) SELECT * FROM orders INNER JOIN active_users ON (orders.user_id = active_users.id)",
+                params={},
+            )
+
+
+def describe_cte_function() -> None:
+    """Tests for cte() convenience function."""
+
+    def it_creates_common_table_expression() -> None:
+        """Should create a CommonTableExpression instance."""
+        query = Source(name="users").select(vw.col("*"))
+        result = vw.cte("active_users", query)
+        assert result == CommonTableExpression(name="active_users", query=query)
+
+    def it_renders_with_clause(render_config: vw.RenderConfig) -> None:
+        """Should render WITH clause when used."""
+        active_users = vw.cte("active_users", Source(name="users").select(vw.col("*")))
+        result = active_users.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="WITH active_users AS (SELECT * FROM users) SELECT * FROM active_users",
+            params={},
+        )
+
+    def it_raises_error_on_cte_name_collision(render_config: vw.RenderConfig) -> None:
+        """Should raise CTENameCollisionError when two different CTEs have the same name."""
+        cte1 = vw.cte("users", Source(name="active_users").select(vw.col("*")))
+        cte2 = vw.cte("users", Source(name="inactive_users").select(vw.col("*")))
+        with pytest.raises(CTENameCollisionError):
+            cte1.join.inner(cte2).select(vw.col("*")).render(config=render_config)

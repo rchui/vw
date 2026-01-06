@@ -1,9 +1,16 @@
 """Rendering infrastructure for SQL generation."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from strenum import StrEnum
+
+from vw.exceptions import CTENameCollisionError
+
+if TYPE_CHECKING:
+    from vw.build import CommonTableExpression
 
 
 class ParameterStyle(StrEnum):
@@ -32,11 +39,29 @@ class RenderContext:
 
     config: RenderConfig
     params: dict[str, Any] = field(default_factory=dict)
+    ctes: list[tuple[CommonTableExpression, str]] = field(default_factory=list)
     depth: int = 0
 
-    def recurse(self) -> "RenderContext":
+    def register_cte(self, cte: CommonTableExpression, body_sql: str) -> None:
+        """Register a CTE with its rendered body SQL.
+
+        Args:
+            cte: The CommonTableExpression to register.
+            body_sql: The pre-rendered SQL body of the CTE.
+
+        Raises:
+            CTENameCollisionError: If a different CTE with the same name is already registered.
+        """
+        for existing_cte, _ in self.ctes:
+            if existing_cte is cte:
+                return  # Already registered
+            if existing_cte.name == cte.name:
+                raise CTENameCollisionError(f"CTE name '{cte.name}' defined multiple times")
+        self.ctes.append((cte, body_sql))
+
+    def recurse(self) -> RenderContext:
         """Create a child context for nested rendering."""
-        return RenderContext(config=self.config, params=self.params, depth=self.depth + 1)
+        return RenderContext(config=self.config, params=self.params, ctes=self.ctes, depth=self.depth + 1)
 
     def add_param(self, name: str, value: Any) -> str:
         """

@@ -60,6 +60,75 @@ class JoinAccessor:
 
 
 @dataclass(kw_only=True, frozen=True)
+class CommonTableExpression(RowSet):
+    """A Common Table Expression (CTE) for use in WITH clauses.
+
+    CTEs are named subqueries that can be referenced like tables.
+    They register themselves in the RenderContext during rendering,
+    and the WITH clause is prepended by Statement.render().
+
+    Example:
+        >>> active_users = CommonTableExpression(
+        ...     name="active_users",
+        ...     query=Source(name="users").select(col("*")).where(col("active") == col("true"))
+        ... )
+        >>> result = active_users.select(col("*")).render()
+        # WITH active_users AS (SELECT * FROM users WHERE ...) SELECT * FROM active_users
+    """
+
+    name: str
+    query: Statement
+
+    def col(self, column_name: str, /) -> Column:
+        """Create a column qualified with the CTE name or alias.
+
+        Args:
+            column_name: Column name to qualify.
+
+        Returns:
+            A Column with the CTE name (or alias if set) as prefix.
+
+        Example:
+            >>> cte = CommonTableExpression(name="active_users", query=...)
+            >>> cte.col("id")  # Returns Column("active_users.id")
+            >>> cte.alias("au").col("id")  # Returns Column("au.id")
+        """
+        prefix = self._alias or self.name
+        return Column(name=f"{prefix}.{column_name}")
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Register CTE with pre-rendered body and return reference name."""
+        # Render query first to discover dependencies, then register
+        body_sql = self.query.__vw_render__(context.recurse())
+        context.register_cte(self, body_sql)
+
+        # Return just the reference name
+        sql = self.name
+        if self._alias:
+            sql += f" AS {self._alias}"
+        for join_obj in self._joins:
+            sql += f" {join_obj.__vw_render__(context)}"
+        return sql
+
+
+def cte(name: str, query: Statement, /) -> CommonTableExpression:
+    """Create a Common Table Expression (CTE).
+
+    Args:
+        name: The name for the CTE.
+        query: The Statement that defines the CTE.
+
+    Returns:
+        A CommonTableExpression that can be used like a table.
+
+    Example:
+        >>> active_users = cte("active_users", Source(name="users").select(col("*")).where(...))
+        >>> result = active_users.select(col("*")).render()
+    """
+    return CommonTableExpression(name=name, query=query)
+
+
+@dataclass(kw_only=True, frozen=True)
 class Source(RowSet):
     """Represents a SQL data source (table, view, etc.)."""
 
@@ -141,6 +210,12 @@ class Statement(Expression, RowSet):
             config = RenderConfig()
         context = RenderContext(config=config)
         sql = self.__vw_render__(context)
+
+        # Prepend WITH clause if CTEs were registered
+        if context.ctes:
+            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
+            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+
         return RenderResult(sql=sql, params=context.params)
 
     def __vw_render__(self, context: RenderContext) -> str:
