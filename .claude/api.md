@@ -9,17 +9,15 @@ All public exports from `vw/__init__.py`:
 - `param(name, value)` - Create a parameterized value
 
 ### Classes
-- `And` - Logical combination operator (AND)
 - `Column` - Column reference class
-- `Expression` - Expression base classes
+- `Expression` - Expression base class
 - `Parameter` - Parameterized value class
 - `Equals` - Equality comparison operator (=)
-- `NotEquals` - Inequality comparison operator (!=)
+- `NotEquals` - Inequality comparison operator (<>)
 - `LessThan` - Less than comparison operator (<)
 - `LessThanOrEqual` - Less than or equal comparison operator (<=)
 - `GreaterThan` - Greater than comparison operator (>)
 - `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
-- `Or` - Logical combination operator (OR)
 - `Source` - Table/view source
 - `Statement` - SQL statement
 - `InnerJoin` - Inner join operation
@@ -27,6 +25,11 @@ All public exports from `vw/__init__.py`:
 - `RenderConfig` - Rendering configuration
 - `RenderContext` - Rendering context (for advanced use)
 - `ParameterStyle` - Parameter style enum
+
+### Operators (via Expression methods)
+- `&` - Logical AND (`expr1 & expr2`)
+- `|` - Logical OR (`expr1 | expr2`)
+- `~` - Logical NOT (`~expr`)
 
 ## Usage Examples
 
@@ -89,6 +92,7 @@ See `tests/test_sql.py::describe_where` for comprehensive examples including:
 - Chaining multiple where() calls
 - WHERE with JOIN
 - All comparison operators
+- Logical operators (AND, OR, NOT)
 
 Basic example:
 ```python
@@ -97,6 +101,28 @@ result = vw.Source("users").select(vw.col("*")).where(
 ).render()
 # result.sql: "SELECT * FROM users WHERE age >= :min_age"
 # result.params: {"min_age": 18}
+```
+
+### Logical Operators
+
+Expressions can be combined using Python operators:
+
+```python
+# AND: use &
+expr = (vw.col("age") >= vw.col("18")) & (vw.col("status") == vw.col("'active'"))
+# Renders: (age >= 18) AND (status = 'active')
+
+# OR: use |
+expr = (vw.col("role") == vw.col("'admin'")) | (vw.col("role") == vw.col("'superuser'"))
+# Renders: (role = 'admin') OR (role = 'superuser')
+
+# NOT: use ~
+expr = ~(vw.col("deleted") == vw.col("true"))
+# Renders: NOT (deleted = true)
+
+# Combined
+expr = ~(vw.col("deleted") == vw.col("true")) & (vw.col("status") == vw.col("'active'"))
+# Renders: (NOT (deleted = true)) AND (status = 'active')
 ```
 
 ### Parameterized Queries
