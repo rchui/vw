@@ -131,8 +131,9 @@ Columns accept raw SQL strings for unsupported features.
 
 ## Module Organization
 
-### vw/expr.py
-Expression classes that represent SQL components:
+### vw/base.py
+Base classes for the expression system:
+- `Expression` - Base class for SQL expressions
 - `RowSet` - Base class for row-producing objects (tables, subqueries) with:
   - `_alias` field for aliasing
   - `_joins` field for join accumulation
@@ -140,14 +141,23 @@ Expression classes that represent SQL components:
   - `.col()` method for qualified column references
   - `.join` property accessor for join operations
   - `.select()` method for creating statements
-- `Expression` - Base class for SQL expressions
-- `Column` - Column references
-- `Parameter` - Parameterized values
-- `Equals`, `NotEquals`, `LessThan`, etc. - Comparison operators
-- `And`, `Or`, `Not` - Logical operators
-- Helper functions: `col()`, `param()`
 
-### vw/query.py
+### vw/column.py
+Column reference class:
+- `Column` - Column references with optional prefix
+- `col()` - Helper function to create columns
+
+### vw/parameter.py
+Parameterized value class:
+- `Parameter` - Parameterized values for safe query building
+- `param()` - Helper function to create parameters
+
+### vw/operators.py
+Comparison and logical operators:
+- `Equals`, `NotEquals`, `LessThan`, `LessThanOrEqual`, `GreaterThan`, `GreaterThanOrEqual` - Comparison operators
+- `And`, `Or`, `Not` - Logical operators
+
+### vw/build.py
 Query builder classes:
 - `Source` - Table/view sources (extends RowSet), overrides `.col()` to use table name as fallback
 - `Statement` - Complete SQL statements (extends Expression and RowSet)

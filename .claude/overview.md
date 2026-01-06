@@ -27,14 +27,17 @@ vw/
 ├── pyproject.toml        # Project configuration
 ├── vw/                   # Main package directory
 │   ├── __init__.py       # Package init, exports public API
+│   ├── base.py           # Base classes (Expression, RowSet)
+│   ├── build.py          # Query builder classes (Source, Statement, InnerJoin)
 │   ├── cli.py            # CLI entry point
-│   ├── expr.py           # Expression classes (Column, Parameter, etc.)
-│   ├── query.py          # Query builder classes (Source, Statement)
+│   ├── column.py         # Column reference class
+│   ├── operators.py      # Comparison and logical operators
+│   ├── parameter.py      # Parameter class for parameterized values
 │   └── render.py         # Rendering infrastructure (RenderContext, RenderConfig, etc.)
 └── tests/                # Test directory
     ├── conftest.py       # Pytest fixtures
-    ├── test_expr.py      # Unit tests for expr.py
-    ├── test_query.py     # Unit tests for query.py
+    ├── test_expr.py      # Unit tests for expression classes
+    ├── test_query.py     # Unit tests for query builder
     └── test_sql.py       # Integration tests for SQL generation
 ```
 
