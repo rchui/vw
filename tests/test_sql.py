@@ -209,24 +209,14 @@ def describe_order_by():
         expected_sql = """
             SELECT * FROM users ORDER BY name ASC
         """
-        result = (
-            vw.Source(name="users")
-            .select(vw.col("*"))
-            .order_by(vw.col("name").asc())
-            .render(config=render_config)
-        )
+        result = vw.Source(name="users").select(vw.col("*")).order_by(vw.col("name").asc()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_order_by_without_direction(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * FROM users ORDER BY name
         """
-        result = (
-            vw.Source(name="users")
-            .select(vw.col("*"))
-            .order_by(vw.col("name"))
-            .render(config=render_config)
-        )
+        result = vw.Source(name="users").select(vw.col("*")).order_by(vw.col("name")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_order_by_desc(render_config: vw.RenderConfig) -> None:
@@ -897,11 +887,7 @@ def describe_cast():
             SELECT id, price::numeric FROM orders
         """
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
-        result = (
-            vw.Source(name="orders")
-            .select(vw.col("id"), vw.col("price").cast("numeric"))
-            .render(config=config)
-        )
+        result = vw.Source(name="orders").select(vw.col("id"), vw.col("price").cast("numeric")).render(config=config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_cast_with_alias(render_config: vw.RenderConfig) -> None:
@@ -920,12 +906,106 @@ def describe_cast():
             SELECT $value::VARCHAR FROM orders
         """
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        result = vw.Source(name="orders").select(vw.param("value", 123).cast("VARCHAR")).render(config=config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"value": 123})
+
+
+def describe_limit():
+    """Tests for LIMIT clause."""
+
+    def it_generates_basic_limit(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users LIMIT 10
+        """
+        result = vw.Source(name="users").select(vw.col("*")).limit(10).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_limit_with_offset(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users LIMIT 10 OFFSET 20
+        """
+        result = vw.Source(name="users").select(vw.col("*")).limit(10, offset=20).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_full_query_with_limit(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, COUNT(*), SUM(total)
+            FROM orders
+            WHERE (status = :status)
+            GROUP BY customer_id
+            HAVING (COUNT(*) >= :min_orders)
+            ORDER BY SUM(total) DESC
+            LIMIT 10 OFFSET 5
+        """
         result = (
             vw.Source(name="orders")
-            .select(vw.param("value", 123).cast("VARCHAR"))
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.param("status", "completed"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") >= vw.param("min_orders", 3))
+            .order_by(vw.col("SUM(total)").desc())
+            .limit(10, offset=5)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql=sql(expected_sql),
+            params={"status": "completed", "min_orders": 3},
+        )
+
+    def it_generates_sqlserver_offset_fetch() -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY id ASC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY
+        """
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        result = (
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("id").asc())
+            .limit(10, offset=20)
             .render(config=config)
         )
-        assert result == vw.RenderResult(sql=sql(expected_sql), params={"value": 123})
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_sqlserver_without_offset() -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY id ASC OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY
+        """
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        result = (
+            vw.Source(name="users").select(vw.col("*")).order_by(vw.col("id").asc()).limit(10).render(config=config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_limit_with_cte(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH active_users AS (SELECT * FROM users WHERE (active = true))
+            SELECT * FROM active_users ORDER BY id ASC LIMIT 10
+        """
+        active_users = vw.cte(
+            "active_users",
+            vw.Source(name="users").select(vw.col("*")).where(vw.col("active") == vw.col("true")),
+        )
+        result = active_users.select(vw.col("*")).order_by(vw.col("id").asc()).limit(10).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_limit_with_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT users.name, orders.total
+            FROM users
+            INNER JOIN orders ON (users.id = orders.user_id)
+            ORDER BY orders.total DESC
+            LIMIT 5
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        result = (
+            users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+            .select(users.col("name"), orders.col("total"))
+            .order_by(orders.col("total").desc())
+            .limit(5)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
 def describe_expression_alias():

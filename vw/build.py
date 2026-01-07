@@ -8,10 +8,19 @@ from typing import TYPE_CHECKING
 
 from vw.base import Expression, RowSet
 from vw.column import Column
-from vw.render import RenderConfig, RenderContext, RenderResult
+from vw.exceptions import UnsupportedDialectError
+from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
 if TYPE_CHECKING:
     pass
+
+
+@dataclass(kw_only=True, frozen=True)
+class Limit:
+    """Represents LIMIT and optional OFFSET for pagination."""
+
+    count: int
+    offset: int | None = None
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -177,6 +186,7 @@ class Statement(RowSet, Expression):
     group_by_columns: list[Expression] = field(default_factory=list)
     having_conditions: list[Expression] = field(default_factory=list)
     order_by_columns: list[Expression] = field(default_factory=list)
+    _limit: Limit | None = None
 
     def where(self, *exprs: Expression) -> Statement:
         """
@@ -193,14 +203,7 @@ class Statement(RowSet, Expression):
             >>> Source(name="users").select(col("*")).where(col("age") >= param("min_age", 18))
             >>> Source(name="users").select(col("*")).where(col("status") == col("'active'"), col("age") >= col("18"))
         """
-        return Statement(
-            source=self.source,
-            columns=self.columns,
-            where_conditions=self.where_conditions + list(exprs),
-            group_by_columns=self.group_by_columns,
-            having_conditions=self.having_conditions,
-            order_by_columns=self.order_by_columns,
-        )
+        return replace(self, where_conditions=self.where_conditions + list(exprs))
 
     def group_by(self, *exprs: Expression) -> Statement:
         """
@@ -216,14 +219,7 @@ class Statement(RowSet, Expression):
             >>> from vw import col
             >>> Source(name="orders").select(col("customer_id"), col("SUM(total)")).group_by(col("customer_id"))
         """
-        return Statement(
-            source=self.source,
-            columns=self.columns,
-            where_conditions=self.where_conditions,
-            group_by_columns=self.group_by_columns + list(exprs),
-            having_conditions=self.having_conditions,
-            order_by_columns=self.order_by_columns,
-        )
+        return replace(self, group_by_columns=self.group_by_columns + list(exprs))
 
     def having(self, *exprs: Expression) -> Statement:
         """
@@ -239,14 +235,7 @@ class Statement(RowSet, Expression):
             >>> from vw import col, param
             >>> Source(name="orders").select(col("customer_id"), col("COUNT(*)")).group_by(col("customer_id")).having(col("COUNT(*)") > param("min", 5))
         """
-        return Statement(
-            source=self.source,
-            columns=self.columns,
-            where_conditions=self.where_conditions,
-            group_by_columns=self.group_by_columns,
-            having_conditions=self.having_conditions + list(exprs),
-            order_by_columns=self.order_by_columns,
-        )
+        return replace(self, having_conditions=self.having_conditions + list(exprs))
 
     def order_by(self, *exprs: Expression) -> Statement:
         """
@@ -262,14 +251,25 @@ class Statement(RowSet, Expression):
             >>> from vw import col
             >>> Source(name="users").select(col("*")).order_by(col("name").asc(), col("created_at").desc())
         """
-        return Statement(
-            source=self.source,
-            columns=self.columns,
-            where_conditions=self.where_conditions,
-            group_by_columns=self.group_by_columns,
-            having_conditions=self.having_conditions,
-            order_by_columns=self.order_by_columns + list(exprs),
-        )
+        return replace(self, order_by_columns=self.order_by_columns + list(exprs))
+
+    def limit(self, n: int, /, *, offset: int | None = None) -> Statement:
+        """
+        Add LIMIT and optional OFFSET to the statement.
+
+        Args:
+            n: Maximum number of rows to return.
+            offset: Number of rows to skip before returning results.
+
+        Returns:
+            A new Statement with the LIMIT applied.
+
+        Example:
+            >>> from vw import col
+            >>> Source(name="users").select(col("*")).limit(10)
+            >>> Source(name="users").select(col("*")).order_by(col("id").asc()).limit(10, offset=20)
+        """
+        return replace(self, _limit=Limit(count=n, offset=offset))
 
     def render(self, config: RenderConfig | None = None) -> RenderResult:
         """
@@ -316,6 +316,17 @@ class Statement(RowSet, Expression):
         if self.order_by_columns:
             order_cols = [col.__vw_render__(context) for col in self.order_by_columns]
             sql += f" ORDER BY {', '.join(order_cols)}"
+
+        if self._limit is not None:
+            if context.config.dialect in (Dialect.SQLALCHEMY, Dialect.POSTGRES):
+                sql += f" LIMIT {self._limit.count}"
+                if self._limit.offset is not None:
+                    sql += f" OFFSET {self._limit.offset}"
+            elif context.config.dialect == Dialect.SQLSERVER:
+                offset = self._limit.offset or 0
+                sql += f" OFFSET {offset} ROWS FETCH NEXT {self._limit.count} ROWS ONLY"
+            else:
+                raise UnsupportedDialectError(f"Unsupported dialect for LIMIT: {context.config.dialect}")
 
         # Parenthesize if nested
         if context.depth > 0:

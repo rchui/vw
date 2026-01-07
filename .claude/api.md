@@ -275,6 +275,42 @@ result = vw.Source(name="orders").select(
 # SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
 ```
 
+### LIMIT / OFFSET
+
+Use `.limit()` to limit the number of rows returned:
+
+```python
+# Basic LIMIT
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .limit(10)
+    .render()
+)
+# SELECT * FROM users LIMIT 10
+
+# LIMIT with OFFSET
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("id").asc())
+    .limit(10, offset=20)
+    .render()
+)
+# SELECT * FROM users ORDER BY id ASC LIMIT 10 OFFSET 20
+
+# SQL Server uses OFFSET/FETCH syntax
+config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("id").asc())
+    .limit(10, offset=20)
+    .render(config=config)
+)
+# SELECT * FROM users ORDER BY id ASC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY
+```
+
 ### Expression Aliasing
 
 Use `.alias()` to give expressions an alias in SELECT clauses:

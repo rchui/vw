@@ -369,10 +369,14 @@ def describe_cast() -> None:
 
     def it_renders_in_select(render_config: vw.RenderConfig) -> None:
         """Should render cast in SELECT."""
-        result = Source(name="orders").select(
-            vw.col("id"),
-            vw.col("price").cast("DECIMAL(10,2)"),
-        ).render(config=render_config)
+        result = (
+            Source(name="orders")
+            .select(
+                vw.col("id"),
+                vw.col("price").cast("DECIMAL(10,2)"),
+            )
+            .render(config=render_config)
+        )
         assert result == vw.RenderResult(
             sql="SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders",
             params={},
@@ -494,12 +498,7 @@ def describe_order_by() -> None:
 
     def it_renders_order_by_single_column(render_config: vw.RenderConfig) -> None:
         """Should render ORDER BY with single column."""
-        result = (
-            Source(name="users")
-            .select(vw.col("*"))
-            .order_by(vw.col("name").asc())
-            .render(config=render_config)
-        )
+        result = Source(name="users").select(vw.col("*")).order_by(vw.col("name").asc()).render(config=render_config)
         assert result == vw.RenderResult(
             sql="SELECT * FROM users ORDER BY name ASC",
             params={},
@@ -507,12 +506,7 @@ def describe_order_by() -> None:
 
     def it_renders_order_by_without_direction(render_config: vw.RenderConfig) -> None:
         """Should render ORDER BY without explicit direction."""
-        result = (
-            Source(name="users")
-            .select(vw.col("*"))
-            .order_by(vw.col("name"))
-            .render(config=render_config)
-        )
+        result = Source(name="users").select(vw.col("*")).order_by(vw.col("name")).render(config=render_config)
         assert result == vw.RenderResult(
             sql="SELECT * FROM users ORDER BY name",
             params={},
@@ -521,10 +515,7 @@ def describe_order_by() -> None:
     def it_renders_order_by_desc(render_config: vw.RenderConfig) -> None:
         """Should render ORDER BY with DESC."""
         result = (
-            Source(name="users")
-            .select(vw.col("*"))
-            .order_by(vw.col("created_at").desc())
-            .render(config=render_config)
+            Source(name="users").select(vw.col("*")).order_by(vw.col("created_at").desc()).render(config=render_config)
         )
         assert result == vw.RenderResult(
             sql="SELECT * FROM users ORDER BY created_at DESC",
@@ -597,6 +588,110 @@ def describe_order_by() -> None:
         )
         assert result == vw.RenderResult(
             sql="SELECT customer_id, SUM(total) FROM orders GROUP BY customer_id HAVING (SUM(total) > 100) ORDER BY SUM(total) DESC",
+            params={},
+        )
+
+
+def describe_limit() -> None:
+    """Tests for LIMIT clause."""
+
+    def it_returns_statement() -> None:
+        """Should return a Statement object."""
+        source = Source(name="users")
+        statement = source.select(vw.col("*")).limit(10)
+        assert isinstance(statement, Statement)
+
+    def it_renders_limit_only(render_config: vw.RenderConfig) -> None:
+        """Should render LIMIT without OFFSET."""
+        result = Source(name="users").select(vw.col("*")).limit(10).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users LIMIT 10",
+            params={},
+        )
+
+    def it_renders_limit_with_offset(render_config: vw.RenderConfig) -> None:
+        """Should render LIMIT with OFFSET."""
+        result = Source(name="users").select(vw.col("*")).limit(10, offset=20).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users LIMIT 10 OFFSET 20",
+            params={},
+        )
+
+    def it_renders_with_order_by(render_config: vw.RenderConfig) -> None:
+        """Should render LIMIT after ORDER BY."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("id").asc())
+            .limit(10, offset=20)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY id ASC LIMIT 10 OFFSET 20",
+            params={},
+        )
+
+    def it_renders_sqlserver_dialect() -> None:
+        """Should render OFFSET/FETCH for SQL Server dialect."""
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("id").asc())
+            .limit(10, offset=20)
+            .render(config=config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY id ASC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY",
+            params={},
+        )
+
+    def it_renders_sqlserver_without_offset() -> None:
+        """Should render OFFSET 0 for SQL Server when no offset specified."""
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        result = Source(name="users").select(vw.col("*")).order_by(vw.col("id").asc()).limit(10).render(config=config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY id ASC OFFSET 0 ROWS FETCH NEXT 10 ROWS ONLY",
+            params={},
+        )
+
+    def it_renders_postgres_dialect() -> None:
+        """Should render LIMIT/OFFSET for PostgreSQL dialect."""
+        config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        result = Source(name="users").select(vw.col("*")).limit(10, offset=5).render(config=config)
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users LIMIT 10 OFFSET 5",
+            params={},
+        )
+
+    def it_chains_with_other_clauses(render_config: vw.RenderConfig) -> None:
+        """Should chain with WHERE, GROUP BY, HAVING, and ORDER BY."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.col("'completed'"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("SUM(total)") > vw.col("100"))
+            .order_by(vw.col("SUM(total)").desc())
+            .limit(10)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, SUM(total) FROM orders WHERE (status = 'completed') GROUP BY customer_id HAVING (SUM(total) > 100) ORDER BY SUM(total) DESC LIMIT 10",
+            params={},
+        )
+
+    def it_preserves_limit_through_other_methods(render_config: vw.RenderConfig) -> None:
+        """Should preserve limit when chaining other methods after it."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .limit(10, offset=5)
+            .where(vw.col("active") == vw.col("true"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users WHERE (active = true) LIMIT 10 OFFSET 5",
             params={},
         )
 

@@ -9,7 +9,7 @@
 - [x] WHERE clause support
 - [x] GROUP BY / HAVING
 - [x] ORDER BY (with `.asc()` and `.desc()`)
-- [ ] LIMIT / OFFSET
+- [x] LIMIT / OFFSET (with dialect-aware rendering for SQL Server)
 - [ ] DISTINCT
 
 ## Joins
