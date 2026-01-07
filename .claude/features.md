@@ -7,7 +7,7 @@
 - [x] Method chaining (Source → join → select → render)
 - [x] Qualified column references via `Source.col()`
 - [x] WHERE clause support
-- [ ] GROUP BY / HAVING
+- [x] GROUP BY / HAVING
 - [ ] ORDER BY / LIMIT / OFFSET
 - [ ] DISTINCT
 

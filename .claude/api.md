@@ -173,6 +173,41 @@ config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
 result = query.render(config=config)  # Uses @name, CAST(x AS type)
 ```
 
+### GROUP BY and HAVING
+
+Use `.group_by()` and `.having()` for aggregation queries:
+
+```python
+# Basic GROUP BY
+result = (
+    vw.Source(name="orders")
+    .select(vw.col("customer_id"), vw.col("SUM(total)"))
+    .group_by(vw.col("customer_id"))
+    .render()
+)
+# SELECT customer_id, SUM(total) FROM orders GROUP BY customer_id
+
+# GROUP BY with HAVING
+result = (
+    vw.Source(name="orders")
+    .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+    .group_by(vw.col("customer_id"))
+    .having(vw.col("COUNT(*)") > vw.param("min_orders", 5))
+    .render()
+)
+# SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING (COUNT(*) > :min_orders)
+
+# Full chain: WHERE -> GROUP BY -> HAVING
+result = (
+    vw.Source(name="orders")
+    .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+    .where(vw.col("status") == vw.param("status", "completed"))
+    .group_by(vw.col("customer_id"))
+    .having(vw.col("COUNT(*)") >= vw.param("min_orders", 3))
+    .render()
+)
+```
+
 ### Type Casting
 
 Use `.cast()` to cast expressions to SQL types. The syntax varies by dialect:

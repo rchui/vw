@@ -43,6 +43,165 @@ def describe_basic_select() -> None:
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_group_by():
+    """Tests for GROUP BY clause."""
+
+    def it_generates_basic_group_by(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, SUM(total)
+            FROM orders
+            GROUP BY customer_id
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_group_by_with_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, status, COUNT(*)
+            FROM orders
+            GROUP BY customer_id, status
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("status"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"), vw.col("status"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_group_by_with_where(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, SUM(total)
+            FROM orders
+            WHERE (status = 'completed')
+            GROUP BY customer_id
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.col("'completed'"))
+            .group_by(vw.col("customer_id"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_group_by_with_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customers.name, COUNT(*)
+            FROM customers
+            INNER JOIN orders ON (customers.id = orders.customer_id)
+            GROUP BY customers.name
+        """
+        customers = vw.Source(name="customers")
+        orders = vw.Source(name="orders")
+        result = (
+            customers.join.inner(orders, on=[customers.col("id") == orders.col("customer_id")])
+            .select(customers.col("name"), vw.col("COUNT(*)"))
+            .group_by(customers.col("name"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_group_by_within_cte(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH customer_totals AS (SELECT customer_id, SUM(total) AS total FROM orders GROUP BY customer_id)
+            SELECT * FROM customer_totals
+        """
+        customer_totals = vw.cte(
+            "customer_totals",
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)").alias("total"))
+            .group_by(vw.col("customer_id")),
+        )
+        result = customer_totals.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_having():
+    """Tests for HAVING clause."""
+
+    def it_generates_having_with_group_by(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, COUNT(*)
+            FROM orders
+            GROUP BY customer_id
+            HAVING (COUNT(*) > 5)
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.col("5"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_having_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, COUNT(*)
+            FROM orders
+            GROUP BY customer_id
+            HAVING (COUNT(*) > :min_orders)
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.param("min_orders", 5))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"min_orders": 5})
+
+    def it_generates_full_query_with_all_clauses(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, COUNT(*), SUM(total)
+            FROM orders
+            WHERE (status = :status)
+            GROUP BY customer_id
+            HAVING (COUNT(*) >= :min_orders) AND (SUM(total) > :min_total)
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.param("status", "completed"))
+            .group_by(vw.col("customer_id"))
+            .having(
+                vw.col("COUNT(*)") >= vw.param("min_orders", 3),
+                vw.col("SUM(total)") > vw.param("min_total", 1000),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql=sql(expected_sql),
+            params={"status": "completed", "min_orders": 3, "min_total": 1000},
+        )
+
+    def it_generates_having_with_cte(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH active_orders AS (SELECT * FROM orders WHERE (status = 'active'))
+            SELECT customer_id, SUM(total)
+            FROM active_orders
+            GROUP BY customer_id
+            HAVING (SUM(total) > 500)
+        """
+        active_orders = vw.cte(
+            "active_orders",
+            vw.Source(name="orders").select(vw.col("*")).where(vw.col("status") == vw.col("'active'")),
+        )
+        result = (
+            active_orders.select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("SUM(total)") > vw.col("500"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_star_extensions() -> None:
     """Tests for star expression extensions."""
 

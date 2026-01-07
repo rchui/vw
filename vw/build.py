@@ -174,6 +174,8 @@ class Statement(RowSet, Expression):
     source: RowSet
     columns: list[Expression]
     where_conditions: list[Expression] = field(default_factory=list)
+    group_by_columns: list[Expression] = field(default_factory=list)
+    having_conditions: list[Expression] = field(default_factory=list)
 
     def where(self, *exprs: Expression) -> Statement:
         """
@@ -194,6 +196,52 @@ class Statement(RowSet, Expression):
             source=self.source,
             columns=self.columns,
             where_conditions=self.where_conditions + list(exprs),
+            group_by_columns=self.group_by_columns,
+            having_conditions=self.having_conditions,
+        )
+
+    def group_by(self, *exprs: Expression) -> Statement:
+        """
+        Add GROUP BY columns to the statement.
+
+        Args:
+            *exprs: Expression objects for GROUP BY clause.
+
+        Returns:
+            A new Statement with the GROUP BY columns applied.
+
+        Example:
+            >>> from vw import col
+            >>> Source(name="orders").select(col("customer_id"), col("SUM(total)")).group_by(col("customer_id"))
+        """
+        return Statement(
+            source=self.source,
+            columns=self.columns,
+            where_conditions=self.where_conditions,
+            group_by_columns=self.group_by_columns + list(exprs),
+            having_conditions=self.having_conditions,
+        )
+
+    def having(self, *exprs: Expression) -> Statement:
+        """
+        Add HAVING conditions to the statement.
+
+        Args:
+            *exprs: Expression objects for HAVING clause. Multiple expressions are combined with AND.
+
+        Returns:
+            A new Statement with the HAVING conditions applied.
+
+        Example:
+            >>> from vw import col, param
+            >>> Source(name="orders").select(col("customer_id"), col("COUNT(*)")).group_by(col("customer_id")).having(col("COUNT(*)") > param("min", 5))
+        """
+        return Statement(
+            source=self.source,
+            columns=self.columns,
+            where_conditions=self.where_conditions,
+            group_by_columns=self.group_by_columns,
+            having_conditions=self.having_conditions + list(exprs),
         )
 
     def render(self, config: RenderConfig | None = None) -> RenderResult:
@@ -229,6 +277,14 @@ class Statement(RowSet, Expression):
         if self.where_conditions:
             conditions: list[str] = [f"({expr.__vw_render__(context)})" for expr in self.where_conditions]
             sql += f" WHERE {' AND '.join(conditions)}"
+
+        if self.group_by_columns:
+            group_cols = [col.__vw_render__(context) for col in self.group_by_columns]
+            sql += f" GROUP BY {', '.join(group_cols)}"
+
+        if self.having_conditions:
+            conditions = [f"({expr.__vw_render__(context)})" for expr in self.having_conditions]
+            sql += f" HAVING {' AND '.join(conditions)}"
 
         # Parenthesize if nested
         if context.depth > 0:

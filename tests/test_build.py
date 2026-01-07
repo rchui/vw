@@ -417,3 +417,153 @@ def describe_alias() -> None:
             sql="SELECT id, price AS unit_price FROM orders",
             params={},
         )
+
+
+def describe_group_by() -> None:
+    """Tests for GROUP BY clause."""
+
+    def it_returns_statement() -> None:
+        """Should return a Statement object."""
+        source = Source(name="orders")
+        statement = source.select(vw.col("customer_id")).group_by(vw.col("customer_id"))
+        assert isinstance(statement, Statement)
+
+    def it_renders_group_by_single_column(render_config: vw.RenderConfig) -> None:
+        """Should render GROUP BY with single column."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, SUM(total) FROM orders GROUP BY customer_id",
+            params={},
+        )
+
+    def it_renders_group_by_multiple_columns(render_config: vw.RenderConfig) -> None:
+        """Should render GROUP BY with multiple columns."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("status"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"), vw.col("status"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, status, COUNT(*) FROM orders GROUP BY customer_id, status",
+            params={},
+        )
+
+    def it_chains_multiple_group_by_calls(render_config: vw.RenderConfig) -> None:
+        """Should support chaining multiple group_by() calls."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("status"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .group_by(vw.col("status"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, status, COUNT(*) FROM orders GROUP BY customer_id, status",
+            params={},
+        )
+
+    def it_renders_with_where_clause(render_config: vw.RenderConfig) -> None:
+        """Should render GROUP BY after WHERE clause."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.col("'completed'"))
+            .group_by(vw.col("customer_id"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, SUM(total) FROM orders WHERE (status = 'completed') GROUP BY customer_id",
+            params={},
+        )
+
+
+def describe_having() -> None:
+    """Tests for HAVING clause."""
+
+    def it_returns_statement() -> None:
+        """Should return a Statement object."""
+        source = Source(name="orders")
+        statement = (
+            source.select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.col("5"))
+        )
+        assert isinstance(statement, Statement)
+
+    def it_renders_having_with_single_condition(render_config: vw.RenderConfig) -> None:
+        """Should render HAVING with single condition."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.col("5"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING (COUNT(*) > 5)",
+            params={},
+        )
+
+    def it_renders_having_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
+        """Should render HAVING with multiple conditions combined with AND."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.col("5"), vw.col("SUM(total)") > vw.col("1000"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, COUNT(*), SUM(total) FROM orders GROUP BY customer_id HAVING (COUNT(*) > 5) AND (SUM(total) > 1000)",
+            params={},
+        )
+
+    def it_renders_having_with_parameters(render_config: vw.RenderConfig) -> None:
+        """Should render HAVING with parameterized values."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.param("min_orders", 5))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING (COUNT(*) > :min_orders)",
+            params={"min_orders": 5},
+        )
+
+    def it_chains_multiple_having_calls(render_config: vw.RenderConfig) -> None:
+        """Should support chaining multiple having() calls."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.col("5"))
+            .having(vw.col("SUM(total)") > vw.col("1000"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, COUNT(*), SUM(total) FROM orders GROUP BY customer_id HAVING (COUNT(*) > 5) AND (SUM(total) > 1000)",
+            params={},
+        )
+
+    def it_renders_full_chain(render_config: vw.RenderConfig) -> None:
+        """Should render WHERE, GROUP BY, and HAVING together."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"))
+            .where(vw.col("status") == vw.col("'completed'"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") > vw.param("min_orders", 5))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, COUNT(*) FROM orders WHERE (status = 'completed') GROUP BY customer_id HAVING (COUNT(*) > :min_orders)",
+            params={"min_orders": 5},
+        )
