@@ -48,6 +48,7 @@
 - [ ] String operations
 - [ ] Date/time operations
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
+- [ ] SQL type constructors (e.g., `vw.types.varchar(255)`, `vw.types.decimal(10, 2)`) to prevent typos
 - [ ] NULL handling (IS NULL, IS NOT NULL, COALESCE)
 - [ ] CASE expressions
 
