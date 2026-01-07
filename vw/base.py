@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from vw.build import InnerJoin, JoinAccessor, Statement
     from vw.column import Column
-    from vw.operators import Alias, And, Cast, Not, Or
+    from vw.operators import Alias, And, Asc, Cast, Desc, Not, Or
     from vw.render import RenderContext
 
 from typing_extensions import Self
@@ -176,3 +176,29 @@ class Expression:
         from vw.operators import Cast
 
         return Cast(expr=self, data_type=data_type)
+
+    def asc(self) -> Asc:
+        """Sort expression in ascending order.
+
+        Returns:
+            An Asc expression.
+
+        Example:
+            >>> col("name").asc()
+        """
+        from vw.operators import Asc
+
+        return Asc(expr=self)
+
+    def desc(self) -> Desc:
+        """Sort expression in descending order.
+
+        Returns:
+            A Desc expression.
+
+        Example:
+            >>> col("created_at").desc()
+        """
+        from vw.operators import Desc
+
+        return Desc(expr=self)

@@ -8,7 +8,8 @@
 - [x] Qualified column references via `Source.col()`
 - [x] WHERE clause support
 - [x] GROUP BY / HAVING
-- [ ] ORDER BY / LIMIT / OFFSET
+- [x] ORDER BY (with `.asc()` and `.desc()`)
+- [ ] LIMIT / OFFSET
 - [ ] DISTINCT
 
 ## Joins

@@ -483,6 +483,124 @@ def describe_group_by() -> None:
         )
 
 
+def describe_order_by() -> None:
+    """Tests for ORDER BY clause."""
+
+    def it_returns_statement() -> None:
+        """Should return a Statement object."""
+        source = Source(name="users")
+        statement = source.select(vw.col("*")).order_by(vw.col("name").asc())
+        assert isinstance(statement, Statement)
+
+    def it_renders_order_by_single_column(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY with single column."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY name ASC",
+            params={},
+        )
+
+    def it_renders_order_by_without_direction(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY without explicit direction."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("name"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY name",
+            params={},
+        )
+
+    def it_renders_order_by_desc(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY with DESC."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("created_at").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY created_at DESC",
+            params={},
+        )
+
+    def it_renders_order_by_multiple_columns(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY with multiple columns."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("last_name").asc(), vw.col("first_name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY last_name ASC, first_name ASC",
+            params={},
+        )
+
+    def it_renders_order_by_mixed_directions(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY with mixed ASC and DESC."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("status").asc(), vw.col("created_at").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY status ASC, created_at DESC",
+            params={},
+        )
+
+    def it_chains_multiple_order_by_calls(render_config: vw.RenderConfig) -> None:
+        """Should support chaining multiple order_by() calls."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("last_name").asc())
+            .order_by(vw.col("first_name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users ORDER BY last_name ASC, first_name ASC",
+            params={},
+        )
+
+    def it_renders_with_where_clause(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY after WHERE clause."""
+        result = (
+            Source(name="users")
+            .select(vw.col("*"))
+            .where(vw.col("active") == vw.col("true"))
+            .order_by(vw.col("name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT * FROM users WHERE (active = true) ORDER BY name ASC",
+            params={},
+        )
+
+    def it_renders_with_group_by_and_having(render_config: vw.RenderConfig) -> None:
+        """Should render ORDER BY after GROUP BY and HAVING."""
+        result = (
+            Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("SUM(total)"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("SUM(total)") > vw.col("100"))
+            .order_by(vw.col("SUM(total)").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT customer_id, SUM(total) FROM orders GROUP BY customer_id HAVING (SUM(total) > 100) ORDER BY SUM(total) DESC",
+            params={},
+        )
+
+
 def describe_having() -> None:
     """Tests for HAVING clause."""
 

@@ -202,6 +202,98 @@ def describe_having():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_order_by():
+    """Tests for ORDER BY clause."""
+
+    def it_generates_basic_order_by(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY name ASC
+        """
+        result = (
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_order_by_without_direction(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY name
+        """
+        result = (
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("name"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_order_by_desc(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY created_at DESC
+        """
+        result = (
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("created_at").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_order_by_with_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM users ORDER BY last_name ASC, first_name ASC, created_at DESC
+        """
+        result = (
+            vw.Source(name="users")
+            .select(vw.col("*"))
+            .order_by(vw.col("last_name").asc(), vw.col("first_name").asc(), vw.col("created_at").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_full_query_with_all_clauses(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT customer_id, COUNT(*), SUM(total)
+            FROM orders
+            WHERE (status = :status)
+            GROUP BY customer_id
+            HAVING (COUNT(*) >= :min_orders)
+            ORDER BY SUM(total) DESC
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("customer_id"), vw.col("COUNT(*)"), vw.col("SUM(total)"))
+            .where(vw.col("status") == vw.param("status", "completed"))
+            .group_by(vw.col("customer_id"))
+            .having(vw.col("COUNT(*)") >= vw.param("min_orders", 3))
+            .order_by(vw.col("SUM(total)").desc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql=sql(expected_sql),
+            params={"status": "completed", "min_orders": 3},
+        )
+
+    def it_generates_order_by_with_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT users.name, orders.total
+            FROM users
+            INNER JOIN orders ON (users.id = orders.user_id)
+            ORDER BY orders.total DESC, users.name ASC
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        result = (
+            users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+            .select(users.col("name"), orders.col("total"))
+            .order_by(orders.col("total").desc(), users.col("name").asc())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_star_extensions() -> None:
     """Tests for star expression extensions."""
 

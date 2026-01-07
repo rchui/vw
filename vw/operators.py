@@ -147,3 +147,25 @@ class Cast(Expression):
         elif context.config.dialect in (Dialect.SQLALCHEMY, Dialect.SQLSERVER):
             return f"CAST({self.expr.__vw_render__(context)} AS {self.data_type})"
         raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
+
+
+@dataclass(kw_only=True, frozen=True)
+class Asc(Expression):
+    """Represents an ascending sort order (expr ASC)."""
+
+    expr: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the ascending expression."""
+        return f"{self.expr.__vw_render__(context)} ASC"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Desc(Expression):
+    """Represents a descending sort order (expr DESC)."""
+
+    expr: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the descending expression."""
+        return f"{self.expr.__vw_render__(context)} DESC"

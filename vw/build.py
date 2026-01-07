@@ -176,6 +176,7 @@ class Statement(RowSet, Expression):
     where_conditions: list[Expression] = field(default_factory=list)
     group_by_columns: list[Expression] = field(default_factory=list)
     having_conditions: list[Expression] = field(default_factory=list)
+    order_by_columns: list[Expression] = field(default_factory=list)
 
     def where(self, *exprs: Expression) -> Statement:
         """
@@ -198,6 +199,7 @@ class Statement(RowSet, Expression):
             where_conditions=self.where_conditions + list(exprs),
             group_by_columns=self.group_by_columns,
             having_conditions=self.having_conditions,
+            order_by_columns=self.order_by_columns,
         )
 
     def group_by(self, *exprs: Expression) -> Statement:
@@ -220,6 +222,7 @@ class Statement(RowSet, Expression):
             where_conditions=self.where_conditions,
             group_by_columns=self.group_by_columns + list(exprs),
             having_conditions=self.having_conditions,
+            order_by_columns=self.order_by_columns,
         )
 
     def having(self, *exprs: Expression) -> Statement:
@@ -242,6 +245,30 @@ class Statement(RowSet, Expression):
             where_conditions=self.where_conditions,
             group_by_columns=self.group_by_columns,
             having_conditions=self.having_conditions + list(exprs),
+            order_by_columns=self.order_by_columns,
+        )
+
+    def order_by(self, *exprs: Expression) -> Statement:
+        """
+        Add ORDER BY columns to the statement.
+
+        Args:
+            *exprs: Expression objects for ORDER BY clause. Use .asc() or .desc() for sort direction.
+
+        Returns:
+            A new Statement with the ORDER BY columns applied.
+
+        Example:
+            >>> from vw import col
+            >>> Source(name="users").select(col("*")).order_by(col("name").asc(), col("created_at").desc())
+        """
+        return Statement(
+            source=self.source,
+            columns=self.columns,
+            where_conditions=self.where_conditions,
+            group_by_columns=self.group_by_columns,
+            having_conditions=self.having_conditions,
+            order_by_columns=self.order_by_columns + list(exprs),
         )
 
     def render(self, config: RenderConfig | None = None) -> RenderResult:
@@ -285,6 +312,10 @@ class Statement(RowSet, Expression):
         if self.having_conditions:
             conditions = [f"({expr.__vw_render__(context)})" for expr in self.having_conditions]
             sql += f" HAVING {' AND '.join(conditions)}"
+
+        if self.order_by_columns:
+            order_cols = [col.__vw_render__(context) for col in self.order_by_columns]
+            sql += f" ORDER BY {', '.join(order_cols)}"
 
         # Parenthesize if nested
         if context.depth > 0:

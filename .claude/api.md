@@ -173,6 +173,48 @@ config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
 result = query.render(config=config)  # Uses @name, CAST(x AS type)
 ```
 
+### ORDER BY
+
+Use `.order_by()` with `.asc()` or `.desc()` for sorting:
+
+```python
+# Basic ORDER BY (ascending)
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("name").asc())
+    .render()
+)
+# SELECT * FROM users ORDER BY name ASC
+
+# Descending order
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("created_at").desc())
+    .render()
+)
+# SELECT * FROM users ORDER BY created_at DESC
+
+# Multiple columns with mixed directions
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("last_name").asc(), vw.col("first_name").asc(), vw.col("created_at").desc())
+    .render()
+)
+# SELECT * FROM users ORDER BY last_name ASC, first_name ASC, created_at DESC
+
+# Without explicit direction (defaults to database default, typically ASC)
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .order_by(vw.col("name"))
+    .render()
+)
+# SELECT * FROM users ORDER BY name
+```
+
 ### GROUP BY and HAVING
 
 Use `.group_by()` and `.having()` for aggregation queries:
