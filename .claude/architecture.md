@@ -161,6 +161,7 @@ Comparison and logical operators:
 
 ### vw/build.py
 Query builder classes:
+- `Limit` - LIMIT/OFFSET for pagination
 - `Source` - Table/view sources (extends RowSet), overrides `.col()` to use table name as fallback
 - `Statement` - Complete SQL statements (extends Expression and RowSet)
 - `InnerJoin` - Join operations
@@ -182,6 +183,7 @@ Rendering infrastructure:
 Custom exceptions (import from `vw.exceptions`, not exported from main package):
 - `VWError` - Base exception for all vw errors
 - `CTENameCollisionError` - Raised when multiple CTEs with the same name are registered
+- `UnsupportedDialectError` - Raised when a feature is not supported for the selected dialect
 
 ## Type Hierarchy
 
