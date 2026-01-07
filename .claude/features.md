@@ -47,7 +47,7 @@
 - [ ] Window functions
 - [ ] String operations
 - [ ] Date/time operations
-- [ ] Type casting
+- [x] Type casting (`.cast()` method with dialect-aware rendering)
 - [ ] NULL handling (IS NULL, IS NOT NULL, COALESCE)
 - [ ] CASE expressions
 

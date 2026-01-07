@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from vw.build import InnerJoin, JoinAccessor, Statement
     from vw.column import Column
-    from vw.operators import Alias, And, Not, Or
+    from vw.operators import Alias, And, Cast, Not, Or
     from vw.render import RenderContext
 
 from typing_extensions import Self
@@ -160,3 +160,19 @@ class Expression:
         from vw.operators import Alias
 
         return Alias(expr=self, name=name)
+
+    def cast(self, data_type: str, /) -> Cast:
+        """Cast expression to a SQL type.
+
+        Args:
+            data_type: The SQL data type to cast to.
+
+        Returns:
+            A Cast expression.
+
+        Example:
+            >>> col("price").cast("DECIMAL(10,2)")
+        """
+        from vw.operators import Cast
+
+        return Cast(expr=self, data_type=data_type)

@@ -8,7 +8,7 @@ The rendering system uses a context pattern to collect parameters during tree tr
 
 ```python
 # Create context
-config = RenderConfig(parameter_style=ParameterStyle.COLON)
+config = RenderConfig(dialect=Dialect.SQLALCHEMY)
 context = RenderContext(config=config)
 
 # Render expression tree
@@ -157,6 +157,7 @@ Comparison and logical operators:
 - `Equals`, `NotEquals`, `LessThan`, `LessThanOrEqual`, `GreaterThan`, `GreaterThanOrEqual` - Comparison operators
 - `And`, `Or`, `Not` - Logical operators
 - `Alias` - Expression aliasing (expr AS name)
+- `Cast` - Type casting (dialect-aware: CAST() or ::)
 
 ### vw/build.py
 Query builder classes:
@@ -169,8 +170,11 @@ Query builder classes:
 
 ### vw/render.py
 Rendering infrastructure:
-- `ParameterStyle` - Enum for parameter styles (:name, $name, @name)
-- `RenderConfig` - Rendering configuration
+- `Dialect` - Enum for SQL dialects (controls parameter style and cast syntax)
+  - `SQLALCHEMY` - :param, CAST(expr AS type)
+  - `POSTGRES` - $param, expr::type
+  - `SQLSERVER` - @param, CAST(expr AS type)
+- `RenderConfig` - Rendering configuration (dialect selection)
 - `RenderContext` - Stateful rendering context with depth tracking, CTE collection
 - `RenderResult` - Final rendering result (SQL + params)
 
@@ -207,6 +211,7 @@ Expression (things in SELECT/WHERE/ON conditions)
 ├── Equals, NotEquals, LessThan, ...
 ├── And, Or, Not
 ├── Alias (expression AS name)
+├── Cast (type casting)
 └── Statement (subquery as expression)
 ```
 

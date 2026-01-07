@@ -334,6 +334,51 @@ def describe_cte_function() -> None:
             cte1.join.inner(cte2).select(vw.col("*")).render(config=render_config)
 
 
+def describe_cast() -> None:
+    """Tests for expression casting."""
+
+    def it_casts_column_with_function_style(render_context: vw.RenderContext) -> None:
+        """Should render CAST(column AS type) for SQLAlchemy dialect."""
+        expr = vw.col("price").cast("DECIMAL(10,2)")
+        assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2))"
+
+    def it_casts_column_with_operator_style() -> None:
+        """Should render column::type for PostgreSQL dialect."""
+        config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        context = vw.RenderContext(config=config)
+        expr = vw.col("price").cast("numeric")
+        assert expr.__vw_render__(context) == "price::numeric"
+
+    def it_casts_parameter(render_context: vw.RenderContext) -> None:
+        """Should render CAST(parameter AS type)."""
+        expr = vw.param("value", 123).cast("VARCHAR")
+        assert expr.__vw_render__(render_context) == "CAST(:value AS VARCHAR)"
+        assert render_context.params == {"value": 123}
+
+    def it_casts_with_sqlserver_dialect() -> None:
+        """Should render CAST() for SQL Server dialect."""
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        context = vw.RenderContext(config=config)
+        expr = vw.col("price").cast("DECIMAL(10,2)")
+        assert expr.__vw_render__(context) == "CAST(price AS DECIMAL(10,2))"
+
+    def it_chains_cast_and_alias(render_context: vw.RenderContext) -> None:
+        """Should allow chaining cast and alias."""
+        expr = vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price")
+        assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2)) AS formatted_price"
+
+    def it_renders_in_select(render_config: vw.RenderConfig) -> None:
+        """Should render cast in SELECT."""
+        result = Source(name="orders").select(
+            vw.col("id"),
+            vw.col("price").cast("DECIMAL(10,2)"),
+        ).render(config=render_config)
+        assert result == vw.RenderResult(
+            sql="SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders",
+            params={},
+        )
+
+
 def describe_alias() -> None:
     """Tests for expression aliasing."""
 

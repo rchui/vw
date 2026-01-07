@@ -8,11 +8,27 @@ import vw
 def describe_parameter() -> None:
     """Tests for Parameter class."""
 
-    def it_renders_parameter_with_colon_style(render_context: vw.RenderContext) -> None:
+    def it_renders_parameter_with_default_dialect(render_context: vw.RenderContext) -> None:
         """Should render parameter with colon prefix and register in context."""
         param = vw.param("age", 25)
         assert param.__vw_render__(render_context) == ":age"
         assert render_context.params == {"age": 25}
+
+    def it_renders_parameter_with_postgres_dialect() -> None:
+        """Should render parameter with dollar prefix for PostgreSQL."""
+        config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        context = vw.RenderContext(config=config)
+        param = vw.param("age", 25)
+        assert param.__vw_render__(context) == "$age"
+        assert context.params == {"age": 25}
+
+    def it_renders_parameter_with_sqlserver_dialect() -> None:
+        """Should render parameter with at-sign prefix for SQL Server."""
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        context = vw.RenderContext(config=config)
+        param = vw.param("age", 25)
+        assert param.__vw_render__(context) == "@age"
+        assert context.params == {"age": 25}
 
     def it_renders_string_parameter(render_context: vw.RenderContext) -> None:
         """Should render string parameter."""

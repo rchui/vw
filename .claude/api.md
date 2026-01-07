@@ -26,7 +26,7 @@ All public exports from `vw/__init__.py`:
 - `RenderResult` - Rendering result with SQL and params
 - `RenderConfig` - Rendering configuration
 - `RenderContext` - Rendering context (for advanced use)
-- `ParameterStyle` - Parameter style enum
+- `Dialect` - SQL dialect enum (controls parameter style and cast syntax)
 
 ### Operators (via Expression methods)
 - `&` - Logical AND (`expr1 & expr2`)
@@ -155,20 +155,47 @@ result = (
 # result.params: {"user_id": 123, "status": "active"}
 ```
 
-### Custom Parameter Styles
+### SQL Dialects
+
+The `Dialect` enum controls both parameter style and cast syntax:
 
 ```python
-# Default is colon style (:name)
-config = vw.RenderConfig(parameter_style=vw.ParameterStyle.COLON)
-result = query.render(config)  # Uses :name
+# Default is SQLAlchemy dialect (:param, CAST())
+config = vw.RenderConfig(dialect=vw.Dialect.SQLALCHEMY)
+result = query.render(config=config)  # Uses :name, CAST(x AS type)
 
-# Dollar style ($name)
-config = vw.RenderConfig(parameter_style=vw.ParameterStyle.DOLLAR)
-result = query.render(config)  # Uses $name
+# PostgreSQL dialect ($param, ::type)
+config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+result = query.render(config=config)  # Uses $name, x::type
 
-# At style (@name) - SQL Server
-config = vw.RenderConfig(parameter_style=vw.ParameterStyle.AT)
-result = query.render(config)  # Uses @name
+# SQL Server dialect (@param, CAST())
+config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+result = query.render(config=config)  # Uses @name, CAST(x AS type)
+```
+
+### Type Casting
+
+Use `.cast()` to cast expressions to SQL types. The syntax varies by dialect:
+
+```python
+# SQLAlchemy/SQL Server: CAST(expr AS type)
+result = vw.Source(name="orders").select(
+    vw.col("price").cast("DECIMAL(10,2)")
+).render()
+# SELECT CAST(price AS DECIMAL(10,2)) FROM orders
+
+# PostgreSQL: expr::type
+config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+result = vw.Source(name="orders").select(
+    vw.col("price").cast("numeric")
+).render(config=config)
+# SELECT price::numeric FROM orders
+
+# Cast can be chained with alias
+result = vw.Source(name="orders").select(
+    vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price")
+).render()
+# SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
 ```
 
 ### Expression Aliasing

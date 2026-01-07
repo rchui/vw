@@ -627,6 +627,56 @@ def describe_ctes():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_cast():
+    """Tests for type casting."""
+
+    def it_generates_cast_with_sqlalchemy_dialect(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("id"), vw.col("price").cast("DECIMAL(10,2)"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_cast_with_postgres_dialect() -> None:
+        expected_sql = """
+            SELECT id, price::numeric FROM orders
+        """
+        config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("id"), vw.col("price").cast("numeric"))
+            .render(config=config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_cast_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_cast_with_parameter() -> None:
+        expected_sql = """
+            SELECT $value::VARCHAR FROM orders
+        """
+        config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
+        result = (
+            vw.Source(name="orders")
+            .select(vw.param("value", 123).cast("VARCHAR"))
+            .render(config=config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"value": 123})
+
+
 def describe_expression_alias():
     """Tests for expression aliasing."""
 

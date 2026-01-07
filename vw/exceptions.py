@@ -7,3 +7,7 @@ class VWError(Exception):
 
 class CTENameCollisionError(VWError):
     """Raised when multiple CTEs with the same name are registered."""
+
+
+class UnsupportedDialectError(VWError):
+    """Raised when an unsupported dialect is used."""

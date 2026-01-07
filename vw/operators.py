@@ -128,3 +128,22 @@ class Alias(Expression):
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the aliased expression."""
         return f"{self.expr.__vw_render__(context)} AS {self.name}"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Cast(Expression):
+    """Represents a type cast (CAST(expr AS type) or expr::type)."""
+
+    expr: Expression
+    data_type: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the cast expression."""
+        from vw.exceptions import UnsupportedDialectError
+        from vw.render import Dialect
+
+        if context.config.dialect == Dialect.POSTGRES:
+            return f"{self.expr.__vw_render__(context)}::{self.data_type}"
+        elif context.config.dialect in (Dialect.SQLALCHEMY, Dialect.SQLSERVER):
+            return f"CAST({self.expr.__vw_render__(context)} AS {self.data_type})"
+        raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")

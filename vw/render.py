@@ -7,30 +7,30 @@ from typing import TYPE_CHECKING, Any
 
 from strenum import StrEnum
 
-from vw.exceptions import CTENameCollisionError
+from vw.exceptions import CTENameCollisionError, UnsupportedDialectError
 
 if TYPE_CHECKING:
     from vw.build import CommonTableExpression
 
 
-class ParameterStyle(StrEnum):
-    """Supported parameter styles for SQL rendering."""
+class Dialect(StrEnum):
+    """Supported SQL dialects for rendering."""
 
-    COLON = "colon"
-    """Colon-prefixed named parameters: :name (SQLAlchemy, SQLite, Oracle)"""
+    SQLALCHEMY = "sqlalchemy"
+    """SQLAlchemy style: :param, CAST(expr AS type)"""
 
-    DOLLAR = "dollar"
-    """Dollar-prefixed named parameters: $name"""
+    POSTGRES = "postgres"
+    """PostgreSQL style: $param, expr::type"""
 
-    AT = "at"
-    """At-prefixed named parameters: @name (SQL Server)"""
+    SQLSERVER = "sqlserver"
+    """SQL Server style: @param, CAST(expr AS type)"""
 
 
 @dataclass(kw_only=True, frozen=True)
 class RenderConfig:
     """Configuration for SQL rendering."""
 
-    parameter_style: ParameterStyle = ParameterStyle.COLON
+    dialect: Dialect = Dialect.SQLALCHEMY
 
 
 @dataclass(kw_only=True)
@@ -75,16 +75,16 @@ class RenderContext:
             The SQL placeholder string for this parameter.
 
         Raises:
-            ValueError: If the parameter style is not supported.
+            UnsupportedDialectError: If the dialect is not supported.
         """
         self.params[name] = value
-        if self.config.parameter_style == ParameterStyle.COLON:
+        if self.config.dialect == Dialect.SQLALCHEMY:
             return f":{name}"
-        elif self.config.parameter_style == ParameterStyle.DOLLAR:
+        elif self.config.dialect == Dialect.POSTGRES:
             return f"${name}"
-        elif self.config.parameter_style == ParameterStyle.AT:
+        elif self.config.dialect == Dialect.SQLSERVER:
             return f"@{name}"
-        raise ValueError(f"Unsupported parameter style: {self.config.parameter_style}")
+        raise UnsupportedDialectError(f"Unsupported dialect: {self.config.dialect}")
 
 
 @dataclass(kw_only=True, frozen=True)
