@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from vw.build import Statement
     from vw.column import Column
     from vw.joins import Join, JoinAccessor
-    from vw.operators import Alias, And, Asc, Cast, Desc, IsNotNull, IsNull, Not, Or
+    from vw.operators import Alias, And, Asc, Cast, Desc, IsIn, IsNotIn, IsNotNull, IsNull, Not, Or
     from vw.render import RenderContext
 
 from typing_extensions import Self
@@ -229,3 +229,37 @@ class Expression:
         from vw.operators import IsNotNull
 
         return IsNotNull(expr=self)
+
+    def is_in(self, *values: Expression) -> IsIn:
+        """Check if expression is in a list of values or subquery.
+
+        Args:
+            *values: Values to check against. Can be expressions or a single subquery.
+
+        Returns:
+            An IsIn expression.
+
+        Example:
+            >>> col("status").is_in(col("'active'"), col("'pending'"))
+            >>> col("id").is_in(subquery)
+        """
+        from vw.operators import IsIn
+
+        return IsIn(expr=self, values=values)
+
+    def is_not_in(self, *values: Expression) -> IsNotIn:
+        """Check if expression is not in a list of values or subquery.
+
+        Args:
+            *values: Values to check against. Can be expressions or a single subquery.
+
+        Returns:
+            An IsNotIn expression.
+
+        Example:
+            >>> col("status").is_not_in(col("'deleted'"), col("'archived'"))
+            >>> col("id").is_not_in(subquery)
+        """
+        from vw.operators import IsNotIn
+
+        return IsNotIn(expr=self, values=values)

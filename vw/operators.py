@@ -191,3 +191,60 @@ class Desc(Expression):
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the descending expression."""
         return f"{self.expr.__vw_render__(context)} DESC"
+
+
+@dataclass(kw_only=True, frozen=True)
+class IsIn(Expression):
+    """Represents an IN check against a list of values or subquery."""
+
+    expr: Expression
+    values: tuple[Expression, ...]
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the IN check."""
+        rendered_values = ", ".join(v.__vw_render__(context.recurse()) for v in self.values)
+        return f"{self.expr.__vw_render__(context)} IN ({rendered_values})"
+
+
+@dataclass(kw_only=True, frozen=True)
+class IsNotIn(Expression):
+    """Represents a NOT IN check against a list of values or subquery."""
+
+    expr: Expression
+    values: tuple[Expression, ...]
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the NOT IN check."""
+        rendered_values = ", ".join(v.__vw_render__(context.recurse()) for v in self.values)
+        return f"{self.expr.__vw_render__(context)} NOT IN ({rendered_values})"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Exists(Expression):
+    """Represents an EXISTS check on a subquery."""
+
+    subquery: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the EXISTS check."""
+        return f"EXISTS {self.subquery.__vw_render__(context.recurse())}"
+
+
+def exists(subquery: Expression, /) -> Exists:
+    """Create an EXISTS expression for a subquery.
+
+    Args:
+        subquery: The subquery to check for existence.
+
+    Returns:
+        An Exists expression.
+
+    Example:
+        >>> from vw import Source, col, exists
+        >>> orders = Source(name="orders")
+        >>> users = Source(name="users")
+        >>> users.select(col("*")).where(
+        ...     exists(orders.select(col("1")).where(orders.col("user_id") == users.col("id")))
+        ... )
+    """
+    return Exists(subquery=subquery)

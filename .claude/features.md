@@ -40,7 +40,7 @@
 - [x] Greater than comparison (`>`)
 - [x] Greater than or equal comparison (`>=`)
 - [ ] LIKE comparison
-- [ ] IN comparison
+- [x] IN comparison via `.is_in()` / `.is_not_in()`
 - [x] Logical operators: AND, OR
 - [x] Logical operators: NOT
 
@@ -61,7 +61,8 @@
 - [x] Subqueries in FROM/JOIN (via Statement as RowSet)
 - [x] Table/subquery aliasing via `.alias()`
 - [x] Expression aliasing via `.alias()` (column AS name)
-- [ ] Subqueries in WHERE (IN, EXISTS)
+- [x] Subqueries in WHERE: IN via `.is_in()` / `.is_not_in()`
+- [x] Subqueries in WHERE: EXISTS via `vw.exists()`
 - [x] CTEs (Common Table Expressions / WITH clause)
 - [ ] UNION / UNION ALL / INTERSECT / EXCEPT
 

@@ -2,6 +2,7 @@
 
 from vw.build import Source, Statement, cte
 from vw.column import Column, col
+from vw.operators import exists
 from vw.parameter import Parameter, param
 from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
@@ -18,5 +19,6 @@ __all__: list[str] = [
     "Statement",
     "col",
     "cte",
+    "exists",
     "param",
 ]
