@@ -7,6 +7,8 @@ from vw.operators import (
     Equals,
     GreaterThan,
     GreaterThanOrEqual,
+    IsNotNull,
+    IsNull,
     LessThan,
     LessThanOrEqual,
     Not,
@@ -118,6 +120,65 @@ def describe_not() -> None:
         """Should combine NOT with AND/OR operators."""
         expr = ~(col("active") == col("true")) & (col("age") >= col("18"))
         assert expr.__vw_render__(render_context) == "(NOT (active = true)) AND (age >= 18)"
+
+
+def describe_is_null() -> None:
+    """Tests for IsNull class."""
+
+    def it_renders_is_null(render_context: vw.RenderContext) -> None:
+        """Should render IS NULL expression."""
+        is_null = IsNull(expr=col("deleted_at"))
+        assert is_null.__vw_render__(render_context) == "deleted_at IS NULL"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create IsNull via .is_null() method."""
+        result = col("deleted_at").is_null()
+        assert isinstance(result, IsNull)
+        assert result.__vw_render__(render_context) == "deleted_at IS NULL"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("users.deleted_at").is_null()
+        assert result.__vw_render__(render_context) == "users.deleted_at IS NULL"
+
+
+def describe_is_not_null() -> None:
+    """Tests for IsNotNull class."""
+
+    def it_renders_is_not_null(render_context: vw.RenderContext) -> None:
+        """Should render IS NOT NULL expression."""
+        is_not_null = IsNotNull(expr=col("name"))
+        assert is_not_null.__vw_render__(render_context) == "name IS NOT NULL"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create IsNotNull via .is_not_null() method."""
+        result = col("name").is_not_null()
+        assert isinstance(result, IsNotNull)
+        assert result.__vw_render__(render_context) == "name IS NOT NULL"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("users.email").is_not_null()
+        assert result.__vw_render__(render_context) == "users.email IS NOT NULL"
+
+
+def describe_null_with_logical_operators() -> None:
+    """Tests for null checks combined with logical operators."""
+
+    def it_combines_is_null_with_and(render_context: vw.RenderContext) -> None:
+        """Should combine IS NULL with AND."""
+        expr = col("deleted_at").is_null() & (col("status") == col("'active'"))
+        assert expr.__vw_render__(render_context) == "(deleted_at IS NULL) AND (status = 'active')"
+
+    def it_combines_is_not_null_with_or(render_context: vw.RenderContext) -> None:
+        """Should combine IS NOT NULL with OR."""
+        expr = col("email").is_not_null() | col("phone").is_not_null()
+        assert expr.__vw_render__(render_context) == "(email IS NOT NULL) OR (phone IS NOT NULL)"
+
+    def it_negates_is_null_with_not(render_context: vw.RenderContext) -> None:
+        """Should negate IS NULL with NOT operator."""
+        expr = ~col("deleted_at").is_null()
+        assert expr.__vw_render__(render_context) == "NOT (deleted_at IS NULL)"
 
 
 def describe_chained_expressions() -> None:

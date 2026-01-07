@@ -84,6 +84,28 @@ class GreaterThanOrEqual(Expression):
 
 
 @dataclass(kw_only=True, frozen=True)
+class IsNull(Expression):
+    """Represents an IS NULL check."""
+
+    expr: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the IS NULL check."""
+        return f"{self.expr.__vw_render__(context)} IS NULL"
+
+
+@dataclass(kw_only=True, frozen=True)
+class IsNotNull(Expression):
+    """Represents an IS NOT NULL check."""
+
+    expr: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the IS NOT NULL check."""
+        return f"{self.expr.__vw_render__(context)} IS NOT NULL"
+
+
+@dataclass(kw_only=True, frozen=True)
 class Not(Expression):
     """Represents a logical NOT of an expression."""
 
