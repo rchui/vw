@@ -54,6 +54,7 @@
 ## Advanced Query Features
 - [x] Subqueries in FROM/JOIN (via Statement as RowSet)
 - [x] Table/subquery aliasing via `.alias()`
+- [x] Expression aliasing via `.alias()` (column AS name)
 - [ ] Subqueries in WHERE (IN, EXISTS)
 - [x] CTEs (Common Table Expressions / WITH clause)
 - [ ] UNION / UNION ALL / INTERSECT / EXCEPT

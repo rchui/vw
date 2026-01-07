@@ -625,3 +625,48 @@ def describe_ctes():
         )
         result = active_users.select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_expression_alias():
+    """Tests for expression aliasing."""
+
+    def it_generates_aliased_column_in_select(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, price AS unit_price FROM orders
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("id"), vw.col("price").alias("unit_price"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_aliased_parameter_in_select(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, :tax_rate AS tax FROM orders
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(vw.col("id"), vw.param("tax_rate", 0.08).alias("tax"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"tax_rate": 0.08})
+
+    def it_generates_multiple_aliased_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT
+                id AS order_id,
+                price AS unit_price,
+                quantity AS qty
+            FROM orders
+        """
+        result = (
+            vw.Source(name="orders")
+            .select(
+                vw.col("id").alias("order_id"),
+                vw.col("price").alias("unit_price"),
+                vw.col("quantity").alias("qty"),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})

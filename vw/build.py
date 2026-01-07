@@ -162,7 +162,7 @@ class Source(RowSet):
 
 
 @dataclass(kw_only=True, frozen=True)
-class Statement(Expression, RowSet):
+class Statement(RowSet, Expression):
     """Represents a SQL statement.
 
     Statement extends both Expression and RowSet, allowing it to be used:

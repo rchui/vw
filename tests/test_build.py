@@ -332,3 +332,43 @@ def describe_cte_function() -> None:
         cte2 = vw.cte("users", Source(name="inactive_users").select(vw.col("*")))
         with pytest.raises(CTENameCollisionError):
             cte1.join.inner(cte2).select(vw.col("*")).render(config=render_config)
+
+
+def describe_alias() -> None:
+    """Tests for expression aliasing."""
+
+    def it_aliases_column(render_context: vw.RenderContext) -> None:
+        """Should render column AS alias."""
+        expr = vw.col("price").alias("unit_price")
+        assert expr.__vw_render__(render_context) == "price AS unit_price"
+
+    def it_aliases_parameter(render_context: vw.RenderContext) -> None:
+        """Should render parameter AS alias."""
+        expr = vw.param("tax_rate", 0.08).alias("tax")
+        assert expr.__vw_render__(render_context) == ":tax_rate AS tax"
+        assert render_context.params == {"tax_rate": 0.08}
+
+    def it_aliases_comparison_expression(render_context: vw.RenderContext) -> None:
+        """Should render comparison expression AS alias."""
+        expr = (vw.col("age") >= vw.col("18")).alias("is_adult")
+        assert expr.__vw_render__(render_context) == "age >= 18 AS is_adult"
+
+    def it_aliases_logical_expression(render_context: vw.RenderContext) -> None:
+        """Should render logical expression AS alias."""
+        expr = (vw.col("a") & vw.col("b")).alias("both")
+        assert expr.__vw_render__(render_context) == "(a) AND (b) AS both"
+
+    def it_renders_in_select(render_config: vw.RenderConfig) -> None:
+        """Should render aliased expression in SELECT."""
+        result = (
+            Source(name="orders")
+            .select(
+                vw.col("id"),
+                vw.col("price").alias("unit_price"),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(
+            sql="SELECT id, price AS unit_price FROM orders",
+            params={},
+        )

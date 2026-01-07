@@ -156,6 +156,7 @@ Parameterized value class:
 Comparison and logical operators:
 - `Equals`, `NotEquals`, `LessThan`, `LessThanOrEqual`, `GreaterThan`, `GreaterThanOrEqual` - Comparison operators
 - `And`, `Or`, `Not` - Logical operators
+- `Alias` - Expression aliasing (expr AS name)
 
 ### vw/build.py
 Query builder classes:
@@ -205,6 +206,7 @@ Expression (things in SELECT/WHERE/ON conditions)
 ├── Parameter
 ├── Equals, NotEquals, LessThan, ...
 ├── And, Or, Not
+├── Alias (expression AS name)
 └── Statement (subquery as expression)
 ```
 

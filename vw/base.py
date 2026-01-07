@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from vw.build import InnerJoin, JoinAccessor, Statement
     from vw.column import Column
-    from vw.operators import And, Not, Or
+    from vw.operators import Alias, And, Not, Or
     from vw.render import RenderContext
 
 from typing_extensions import Self
@@ -144,3 +144,19 @@ class Expression:
         from vw.operators import Not
 
         return Not(operand=self)
+
+    def alias(self, name: str, /) -> Alias:
+        """Create an aliased expression.
+
+        Args:
+            name: The alias name.
+
+        Returns:
+            An Alias expression.
+
+        Example:
+            >>> col("price").alias("unit_price")
+        """
+        from vw.operators import Alias
+
+        return Alias(expr=self, name=name)

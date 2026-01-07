@@ -171,6 +171,28 @@ config = vw.RenderConfig(parameter_style=vw.ParameterStyle.AT)
 result = query.render(config)  # Uses @name
 ```
 
+### Expression Aliasing
+
+Use `.alias()` to give expressions an alias in SELECT clauses:
+
+```python
+# Alias a column
+result = vw.Source(name="orders").select(
+    vw.col("id"),
+    vw.col("price").alias("unit_price")
+).render()
+# SELECT id, price AS unit_price FROM orders
+
+# Alias a parameter
+result = vw.Source(name="orders").select(
+    vw.col("id"),
+    vw.param("tax_rate", 0.08).alias("tax")
+).render()
+# SELECT id, :tax_rate AS tax FROM orders
+```
+
+Note: For subquery aliasing in FROM/JOIN clauses, use `Statement.alias()` which returns an aliased statement (see Subqueries section).
+
 ### Common Table Expressions (CTEs)
 
 CTEs allow you to define named temporary result sets that can be referenced like tables:

@@ -116,3 +116,15 @@ class Or(Expression):
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the OR expression with parentheses."""
         return f"({self.left.__vw_render__(context)}) OR ({self.right.__vw_render__(context)})"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Alias(Expression):
+    """Represents an aliased expression (expr AS name)."""
+
+    expr: Expression
+    name: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the aliased expression."""
+        return f"{self.expr.__vw_render__(context)} AS {self.name}"
