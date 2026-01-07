@@ -20,7 +20,8 @@ class Equals(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the equality comparison."""
-        return f"{self.left.__vw_render__(context)} = {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} = {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -32,7 +33,8 @@ class NotEquals(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the inequality comparison."""
-        return f"{self.left.__vw_render__(context)} <> {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} <> {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -44,7 +46,8 @@ class LessThan(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the less than comparison."""
-        return f"{self.left.__vw_render__(context)} < {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} < {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -56,7 +59,8 @@ class LessThanOrEqual(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the less than or equal comparison."""
-        return f"{self.left.__vw_render__(context)} <= {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} <= {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -68,7 +72,8 @@ class GreaterThan(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the greater than comparison."""
-        return f"{self.left.__vw_render__(context)} > {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} > {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -80,7 +85,8 @@ class GreaterThanOrEqual(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the greater than or equal comparison."""
-        return f"{self.left.__vw_render__(context)} >= {self.right.__vw_render__(context)}"
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} >= {self.right.__vw_render__(nested)}"
 
 
 @dataclass(kw_only=True, frozen=True)

@@ -399,6 +399,55 @@ def describe_exists_subqueries():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_scalar_subqueries():
+    """Tests for scalar subqueries in comparisons."""
+
+    def it_generates_scalar_subquery_in_where(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM orders
+            WHERE (price > (SELECT AVG(price) FROM products))
+        """
+        avg_price = vw.Source(name="products").select(vw.col("AVG(price)"))
+        result = (
+            vw.Source(name="orders").select(vw.col("*")).where(vw.col("price") > avg_price).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_scalar_subquery_with_equals(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM employees
+            WHERE (department_id = (SELECT id FROM departments WHERE (name = 'Engineering')))
+        """
+        dept_subquery = (
+            vw.Source(name="departments").select(vw.col("id")).where(vw.col("name") == vw.col("'Engineering'"))
+        )
+        result = (
+            vw.Source(name="employees")
+            .select(vw.col("*"))
+            .where(vw.col("department_id") == dept_subquery)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_scalar_subquery_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT * FROM products
+            WHERE (price < (SELECT AVG(price) FROM products WHERE (category = :category)))
+        """
+        avg_in_category = (
+            vw.Source(name="products")
+            .select(vw.col("AVG(price)"))
+            .where(vw.col("category") == vw.param("category", "electronics"))
+        )
+        result = (
+            vw.Source(name="products")
+            .select(vw.col("*"))
+            .where(vw.col("price") < avg_in_category)
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"category": "electronics"})
+
+
 def describe_method_chaining():
     """Tests for method chaining patterns."""
 
