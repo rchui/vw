@@ -63,6 +63,7 @@
 - [x] Expression aliasing via `.alias()` (column AS name)
 - [x] Subqueries in WHERE: IN via `.is_in()` / `.is_not_in()`
 - [x] Subqueries in WHERE: EXISTS via `vw.exists()`
+- [x] Scalar subqueries in comparisons (e.g., `col("price") > subquery`)
 - [x] CTEs (Common Table Expressions / WITH clause)
 - [ ] UNION / UNION ALL / INTERSECT / EXCEPT
 
