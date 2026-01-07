@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
@@ -21,51 +20,6 @@ class Limit:
 
     count: int
     offset: int | None = None
-
-
-@dataclass(kw_only=True, frozen=True)
-class InnerJoin:
-    """Represents an INNER JOIN operation."""
-
-    right: RowSet
-    on: Sequence[Expression] = field(default_factory=list)
-
-    def __vw_render__(self, context: RenderContext) -> str:
-        """Return the SQL representation of the inner join."""
-
-        join_sql = f"INNER JOIN {self.right.__vw_render__(context)}"
-        if self.on:
-            conditions = [f"({expr.__vw_render__(context)})" for expr in self.on]
-            join_sql += f" ON {' AND '.join(conditions)}"
-        return join_sql
-
-
-class JoinAccessor:
-    """Accessor for join operations on a RowSet."""
-
-    def __init__(self, row_set: RowSet):
-        self._row_set = row_set
-
-    def inner(self, right: RowSet, *, on: Sequence[Expression] = ()) -> RowSet:
-        """
-        Perform an INNER JOIN with another row set.
-
-        Args:
-            right: The row set to join with (table, subquery, or CTE).
-            on: Sequence of join condition expressions. Multiple conditions are combined with AND.
-
-        Returns:
-            A new RowSet with the join applied.
-
-        Example:
-            >>> users = Source(name="users")
-            >>> orders = Source(name="orders")
-            >>> users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-        """
-        return replace(
-            self._row_set,
-            _joins=self._row_set._joins + [InnerJoin(right=right, on=on)],
-        )
 
 
 @dataclass(kw_only=True, frozen=True)

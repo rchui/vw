@@ -14,10 +14,11 @@
 
 ## Joins
 - [x] INNER JOIN support with accessor pattern (`Source.join.inner()`)
+- [x] LEFT JOIN support with accessor pattern (`Source.join.left()`)
 - [x] Multiple ON conditions in joins (combined with AND)
 - [x] Chaining multiple joins
+- [x] Mixed join types in chain (e.g., inner then left)
 - [x] Cross joins (INNER JOIN without ON condition)
-- [ ] LEFT JOIN / LEFT OUTER JOIN
 - [ ] RIGHT JOIN / RIGHT OUTER JOIN
 - [ ] FULL OUTER JOIN
 - [ ] ANTI JOIN
@@ -79,7 +80,6 @@
 
 ## Infrastructure
 - [ ] CI/CD configuration
-- [ ] Expand CLI functionality beyond basic --version flag
 - [ ] Documentation site
 - [ ] Performance benchmarks
 - [ ] Database driver integration examples

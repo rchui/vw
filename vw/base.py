@@ -6,8 +6,9 @@ from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from vw.build import InnerJoin, JoinAccessor, Statement
+    from vw.build import Statement
     from vw.column import Column
+    from vw.joins import Join, JoinAccessor
     from vw.operators import Alias, And, Asc, Cast, Desc, Not, Or
     from vw.render import RenderContext
 
@@ -22,7 +23,7 @@ class RowSet:
     """
 
     _alias: str | None = None
-    _joins: list[InnerJoin] = field(default_factory=list)
+    _joins: list[Join] = field(default_factory=list)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the row set."""
@@ -64,7 +65,7 @@ class RowSet:
     @property
     def join(self) -> JoinAccessor:
         """Access join operations."""
-        from vw.build import JoinAccessor
+        from vw.joins import JoinAccessor
 
         return JoinAccessor(self)
 
