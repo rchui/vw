@@ -8,6 +8,7 @@ All public exports from `vw/__init__.py`:
 - `col(name)` - Create a column reference
 - `param(name, value)` - Create a parameterized value
 - `cte(name, query)` - Create a Common Table Expression
+- `exists(subquery)` - Create an EXISTS expression for a subquery
 
 ### Classes
 - `Column` - Column reference class
@@ -22,6 +23,7 @@ All public exports from `vw/__init__.py`:
 - `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
 - `Source` - Table/view source (extends RowSet)
 - `Statement` - SQL statement (extends Expression and RowSet)
+- `SetOperation` - Combined queries via UNION/INTERSECT/EXCEPT (extends Expression and RowSet)
 - `InnerJoin` - Inner join operation
 - `RenderResult` - Rendering result with SQL and params
 - `RenderConfig` - Rendering configuration
@@ -33,21 +35,32 @@ All public exports from `vw/__init__.py`:
 - `|` - Logical OR (`expr1 | expr2`)
 - `~` - Logical NOT (`~expr`)
 
+### Set Operators (via Statement/SetOperation)
+- `|` - UNION (`query1 | query2`)
+- `+` - UNION ALL (`query1 + query2`)
+- `&` - INTERSECT (`query1 & query2`)
+- `-` - EXCEPT (`query1 - query2`)
+
+### Expression Methods
+- `.is_null()` - IS NULL check
+- `.is_not_null()` - IS NOT NULL check
+- `.is_in(*values)` - IN check (values or subquery)
+- `.is_not_in(*values)` - NOT IN check (values or subquery)
+- `.alias(name)` - Alias expression (AS name)
+- `.cast(type)` - Type cast
+- `.asc()` - Ascending sort order
+- `.desc()` - Descending sort order
+
 ## Usage Examples
 
-For comprehensive examples, see the integration tests in `tests/test_sql.py`:
-- `describe_basic_select` - Basic SELECT statements
-- `describe_star_extensions` - Star expression extensions (REPLACE, EXCLUDE)
-- `describe_method_chaining` - Method chaining patterns
-- `describe_complex_expressions` - Complex SQL expressions via escape hatch
-- `describe_joins` - INNER JOIN operations
-- `describe_where` - WHERE clause support
-- `describe_subqueries` - Subqueries and aliasing
-- `describe_parameters` - Parameterized queries
+For comprehensive examples, see the integration tests in `tests/integration/`:
+- `test_queries.py` - SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT
+- `test_joins.py` - JOIN operations and subqueries
+- `test_expressions.py` - Cast, alias, parameters, null handling, IN/EXISTS
+- `test_ctes.py` - Common Table Expressions
+- `test_set_operations.py` - UNION, INTERSECT, EXCEPT
 
 ### Basic SELECT
-
-See `tests/test_sql.py::describe_basic_select` for more examples.
 
 ```python
 import vw
@@ -71,8 +84,6 @@ result = users.select(
 
 ### INNER JOIN
 
-See `tests/test_sql.py::describe_joins` for comprehensive examples including multiple conditions and chained joins.
-
 ```python
 users = vw.Source(name="users")
 orders = vw.Source(name="orders")
@@ -88,16 +99,6 @@ result = (
 ### WHERE Clause
 
 The `where()` method adds WHERE conditions to a statement. Multiple expressions are combined with AND.
-
-See `tests/test_sql.py::describe_where` for comprehensive examples including:
-- Single and multiple conditions
-- WHERE with parameters
-- Chaining multiple where() calls
-- WHERE with JOIN
-- All comparison operators
-- Logical operators (AND, OR, NOT)
-
-Basic example:
 ```python
 result = vw.Source(name="users").select(vw.col("*")).where(
     vw.col("age") >= vw.param("min_age", 18)
@@ -129,8 +130,6 @@ expr = ~(vw.col("deleted") == vw.col("true")) & (vw.col("status") == vw.col("'ac
 ```
 
 ### Parameterized Queries
-
-See `tests/test_sql.py::describe_parameters` for comprehensive examples including parameter reuse and different types.
 
 ```python
 users = vw.Source(name="users")
@@ -371,8 +370,6 @@ CTEs register themselves in the RenderContext during tree traversal, similar to 
 
 ### Subqueries and Aliasing
 
-See `tests/test_sql.py::describe_subqueries` for comprehensive examples.
-
 Statements can be used as subqueries in FROM/JOIN clauses. Use `.alias()` to give them a name:
 
 ```python
@@ -405,9 +402,126 @@ result = (
 # result.sql: "SELECT * FROM users INNER JOIN orders AS o ON (users.id = o.user_id)"
 ```
 
-### Escape Hatch for Raw SQL
+### NULL Handling
 
-See `tests/test_sql.py::describe_star_extensions` and `tests/test_sql.py::describe_complex_expressions` for more examples.
+Use `.is_null()` and `.is_not_null()` methods:
+
+```python
+# IS NULL
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .where(vw.col("deleted_at").is_null())
+    .render()
+)
+# SELECT * FROM users WHERE (deleted_at IS NULL)
+
+# IS NOT NULL
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .where(vw.col("email").is_not_null())
+    .render()
+)
+# SELECT * FROM users WHERE (email IS NOT NULL)
+```
+
+### IN / NOT IN
+
+Use `.is_in()` and `.is_not_in()` with values or subqueries:
+
+```python
+# IN with literal values
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .where(vw.col("status").is_in(vw.col("'active'"), vw.col("'pending'")))
+    .render()
+)
+# SELECT * FROM users WHERE (status IN ('active', 'pending'))
+
+# IN with subquery
+orders_subquery = vw.Source(name="orders").select(vw.col("user_id"))
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .where(vw.col("id").is_in(orders_subquery))
+    .render()
+)
+# SELECT * FROM users WHERE (id IN (SELECT user_id FROM orders))
+
+# NOT IN
+result = (
+    vw.Source(name="users")
+    .select(vw.col("*"))
+    .where(vw.col("status").is_not_in(vw.col("'deleted'"), vw.col("'archived'")))
+    .render()
+)
+# SELECT * FROM users WHERE (status NOT IN ('deleted', 'archived'))
+```
+
+### EXISTS
+
+Use `vw.exists()` for EXISTS subqueries:
+
+```python
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
+
+# EXISTS
+exists_subquery = orders.select(vw.col("1")).where(orders.col("user_id") == users.col("id"))
+result = (
+    users.select(vw.col("*"))
+    .where(vw.exists(exists_subquery))
+    .render()
+)
+# SELECT * FROM users WHERE (EXISTS (SELECT 1 FROM orders WHERE (orders.user_id = users.id)))
+
+# NOT EXISTS (use ~ operator)
+result = (
+    users.select(vw.col("*"))
+    .where(~vw.exists(exists_subquery))
+    .render()
+)
+# SELECT * FROM users WHERE (NOT (EXISTS (SELECT 1 FROM orders WHERE ...)))
+```
+
+### Set Operations (UNION / INTERSECT / EXCEPT)
+
+Use Python operators to combine queries:
+
+```python
+query1 = vw.Source(name="users").select(vw.col("id"))
+query2 = vw.Source(name="admins").select(vw.col("id"))
+
+# UNION (deduplicated)
+result = (query1 | query2).render()
+# (SELECT id FROM users) UNION (SELECT id FROM admins)
+
+# UNION ALL (keeps duplicates)
+result = (query1 + query2).render()
+# (SELECT id FROM users) UNION ALL (SELECT id FROM admins)
+
+# INTERSECT
+result = (query1 & query2).render()
+# (SELECT id FROM users) INTERSECT (SELECT id FROM admins)
+
+# EXCEPT
+result = (query1 - query2).render()
+# (SELECT id FROM users) EXCEPT (SELECT id FROM admins)
+
+# Chaining
+query3 = vw.Source(name="guests").select(vw.col("id"))
+result = (query1 | query2 | query3).render()
+# ((SELECT id FROM users) UNION (SELECT id FROM admins)) UNION (SELECT id FROM guests)
+
+# Use as subquery
+combined = (query1 | query2).alias("all_ids")
+result = combined.select(vw.col("*")).render()
+# SELECT * FROM ((SELECT id FROM users) UNION (SELECT id FROM admins)) AS all_ids
+```
+
+### Escape Hatch for Raw SQL
 
 ```python
 # Use raw SQL strings for unsupported features

@@ -65,7 +65,7 @@
 - [x] Subqueries in WHERE: EXISTS via `vw.exists()`
 - [x] Scalar subqueries in comparisons (e.g., `col("price") > subquery`)
 - [x] CTEs (Common Table Expressions / WITH clause)
-- [ ] UNION / UNION ALL / INTERSECT / EXCEPT
+- [x] UNION / UNION ALL / INTERSECT / EXCEPT via operators (`|`, `+`, `&`, `-`)
 
 ## Rendering
 - [x] Expression Protocol with `__vw_render__(context)`

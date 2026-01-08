@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING
 
+from typing_extensions import TypeAlias
+
 from vw.base import Expression, RowSet
 from vw.column import Column
 from vw.exceptions import UnsupportedDialectError
@@ -124,6 +126,10 @@ class Source(RowSet):
         return sql
 
 
+# Type alias for statements that can be combined with set operators
+Combinable: TypeAlias = "Statement | SetOperation"
+
+
 @dataclass(kw_only=True, frozen=True)
 class Statement(RowSet, Expression):
     """Represents a SQL statement.
@@ -132,6 +138,7 @@ class Statement(RowSet, Expression):
     - As a top-level query (via render())
     - As a subquery in WHERE clauses (as Expression)
     - As a subquery in FROM/JOIN clauses (as RowSet)
+    - Combined with other statements via set operators (UNION, INTERSECT, EXCEPT)
     """
 
     source: RowSet
@@ -288,3 +295,143 @@ class Statement(RowSet, Expression):
             if self._alias:
                 sql += f" AS {self._alias}"
         return sql
+
+    # Intentionally override Expression's logical operators with set operators.
+    # On Expression: | means OR, & means AND (logical operators for WHERE conditions)
+    # On Statement/SetOperation: | means UNION, & means INTERSECT (SQL set operators)
+    # This mirrors Python's semantics where | and & behave differently for sets vs bools.
+
+    def __or__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
+        """Combine with another query using UNION (deduplicated).
+
+        Args:
+            other: The query to union with.
+
+        Returns:
+            A SetOperation representing the UNION.
+
+        Example:
+            >>> query1 | query2  # SELECT ... UNION SELECT ...
+        """
+        return SetOperation(left=self, operator="UNION", right=other)
+
+    def __add__(self, other: Combinable) -> SetOperation:
+        """Combine with another query using UNION ALL (keeps duplicates).
+
+        Args:
+            other: The query to union with.
+
+        Returns:
+            A SetOperation representing the UNION ALL.
+
+        Example:
+            >>> query1 + query2  # SELECT ... UNION ALL SELECT ...
+        """
+        return SetOperation(left=self, operator="UNION ALL", right=other)
+
+    def __and__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
+        """Combine with another query using INTERSECT.
+
+        Args:
+            other: The query to intersect with.
+
+        Returns:
+            A SetOperation representing the INTERSECT.
+
+        Example:
+            >>> query1 & query2  # SELECT ... INTERSECT SELECT ...
+        """
+        return SetOperation(left=self, operator="INTERSECT", right=other)
+
+    def __sub__(self, other: Combinable) -> SetOperation:
+        """Combine with another query using EXCEPT.
+
+        Args:
+            other: The query to except.
+
+        Returns:
+            A SetOperation representing the EXCEPT.
+
+        Example:
+            >>> query1 - query2  # SELECT ... EXCEPT SELECT ...
+        """
+        return SetOperation(left=self, operator="EXCEPT", right=other)
+
+
+@dataclass(kw_only=True, frozen=True)
+class SetOperation(RowSet, Expression):
+    """Represents combined queries with UNION/INTERSECT/EXCEPT.
+
+    SetOperation extends both Expression and RowSet, allowing it to be used:
+    - As a top-level query (via render())
+    - As a subquery in WHERE clauses (as Expression)
+    - As a subquery in FROM/JOIN clauses (as RowSet)
+    - Combined further with other statements via set operators
+
+    Example:
+        >>> query1 = Source(name="users").select(col("id"))
+        >>> query2 = Source(name="admins").select(col("id"))
+        >>> combined = query1 | query2  # UNION
+        >>> combined = query1 + query2  # UNION ALL
+        >>> combined = query1 & query2  # INTERSECT
+        >>> combined = query1 - query2  # EXCEPT
+    """
+
+    left: Combinable
+    operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
+    right: Combinable
+
+    def render(self, config: RenderConfig | None = None) -> RenderResult:
+        """
+        Render the compound SQL statement with parameter tracking.
+
+        Args:
+            config: Rendering configuration. Defaults to RenderConfig with COLON parameter style.
+
+        Returns:
+            RenderResult containing the SQL string and parameter dictionary.
+        """
+        if config is None:
+            config = RenderConfig()
+        context = RenderContext(config=config)
+        sql = self.__vw_render__(context)
+
+        # Prepend WITH clause if CTEs were registered
+        if context.ctes:
+            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
+            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+
+        return RenderResult(sql=sql, params=context.params)
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the set operation."""
+        nested = context.recurse()
+        left_sql = self.left.__vw_render__(nested)
+        right_sql = self.right.__vw_render__(nested)
+
+        sql = f"{left_sql} {self.operator} {right_sql}"
+
+        # Parenthesize if nested
+        if context.depth > 0:
+            sql = f"({sql})"
+            if self._alias:
+                sql += f" AS {self._alias}"
+        return sql
+
+    # See comment in Statement for rationale on overriding Expression's operators.
+
+    def __or__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
+        """Combine with another query using UNION."""
+        return SetOperation(left=self, operator="UNION", right=other)
+
+    def __add__(self, other: Combinable) -> SetOperation:
+        """Combine with another query using UNION ALL."""
+        return SetOperation(left=self, operator="UNION ALL", right=other)
+
+    def __and__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
+        """Combine with another query using INTERSECT."""
+        return SetOperation(left=self, operator="INTERSECT", right=other)
+
+    def __sub__(self, other: Combinable) -> SetOperation:
+        """Combine with another query using EXCEPT."""
+        return SetOperation(left=self, operator="EXCEPT", right=other)
