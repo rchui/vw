@@ -1,6 +1,16 @@
 # vw
 
-A SQL builder library with polars-inspired method chaining syntax for constructing parameterized SQL queries.
+**SQL, made composable.**
+
+vw is a lightweight library that brings Polars-inspired method chaining to the world of SQL. It’s built for developers who love the expressiveness of SQL but are tired of fighting the fragility of string concatenation and the "black box" of heavy ORMs.
+
+Stop fearing the complexity of large queries. vw lets you fully embrace SQL by treating query segments as first-class, reusable building blocks. Build, pipe, and compose your logic with the fluidity of a modern fluent API, while keeping the full power of the database exactly where it belongs—at your fingertips.
+
+- Love SQL: No abstractions that hide the engine. Write real SQL logic, just more cleanly.
+
+- Lose the Fear: Break "monster queries" into small, testable, and chainable methods.
+
+- Polars-Inspired: If you can use a data frame, you can build a query.
 
 ## Usage
 
@@ -99,3 +109,12 @@ vw
 ## License
 
 MIT
+
+
+## Personal Note
+
+This project was kickstarted by this article from HackerNews:
+
+- https://willmcgugan.github.io/toad-released/
+
+I will readily admit that this repo and the contents within were primarily written by LLMs. I've had the idea for this library for a few years and I've never had the time, nor the energy, to put pen to paper. This was my first deep dive into "vibe-coding" and prompting a project from the start. Without these tools, it is unlikely that it would have ever seen the light of day. And for that I am thankful.
