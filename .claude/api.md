@@ -10,6 +10,21 @@ All public exports from `vw/__init__.py`:
 - `cte(name, query)` - Create a Common Table Expression
 - `exists(subquery)` - Create an EXISTS expression for a subquery
 
+### Functions Module (`vw.functions`)
+- `row_number()` - ROW_NUMBER() window function
+- `rank()` - RANK() window function
+- `dense_rank()` - DENSE_RANK() window function
+- `ntile(n)` - NTILE(n) window function
+- `sum_(expr)` - SUM() aggregate/window function
+- `count(expr=None)` - COUNT() aggregate/window function (None for COUNT(*))
+- `avg(expr)` - AVG() aggregate/window function
+- `min_(expr)` - MIN() aggregate/window function
+- `max_(expr)` - MAX() aggregate/window function
+- `lag(expr, offset=1, default=None)` - LAG() window function
+- `lead(expr, offset=1, default=None)` - LEAD() window function
+- `first_value(expr)` - FIRST_VALUE() window function
+- `last_value(expr)` - LAST_VALUE() window function
+
 ### Classes
 - `Column` - Column reference class
 - `Expression` - Expression base class
@@ -24,6 +39,8 @@ All public exports from `vw/__init__.py`:
 - `Source` - Table/view source (extends RowSet)
 - `Statement` - SQL statement (extends Expression and RowSet)
 - `SetOperation` - Combined queries via UNION/INTERSECT/EXCEPT (extends Expression and RowSet)
+- `Function` - SQL function (from `vw.functions`)
+- `WindowFunction` - Window function with OVER clause (from `vw.functions`)
 - `InnerJoin` - Inner join operation
 - `RenderResult` - Rendering result with SQL and params
 - `RenderConfig` - Rendering configuration
@@ -59,6 +76,7 @@ For comprehensive examples, see the integration tests in `tests/integration/`:
 - `test_expressions.py` - Cast, alias, parameters, null handling, IN/EXISTS
 - `test_ctes.py` - Common Table Expressions
 - `test_set_operations.py` - UNION, INTERSECT, EXCEPT
+- `test_window_functions.py` - Window functions and aggregates
 
 ### Basic SELECT
 
@@ -519,6 +537,81 @@ result = (query1 | query2 | query3).render()
 combined = (query1 | query2).alias("all_ids")
 result = combined.select(vw.col("*")).render()
 # SELECT * FROM ((SELECT id FROM users) UNION (SELECT id FROM admins)) AS all_ids
+```
+
+### Window Functions
+
+Use `vw.functions` for window functions and aggregates:
+
+```python
+from vw.functions import row_number, sum_, count, avg, lag, lead, rank
+
+# ROW_NUMBER with ORDER BY
+result = (
+    vw.Source(name="orders")
+    .select(
+        vw.col("id"),
+        row_number().over(order_by=[vw.col("created_at").desc()]).alias("row_num")
+    )
+    .render()
+)
+# SELECT id, ROW_NUMBER() OVER (ORDER BY created_at DESC) AS row_num FROM orders
+
+# Window function with PARTITION BY
+result = (
+    vw.Source(name="orders")
+    .select(
+        vw.col("id"),
+        sum_(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("customer_total")
+    )
+    .render()
+)
+# SELECT id, SUM(amount) OVER (PARTITION BY customer_id) AS customer_total FROM orders
+
+# Both PARTITION BY and ORDER BY
+result = (
+    vw.Source(name="orders")
+    .select(
+        vw.col("id"),
+        row_number().over(
+            partition_by=[vw.col("customer_id")],
+            order_by=[vw.col("order_date").asc()]
+        ).alias("order_num")
+    )
+    .render()
+)
+# SELECT id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS order_num FROM orders
+
+# LAG/LEAD for accessing previous/next rows
+result = (
+    vw.Source(name="prices")
+    .select(
+        vw.col("date"),
+        vw.col("price"),
+        lag(vw.col("price")).over(order_by=[vw.col("date").asc()]).alias("prev_price")
+    )
+    .render()
+)
+# SELECT date, price, LAG(price, 1) OVER (ORDER BY date ASC) AS prev_price FROM prices
+
+# Aggregate functions without OVER (regular aggregates)
+result = (
+    vw.Source(name="orders")
+    .select(count(), sum_(vw.col("amount")).alias("total"))
+    .render()
+)
+# SELECT COUNT(*), SUM(amount) AS total FROM orders
+
+# Empty OVER() for window over entire result set
+result = (
+    vw.Source(name="orders")
+    .select(
+        vw.col("id"),
+        sum_(vw.col("amount")).over().alias("grand_total")
+    )
+    .render()
+)
+# SELECT id, SUM(amount) OVER () AS grand_total FROM orders
 ```
 
 ### Escape Hatch for Raw SQL

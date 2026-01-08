@@ -1,5 +1,6 @@
 """vw - A SQL builder library with method chaining."""
 
+from vw import functions
 from vw.build import Source, Statement, cte
 from vw.column import Column, col
 from vw.operators import exists
@@ -20,5 +21,6 @@ __all__: list[str] = [
     "col",
     "cte",
     "exists",
+    "functions",
     "param",
 ]

@@ -45,8 +45,9 @@
 - [x] Logical operators: NOT
 
 ## Functions
-- [ ] Aggregate functions: COUNT, SUM, AVG, MIN, MAX
-- [ ] Window functions
+- [x] Aggregate functions: COUNT, SUM, AVG, MIN, MAX (via `vw.functions`)
+- [x] Window functions (via `vw.functions` with `.over()`)
+- [ ] Window function frame clauses (ROWS/RANGE BETWEEN)
 - [ ] String operations
 - [ ] Date/time operations
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
