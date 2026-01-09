@@ -45,7 +45,13 @@ def describe_set_operations():
 
     def it_chains_multiple_unions(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            ((SELECT id FROM users) UNION (SELECT id FROM admins)) UNION (SELECT id FROM guests)
+            (
+                (SELECT id FROM users)
+                UNION
+                (SELECT id FROM admins)
+            )
+            UNION
+            (SELECT id FROM guests)
         """
         query1 = vw.Source(name="users").select(vw.col("id"))
         query2 = vw.Source(name="admins").select(vw.col("id"))

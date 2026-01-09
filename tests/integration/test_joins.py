@@ -185,7 +185,13 @@ def describe_subqueries():
     def it_generates_nested_subqueries(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT *
-            FROM (SELECT * FROM (SELECT id FROM users) AS inner_q) AS outer_q
+            FROM (
+                SELECT *
+                FROM (
+                    SELECT id
+                    FROM users
+                ) AS inner_q
+            ) AS outer_q
         """
         inner = vw.Source(name="users").select(vw.col("id")).alias("inner_q")
         middle = vw.Statement(source=inner, columns=[vw.col("*")]).alias("outer_q")

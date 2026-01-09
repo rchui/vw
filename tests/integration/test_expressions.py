@@ -74,10 +74,10 @@ def describe_expression_alias():
     def it_generates_multiple_aliased_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT
-                id AS order_id,
-                price AS unit_price,
-                quantity AS qty
-            FROM orders
+                    id AS order_id,
+                    price AS unit_price,
+                    quantity AS qty
+                FROM orders
         """
         result = (
             vw.Source(name="orders")

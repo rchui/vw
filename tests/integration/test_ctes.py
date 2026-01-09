@@ -9,7 +9,11 @@ def describe_basic_ctes():
 
     def it_generates_basic_cte(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            WITH active_users AS (SELECT * FROM users WHERE (status = 'active'))
+            WITH active_users AS (
+                SELECT *
+                FROM users
+                WHERE (status = 'active')
+            )
             SELECT * FROM active_users
         """
         active_users = vw.cte(
@@ -50,10 +54,15 @@ def describe_cte_with_joins():
 
     def it_generates_cte_in_join(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            WITH active_users AS (SELECT id, name FROM users WHERE (active = true))
+            WITH active_users AS (
+                SELECT id, name
+                FROM users
+                WHERE (active = true)
+            )
             SELECT orders.id, active_users.name
             FROM orders
-            INNER JOIN active_users ON (orders.user_id = active_users.id)
+            INNER JOIN active_users
+                ON (orders.user_id = active_users.id)
         """
         active_users = vw.cte(
             "active_users",
@@ -73,8 +82,13 @@ def describe_multiple_ctes():
 
     def it_generates_multiple_ctes(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            WITH active_users AS (SELECT * FROM users WHERE (active = true)),
-                 recent_orders AS (SELECT * FROM orders WHERE (created_at > '2024-01-01'))
+            WITH
+                active_users AS (
+                    SELECT * FROM users WHERE (active = true)
+                ),
+                recent_orders AS (
+                    SELECT * FROM orders WHERE (created_at > '2024-01-01')
+                )
             SELECT *
             FROM active_users
             INNER JOIN recent_orders ON (active_users.id = recent_orders.user_id)
