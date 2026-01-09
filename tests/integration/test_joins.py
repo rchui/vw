@@ -130,6 +130,117 @@ def describe_left_joins():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_right_joins():
+    """Tests for RIGHT JOIN operations."""
+
+    def it_generates_right_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            RIGHT JOIN orders ON (users.id = orders.user_id)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.right(orders, on=[users.col("id") == orders.col("user_id")])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_right_join_with_where(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT orders.id, orders.total
+            FROM users
+            RIGHT JOIN orders ON (users.id = orders.user_id)
+            WHERE (users.id IS NULL)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        result = (
+            users.join.right(orders, on=[users.col("id") == orders.col("user_id")])
+            .select(orders.col("id"), orders.col("total"))
+            .where(users.col("id").is_null())
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_full_outer_joins():
+    """Tests for FULL OUTER JOIN operations."""
+
+    def it_generates_full_outer_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            FULL OUTER JOIN orders ON (users.id = orders.user_id)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.full_outer(orders, on=[users.col("id") == orders.col("user_id")])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_full_outer_join_with_coalesce(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT
+                COALESCE(users.id, orders.user_id) AS id,
+                users.name,
+                orders.total
+            FROM users
+            FULL OUTER JOIN orders ON (users.id = orders.user_id)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        result = (
+            users.join.full_outer(orders, on=[users.col("id") == orders.col("user_id")])
+            .select(
+                vw.col("COALESCE(users.id, orders.user_id)").alias("id"),
+                users.col("name"),
+                orders.col("total"),
+            )
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_cross_joins():
+    """Tests for CROSS JOIN operations."""
+
+    def it_generates_cross_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM colors
+            CROSS JOIN sizes
+        """
+        colors = vw.Source(name="colors")
+        sizes = vw.Source(name="sizes")
+        joined = colors.join.cross(sizes)
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_cross_join_with_selected_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT colors.name, sizes.label
+            FROM colors
+            CROSS JOIN sizes
+        """
+        colors = vw.Source(name="colors")
+        sizes = vw.Source(name="sizes")
+        result = colors.join.cross(sizes).select(colors.col("name"), sizes.col("label")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_multiple_cross_joins(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM colors
+            CROSS JOIN sizes
+            CROSS JOIN materials
+        """
+        colors = vw.Source(name="colors")
+        sizes = vw.Source(name="sizes")
+        materials = vw.Source(name="materials")
+        result = colors.join.cross(sizes).join.cross(materials).select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_mixed_joins():
     """Tests for mixed join types."""
 

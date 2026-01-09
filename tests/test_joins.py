@@ -2,7 +2,7 @@
 
 import vw
 from vw.build import Source
-from vw.joins import InnerJoin, LeftJoin
+from vw.joins import CrossJoin, FullOuterJoin, InnerJoin, LeftJoin, RightJoin
 
 
 def describe_inner_join() -> None:
@@ -65,6 +65,52 @@ def describe_left_join() -> None:
         )
 
 
+def describe_right_join() -> None:
+    """Tests for RightJoin class."""
+
+    def it_renders_right_join_without_condition(render_context: vw.RenderContext) -> None:
+        """Should render RIGHT JOIN without ON clause."""
+        orders = Source(name="orders")
+        join = RightJoin(right=orders)
+        assert join.__vw_render__(render_context) == "RIGHT JOIN orders"
+
+    def it_renders_right_join_with_single_condition(render_context: vw.RenderContext) -> None:
+        """Should render RIGHT JOIN with ON clause."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        condition = users.col("id") == orders.col("user_id")
+        join = RightJoin(right=orders, on=[condition])
+        assert join.__vw_render__(render_context) == "RIGHT JOIN orders ON (users.id = orders.user_id)"
+
+
+def describe_full_outer_join() -> None:
+    """Tests for FullOuterJoin class."""
+
+    def it_renders_full_outer_join_without_condition(render_context: vw.RenderContext) -> None:
+        """Should render FULL OUTER JOIN without ON clause."""
+        orders = Source(name="orders")
+        join = FullOuterJoin(right=orders)
+        assert join.__vw_render__(render_context) == "FULL OUTER JOIN orders"
+
+    def it_renders_full_outer_join_with_single_condition(render_context: vw.RenderContext) -> None:
+        """Should render FULL OUTER JOIN with ON clause."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        condition = users.col("id") == orders.col("user_id")
+        join = FullOuterJoin(right=orders, on=[condition])
+        assert join.__vw_render__(render_context) == "FULL OUTER JOIN orders ON (users.id = orders.user_id)"
+
+
+def describe_cross_join() -> None:
+    """Tests for CrossJoin class."""
+
+    def it_renders_cross_join(render_context: vw.RenderContext) -> None:
+        """Should render CROSS JOIN without ON clause."""
+        sizes = Source(name="sizes")
+        join = CrossJoin(right=sizes)
+        assert join.__vw_render__(render_context) == "CROSS JOIN sizes"
+
+
 def describe_join_accessor() -> None:
     """Tests for JoinAccessor class."""
 
@@ -72,19 +118,45 @@ def describe_join_accessor() -> None:
         """Should create a new Source with inner join."""
         users = Source(name="users")
         orders = Source(name="orders")
-        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        condition = users.col("id") == orders.col("user_id")
+        joined = users.join.inner(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert len(joined._joins) == 1
-        assert isinstance(joined._joins[0], InnerJoin)
+        assert joined._joins == [InnerJoin(right=orders, on=[condition])]
 
     def it_creates_source_with_left_join() -> None:
         """Should create a new Source with left join."""
         users = Source(name="users")
         orders = Source(name="orders")
-        joined = users.join.left(orders, on=[users.col("id") == orders.col("user_id")])
+        condition = users.col("id") == orders.col("user_id")
+        joined = users.join.left(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert len(joined._joins) == 1
-        assert isinstance(joined._joins[0], LeftJoin)
+        assert joined._joins == [LeftJoin(right=orders, on=[condition])]
+
+    def it_creates_source_with_right_join() -> None:
+        """Should create a new Source with right join."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        condition = users.col("id") == orders.col("user_id")
+        joined = users.join.right(orders, on=[condition])
+        assert isinstance(joined, Source)
+        assert joined._joins == [RightJoin(right=orders, on=[condition])]
+
+    def it_creates_source_with_full_outer_join() -> None:
+        """Should create a new Source with full outer join."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        condition = users.col("id") == orders.col("user_id")
+        joined = users.join.full_outer(orders, on=[condition])
+        assert isinstance(joined, Source)
+        assert joined._joins == [FullOuterJoin(right=orders, on=[condition])]
+
+    def it_creates_source_with_cross_join() -> None:
+        """Should create a new Source with cross join."""
+        colors = Source(name="colors")
+        sizes = Source(name="sizes")
+        joined = colors.join.cross(sizes)
+        assert isinstance(joined, Source)
+        assert joined._joins == [CrossJoin(right=sizes)]
 
     def it_chains_multiple_inner_joins(render_context: vw.RenderContext) -> None:
         """Should support chaining multiple inner joins."""
