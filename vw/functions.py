@@ -330,6 +330,26 @@ def last_value(expr: Expression) -> Function:
     return Function(name="LAST_VALUE", args=[expr])
 
 
+# -----------------------------------------------------------------------------
+# Null handling functions
+# -----------------------------------------------------------------------------
+
+
+def coalesce(*exprs: Expression) -> Function:
+    """Create a COALESCE() function.
+
+    Returns the first non-NULL expression from the arguments.
+
+    Args:
+        *exprs: Expressions to evaluate in order.
+
+    Example:
+        >>> coalesce(col("nickname"), col("name"))
+        >>> coalesce(col("preferred_email"), col("work_email"), col("personal_email"))
+    """
+    return Function(name="COALESCE", args=list(exprs))
+
+
 __all__ = [
     # Classes
     "Function",
@@ -350,4 +370,6 @@ __all__ = [
     "lead",
     "first_value",
     "last_value",
+    # Null handling functions
+    "coalesce",
 ]

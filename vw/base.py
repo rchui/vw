@@ -10,11 +10,13 @@ if TYPE_CHECKING:
     from vw.column import Column
     from vw.joins import Join, JoinAccessor
     from vw.operators import (
+        Add,
         Alias,
         And,
         Asc,
         Cast,
         Desc,
+        Divide,
         Equals,
         GreaterThan,
         GreaterThanOrEqual,
@@ -24,9 +26,12 @@ if TYPE_CHECKING:
         IsNull,
         LessThan,
         LessThanOrEqual,
+        Modulo,
+        Multiply,
         Not,
         NotEquals,
         Or,
+        Subtract,
     )
     from vw.render import RenderContext
 
@@ -241,6 +246,86 @@ class Expression:
         from vw.operators import Not
 
         return Not(operand=self)
+
+    def __add__(self, other: Expression) -> Add:
+        """Create an addition expression.
+
+        Args:
+            other: Expression to add.
+
+        Returns:
+            An Add expression representing the addition.
+
+        Example:
+            >>> col("price") + col("tax")
+        """
+        from vw.operators import Add
+
+        return Add(left=self, right=other)
+
+    def __sub__(self, other: Expression) -> Subtract:
+        """Create a subtraction expression.
+
+        Args:
+            other: Expression to subtract.
+
+        Returns:
+            A Subtract expression representing the subtraction.
+
+        Example:
+            >>> col("total") - col("discount")
+        """
+        from vw.operators import Subtract
+
+        return Subtract(left=self, right=other)
+
+    def __mul__(self, other: Expression) -> Multiply:
+        """Create a multiplication expression.
+
+        Args:
+            other: Expression to multiply by.
+
+        Returns:
+            A Multiply expression representing the multiplication.
+
+        Example:
+            >>> col("price") * col("quantity")
+        """
+        from vw.operators import Multiply
+
+        return Multiply(left=self, right=other)
+
+    def __truediv__(self, other: Expression) -> Divide:
+        """Create a division expression.
+
+        Args:
+            other: Expression to divide by.
+
+        Returns:
+            A Divide expression representing the division.
+
+        Example:
+            >>> col("total") / col("count")
+        """
+        from vw.operators import Divide
+
+        return Divide(left=self, right=other)
+
+    def __mod__(self, other: Expression) -> Modulo:
+        """Create a modulo expression.
+
+        Args:
+            other: Expression to take modulo by.
+
+        Returns:
+            A Modulo expression representing the modulo.
+
+        Example:
+            >>> col("value") % col("divisor")
+        """
+        from vw.operators import Modulo
+
+        return Modulo(left=self, right=other)
 
     def alias(self, name: str, /) -> Alias:
         """Create an aliased expression.

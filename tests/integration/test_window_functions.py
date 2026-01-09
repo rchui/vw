@@ -4,6 +4,7 @@ import vw
 from tests.utils import sql
 from vw.functions import (
     avg,
+    coalesce,
     count,
     dense_rank,
     first_value,
@@ -356,3 +357,39 @@ def describe_multiple_window_functions():
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_coalesce():
+    """Tests for COALESCE function."""
+
+    def it_generates_coalesce_with_two_args(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COALESCE(nickname, name) FROM users"
+        stmt = vw.Source(name="users").select(
+            coalesce(vw.col("nickname"), vw.col("name")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_coalesce_with_multiple_args(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COALESCE(preferred_email, work_email, personal_email) FROM users"
+        stmt = vw.Source(name="users").select(
+            coalesce(vw.col("preferred_email"), vw.col("work_email"), vw.col("personal_email")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_coalesce_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COALESCE(nickname, name) AS display_name FROM users"
+        stmt = vw.Source(name="users").select(
+            coalesce(vw.col("nickname"), vw.col("name")).alias("display_name"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_coalesce_with_param_default(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COALESCE(nickname, :default_name) FROM users"
+        stmt = vw.Source(name="users").select(
+            coalesce(vw.col("nickname"), vw.param("default_name", "Unknown")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"default_name": "Unknown"})

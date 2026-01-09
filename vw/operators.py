@@ -89,6 +89,76 @@ class GreaterThanOrEqual(Expression):
         return f"{self.left.__vw_render__(nested)} >= {self.right.__vw_render__(nested)}"
 
 
+# -----------------------------------------------------------------------------
+# Mathematical operators
+# -----------------------------------------------------------------------------
+
+
+@dataclass(kw_only=True, frozen=True)
+class Add(Expression):
+    """Represents addition (+) between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the addition."""
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} + {self.right.__vw_render__(nested)}"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Subtract(Expression):
+    """Represents subtraction (-) between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the subtraction."""
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} - {self.right.__vw_render__(nested)}"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Multiply(Expression):
+    """Represents multiplication (*) between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the multiplication."""
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} * {self.right.__vw_render__(nested)}"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Divide(Expression):
+    """Represents division (/) between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the division."""
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} / {self.right.__vw_render__(nested)}"
+
+
+@dataclass(kw_only=True, frozen=True)
+class Modulo(Expression):
+    """Represents modulo (%) between two expressions."""
+
+    left: Expression
+    right: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the modulo."""
+        nested = context.recurse()
+        return f"{self.left.__vw_render__(nested)} % {self.right.__vw_render__(nested)}"
+
+
 @dataclass(kw_only=True, frozen=True)
 class IsNull(Expression):
     """Represents an IS NULL check."""

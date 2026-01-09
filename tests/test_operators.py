@@ -3,7 +3,9 @@
 import vw
 from vw.column import col
 from vw.operators import (
+    Add,
     And,
+    Divide,
     Equals,
     GreaterThan,
     GreaterThanOrEqual,
@@ -11,9 +13,12 @@ from vw.operators import (
     IsNull,
     LessThan,
     LessThanOrEqual,
+    Modulo,
+    Multiply,
     Not,
     NotEquals,
     Or,
+    Subtract,
 )
 
 
@@ -194,3 +199,102 @@ def describe_chained_expressions() -> None:
             ),
         )
         assert expr.__vw_render__(render_context) == "(a = b) AND ((c < d) OR (e >= f))"
+
+
+# -----------------------------------------------------------------------------
+# Mathematical operators
+# -----------------------------------------------------------------------------
+
+
+def describe_add() -> None:
+    """Tests for Add class."""
+
+    def it_renders_addition(render_context: vw.RenderContext) -> None:
+        """Should render addition with + operator."""
+        add = Add(left=col("a"), right=col("b"))
+        assert add.__vw_render__(render_context) == "a + b"
+
+    def it_creates_via_dunder_method(render_context: vw.RenderContext) -> None:
+        """Should create Add via + operator."""
+        result = col("price") + col("tax")
+        assert isinstance(result, Add)
+        assert result.__vw_render__(render_context) == "price + tax"
+
+
+def describe_subtract() -> None:
+    """Tests for Subtract class."""
+
+    def it_renders_subtraction(render_context: vw.RenderContext) -> None:
+        """Should render subtraction with - operator."""
+        subtract = Subtract(left=col("a"), right=col("b"))
+        assert subtract.__vw_render__(render_context) == "a - b"
+
+    def it_creates_via_dunder_method(render_context: vw.RenderContext) -> None:
+        """Should create Subtract via - operator."""
+        result = col("total") - col("discount")
+        assert isinstance(result, Subtract)
+        assert result.__vw_render__(render_context) == "total - discount"
+
+
+def describe_multiply() -> None:
+    """Tests for Multiply class."""
+
+    def it_renders_multiplication(render_context: vw.RenderContext) -> None:
+        """Should render multiplication with * operator."""
+        multiply = Multiply(left=col("a"), right=col("b"))
+        assert multiply.__vw_render__(render_context) == "a * b"
+
+    def it_creates_via_dunder_method(render_context: vw.RenderContext) -> None:
+        """Should create Multiply via * operator."""
+        result = col("price") * col("quantity")
+        assert isinstance(result, Multiply)
+        assert result.__vw_render__(render_context) == "price * quantity"
+
+
+def describe_divide() -> None:
+    """Tests for Divide class."""
+
+    def it_renders_division(render_context: vw.RenderContext) -> None:
+        """Should render division with / operator."""
+        divide = Divide(left=col("a"), right=col("b"))
+        assert divide.__vw_render__(render_context) == "a / b"
+
+    def it_creates_via_dunder_method(render_context: vw.RenderContext) -> None:
+        """Should create Divide via / operator."""
+        result = col("total") / col("count")
+        assert isinstance(result, Divide)
+        assert result.__vw_render__(render_context) == "total / count"
+
+
+def describe_modulo() -> None:
+    """Tests for Modulo class."""
+
+    def it_renders_modulo(render_context: vw.RenderContext) -> None:
+        """Should render modulo with % operator."""
+        modulo = Modulo(left=col("a"), right=col("b"))
+        assert modulo.__vw_render__(render_context) == "a % b"
+
+    def it_creates_via_dunder_method(render_context: vw.RenderContext) -> None:
+        """Should create Modulo via % operator."""
+        result = col("value") % col("divisor")
+        assert isinstance(result, Modulo)
+        assert result.__vw_render__(render_context) == "value % divisor"
+
+
+def describe_math_with_other_operators() -> None:
+    """Tests for mathematical operators combined with other operators."""
+
+    def it_combines_math_with_comparison(render_context: vw.RenderContext) -> None:
+        """Should combine math with comparison operators."""
+        expr = (col("price") * col("quantity")) > col("threshold")
+        assert expr.__vw_render__(render_context) == "price * quantity > threshold"
+
+    def it_chains_multiple_math_operators(render_context: vw.RenderContext) -> None:
+        """Should chain multiple math operators."""
+        expr = col("a") + col("b") - col("c")
+        assert expr.__vw_render__(render_context) == "a + b - c"
+
+    def it_combines_with_alias(render_context: vw.RenderContext) -> None:
+        """Should work with alias."""
+        expr = (col("price") * col("quantity")).alias("total")
+        assert expr.__vw_render__(render_context) == "price * quantity AS total"

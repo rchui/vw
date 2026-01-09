@@ -315,7 +315,7 @@ class Statement(RowSet, Expression):
         """
         return SetOperation(left=self, operator="UNION", right=other)
 
-    def __add__(self, other: Combinable) -> SetOperation:
+    def __add__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
         """Combine with another query using UNION ALL (keeps duplicates).
 
         Args:
@@ -343,7 +343,7 @@ class Statement(RowSet, Expression):
         """
         return SetOperation(left=self, operator="INTERSECT", right=other)
 
-    def __sub__(self, other: Combinable) -> SetOperation:
+    def __sub__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
         """Combine with another query using EXCEPT.
 
         Args:
@@ -424,7 +424,7 @@ class SetOperation(RowSet, Expression):
         """Combine with another query using UNION."""
         return SetOperation(left=self, operator="UNION", right=other)
 
-    def __add__(self, other: Combinable) -> SetOperation:
+    def __add__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
         """Combine with another query using UNION ALL."""
         return SetOperation(left=self, operator="UNION ALL", right=other)
 
@@ -432,6 +432,6 @@ class SetOperation(RowSet, Expression):
         """Combine with another query using INTERSECT."""
         return SetOperation(left=self, operator="INTERSECT", right=other)
 
-    def __sub__(self, other: Combinable) -> SetOperation:
+    def __sub__(self, other: Combinable) -> SetOperation:  # type: ignore[override]
         """Combine with another query using EXCEPT."""
         return SetOperation(left=self, operator="EXCEPT", right=other)
