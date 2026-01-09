@@ -11,20 +11,35 @@ All public exports from `vw/__init__.py`:
 - `exists(subquery)` - Create an EXISTS expression for a subquery
 - `when(condition)` - Start a CASE expression (returns `When` object)
 
-### Functions Module (`vw.functions`)
-- `row_number()` - ROW_NUMBER() window function
-- `rank()` - RANK() window function
-- `dense_rank()` - DENSE_RANK() window function
-- `ntile(n)` - NTILE(n) window function
-- `sum_(expr)` - SUM() aggregate/window function
-- `count(expr=None)` - COUNT() aggregate/window function (None for COUNT(*))
-- `avg(expr)` - AVG() aggregate/window function
-- `min_(expr)` - MIN() aggregate/window function
-- `max_(expr)` - MAX() aggregate/window function
-- `lag(expr, offset=1, default=None)` - LAG() window function
-- `lead(expr, offset=1, default=None)` - LEAD() window function
-- `first_value(expr)` - FIRST_VALUE() window function
-- `last_value(expr)` - LAST_VALUE() window function
+### Functions Namespace (`F` from `vw.functions` or `vw.F`)
+All SQL functions are accessed via the `F` class:
+
+**Window-only functions:**
+- `F.row_number()` - ROW_NUMBER() window function
+- `F.rank()` - RANK() window function
+- `F.dense_rank()` - DENSE_RANK() window function
+- `F.ntile(n)` - NTILE(n) window function
+
+**Aggregate/window functions:**
+- `F.sum(expr)` - SUM() aggregate/window function
+- `F.count(expr=None)` - COUNT() aggregate/window function (None for COUNT(*))
+- `F.avg(expr)` - AVG() aggregate/window function
+- `F.min(expr)` - MIN() aggregate/window function
+- `F.max(expr)` - MAX() aggregate/window function
+
+**Offset functions:**
+- `F.lag(expr, offset=1, default=None)` - LAG() window function
+- `F.lead(expr, offset=1, default=None)` - LEAD() window function
+- `F.first_value(expr)` - FIRST_VALUE() window function
+- `F.last_value(expr)` - LAST_VALUE() window function
+
+**Null handling functions:**
+- `F.coalesce(*exprs)` - COALESCE() - first non-NULL value
+- `F.nullif(expr1, expr2)` - NULLIF() - NULL if expr1 equals expr2
+
+**Comparison functions:**
+- `F.greatest(*exprs)` - GREATEST() - largest value
+- `F.least(*exprs)` - LEAST() - smallest value
 
 ### Classes
 - `Column` - Column reference class
@@ -591,17 +606,17 @@ result = (
 
 ### Window Functions
 
-Use `vw.functions` for window functions and aggregates:
+Use the `F` namespace for window functions and aggregates:
 
 ```python
-from vw.functions import row_number, sum_, count, avg, lag, lead, rank
+from vw.functions import F
 
 # ROW_NUMBER with ORDER BY
 result = (
     vw.Source(name="orders")
     .select(
         vw.col("id"),
-        row_number().over(order_by=[vw.col("created_at").desc()]).alias("row_num")
+        F.row_number().over(order_by=[vw.col("created_at").desc()]).alias("row_num")
     )
     .render()
 )
@@ -612,7 +627,7 @@ result = (
     vw.Source(name="orders")
     .select(
         vw.col("id"),
-        sum_(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("customer_total")
+        F.sum(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("customer_total")
     )
     .render()
 )
@@ -623,7 +638,7 @@ result = (
     vw.Source(name="orders")
     .select(
         vw.col("id"),
-        row_number().over(
+        F.row_number().over(
             partition_by=[vw.col("customer_id")],
             order_by=[vw.col("order_date").asc()]
         ).alias("order_num")
@@ -638,7 +653,7 @@ result = (
     .select(
         vw.col("date"),
         vw.col("price"),
-        lag(vw.col("price")).over(order_by=[vw.col("date").asc()]).alias("prev_price")
+        F.lag(vw.col("price")).over(order_by=[vw.col("date").asc()]).alias("prev_price")
     )
     .render()
 )
@@ -647,7 +662,7 @@ result = (
 # Aggregate functions without OVER (regular aggregates)
 result = (
     vw.Source(name="orders")
-    .select(count(), sum_(vw.col("amount")).alias("total"))
+    .select(F.count(), F.sum(vw.col("amount")).alias("total"))
     .render()
 )
 # SELECT COUNT(*), SUM(amount) AS total FROM orders
@@ -657,7 +672,7 @@ result = (
     vw.Source(name="orders")
     .select(
         vw.col("id"),
-        sum_(vw.col("amount")).over().alias("grand_total")
+        F.sum(vw.col("amount")).over().alias("grand_total")
     )
     .render()
 )

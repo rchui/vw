@@ -1,23 +1,23 @@
 """SQL functions including window functions.
 
-This module provides SQL functions that can be used in SELECT clauses.
+This module provides SQL functions via the F namespace.
 All functions have an .over() method that adds the OVER clause to create
 a window function.
 
 Example:
     >>> from vw import col, Source
-    >>> from vw.functions import row_number, sum_
+    >>> from vw.functions import F
     >>>
     >>> # Window function with row_number
     >>> stmt = Source(name="orders").select(
     ...     col("id"),
-    ...     row_number().over(order_by=[col("created_at").desc()])
+    ...     F.row_number().over(order_by=[col("created_at").desc()])
     ... )
     >>>
     >>> # Aggregate as window function
     >>> stmt = Source(name="orders").select(
     ...     col("id"),
-    ...     sum_(col("amount")).over(partition_by=[col("customer_id")])
+    ...     F.sum(col("amount")).over(partition_by=[col("customer_id")])
     ... )
 """
 
@@ -91,8 +91,8 @@ class Function(Expression):
             A WindowFunction with the specified window specification.
 
         Example:
-            >>> row_number().over(order_by=[col("id").asc()])
-            >>> sum_(col("amount")).over(partition_by=[col("customer_id")])
+            >>> F.row_number().over(order_by=[col("id").asc()])
+            >>> F.sum(col("amount")).over(partition_by=[col("customer_id")])
         """
         return WindowFunction(
             function=self,
@@ -112,314 +112,299 @@ class Function(Expression):
         return self._render_call(context)
 
 
-# -----------------------------------------------------------------------------
-# Window-only functions (these only make sense with OVER clause)
-# -----------------------------------------------------------------------------
+class F:
+    """SQL functions namespace.
 
-
-def row_number() -> Function:
-    """Create a ROW_NUMBER() function.
-
-    Returns sequential row numbers within a partition.
+    Provides access to SQL functions via static methods.
 
     Example:
-        >>> row_number().over(order_by=[col("created_at").desc()])
+        >>> from vw.functions import F
+        >>> F.sum(col("amount"))
+        >>> F.count()
+        >>> F.row_number().over(order_by=[col("id").asc()])
     """
-    return Function(name="ROW_NUMBER")
 
+    # -------------------------------------------------------------------------
+    # Window-only functions (these only make sense with OVER clause)
+    # -------------------------------------------------------------------------
 
-def rank() -> Function:
-    """Create a RANK() function.
+    @staticmethod
+    def row_number() -> Function:
+        """Create a ROW_NUMBER() function.
 
-    Returns the rank within a partition, with gaps for ties.
+        Returns sequential row numbers within a partition.
 
-    Example:
-        >>> rank().over(partition_by=[col("dept")], order_by=[col("salary").desc()])
-    """
-    return Function(name="RANK")
+        Example:
+            >>> F.row_number().over(order_by=[col("created_at").desc()])
+        """
+        return Function(name="ROW_NUMBER")
 
+    @staticmethod
+    def rank() -> Function:
+        """Create a RANK() function.
 
-def dense_rank() -> Function:
-    """Create a DENSE_RANK() function.
+        Returns the rank within a partition, with gaps for ties.
 
-    Returns the rank within a partition, without gaps for ties.
+        Example:
+            >>> F.rank().over(partition_by=[col("dept")], order_by=[col("salary").desc()])
+        """
+        return Function(name="RANK")
 
-    Example:
-        >>> dense_rank().over(partition_by=[col("dept")], order_by=[col("salary").desc()])
-    """
-    return Function(name="DENSE_RANK")
+    @staticmethod
+    def dense_rank() -> Function:
+        """Create a DENSE_RANK() function.
 
+        Returns the rank within a partition, without gaps for ties.
 
-def ntile(n: int) -> Function:
-    """Create an NTILE(n) function.
+        Example:
+            >>> F.dense_rank().over(partition_by=[col("dept")], order_by=[col("salary").desc()])
+        """
+        return Function(name="DENSE_RANK")
 
-    Divides rows into n roughly equal groups.
+    @staticmethod
+    def ntile(n: int) -> Function:
+        """Create an NTILE(n) function.
 
-    Args:
-        n: Number of groups to divide into.
+        Divides rows into n roughly equal groups.
 
-    Example:
-        >>> ntile(4).over(order_by=[col("score").desc()])  # Quartiles
-    """
-    from vw.column import col
+        Args:
+            n: Number of groups to divide into.
 
-    return Function(name="NTILE", args=[col(str(n))])
-
-
-# -----------------------------------------------------------------------------
-# Aggregate functions (can be used as aggregates or window functions)
-# -----------------------------------------------------------------------------
-
-
-def sum_(expr: Expression) -> Function:
-    """Create a SUM() aggregate function.
-
-    Note: Named sum_ to avoid shadowing Python's built-in sum.
-
-    Args:
-        expr: Expression to sum.
-
-    Example:
-        >>> sum_(col("amount"))  # As aggregate
-        >>> sum_(col("amount")).over(partition_by=[col("customer_id")])  # As window
-    """
-    return Function(name="SUM", args=[expr])
-
-
-def count(expr: Expression | None = None) -> Function:
-    """Create a COUNT() aggregate function.
-
-    Args:
-        expr: Expression to count, or None for COUNT(*).
-
-    Example:
-        >>> count()  # COUNT(*)
-        >>> count(col("id"))  # COUNT(id)
-        >>> count(col("id")).over(partition_by=[col("dept")])  # As window
-    """
-    if expr is None:
+        Example:
+            >>> F.ntile(4).over(order_by=[col("score").desc()])  # Quartiles
+        """
         from vw.column import col
 
-        return Function(name="COUNT", args=[col("*")])
-    return Function(name="COUNT", args=[expr])
+        return Function(name="NTILE", args=[col(str(n))])
 
+    # -------------------------------------------------------------------------
+    # Aggregate functions (can be used as aggregates or window functions)
+    # -------------------------------------------------------------------------
 
-def avg(expr: Expression) -> Function:
-    """Create an AVG() aggregate function.
+    @staticmethod
+    def sum(expr: Expression) -> Function:
+        """Create a SUM() aggregate function.
 
-    Args:
-        expr: Expression to average.
+        Args:
+            expr: Expression to sum.
 
-    Example:
-        >>> avg(col("price"))  # As aggregate
-        >>> avg(col("price")).over(partition_by=[col("category")])  # As window
-    """
-    return Function(name="AVG", args=[expr])
+        Example:
+            >>> F.sum(col("amount"))  # As aggregate
+            >>> F.sum(col("amount")).over(partition_by=[col("customer_id")])  # As window
+        """
+        return Function(name="SUM", args=[expr])
 
+    @staticmethod
+    def count(expr: Expression | None = None) -> Function:
+        """Create a COUNT() aggregate function.
 
-def min_(expr: Expression) -> Function:
-    """Create a MIN() aggregate function.
+        Args:
+            expr: Expression to count, or None for COUNT(*).
 
-    Note: Named min_ to avoid shadowing Python's built-in min.
+        Example:
+            >>> F.count()  # COUNT(*)
+            >>> F.count(col("id"))  # COUNT(id)
+            >>> F.count(col("id")).over(partition_by=[col("dept")])  # As window
+        """
+        if expr is None:
+            from vw.column import col
 
-    Args:
-        expr: Expression to find minimum of.
+            return Function(name="COUNT", args=[col("*")])
+        return Function(name="COUNT", args=[expr])
 
-    Example:
-        >>> min_(col("price"))  # As aggregate
-        >>> min_(col("price")).over(partition_by=[col("category")])  # As window
-    """
-    return Function(name="MIN", args=[expr])
+    @staticmethod
+    def avg(expr: Expression) -> Function:
+        """Create an AVG() aggregate function.
 
+        Args:
+            expr: Expression to average.
 
-def max_(expr: Expression) -> Function:
-    """Create a MAX() aggregate function.
+        Example:
+            >>> F.avg(col("price"))  # As aggregate
+            >>> F.avg(col("price")).over(partition_by=[col("category")])  # As window
+        """
+        return Function(name="AVG", args=[expr])
 
-    Note: Named max_ to avoid shadowing Python's built-in max.
+    @staticmethod
+    def min(expr: Expression) -> Function:
+        """Create a MIN() aggregate function.
 
-    Args:
-        expr: Expression to find maximum of.
+        Args:
+            expr: Expression to find minimum of.
 
-    Example:
-        >>> max_(col("price"))  # As aggregate
-        >>> max_(col("price")).over(partition_by=[col("category")])  # As window
-    """
-    return Function(name="MAX", args=[expr])
+        Example:
+            >>> F.min(col("price"))  # As aggregate
+            >>> F.min(col("price")).over(partition_by=[col("category")])  # As window
+        """
+        return Function(name="MIN", args=[expr])
 
+    @staticmethod
+    def max(expr: Expression) -> Function:
+        """Create a MAX() aggregate function.
 
-# -----------------------------------------------------------------------------
-# Offset functions (require ORDER BY in OVER clause)
-# -----------------------------------------------------------------------------
+        Args:
+            expr: Expression to find maximum of.
 
+        Example:
+            >>> F.max(col("price"))  # As aggregate
+            >>> F.max(col("price")).over(partition_by=[col("category")])  # As window
+        """
+        return Function(name="MAX", args=[expr])
 
-def lag(expr: Expression, offset: int = 1, default: Expression | None = None) -> Function:
-    """Create a LAG() function.
+    # -------------------------------------------------------------------------
+    # Offset functions (require ORDER BY in OVER clause)
+    # -------------------------------------------------------------------------
 
-    Access a row at a given offset before the current row.
+    @staticmethod
+    def lag(expr: Expression, offset: int = 1, default: Expression | None = None) -> Function:
+        """Create a LAG() function.
 
-    Args:
-        expr: Expression to retrieve.
-        offset: Number of rows back (default 1).
-        default: Default value if offset goes out of bounds.
+        Access a row at a given offset before the current row.
 
-    Example:
-        >>> lag(col("price")).over(order_by=[col("date").asc()])
-        >>> lag(col("price"), 2).over(order_by=[col("date").asc()])
-    """
-    from vw.column import col
+        Args:
+            expr: Expression to retrieve.
+            offset: Number of rows back (default 1).
+            default: Default value if offset goes out of bounds.
 
-    args: list[Expression] = [expr, col(str(offset))]
-    if default is not None:
-        args.append(default)
-    return Function(name="LAG", args=args)
+        Example:
+            >>> F.lag(col("price")).over(order_by=[col("date").asc()])
+            >>> F.lag(col("price"), 2).over(order_by=[col("date").asc()])
+        """
+        from vw.column import col
 
+        args: list[Expression] = [expr, col(str(offset))]
+        if default is not None:
+            args.append(default)
+        return Function(name="LAG", args=args)
 
-def lead(expr: Expression, offset: int = 1, default: Expression | None = None) -> Function:
-    """Create a LEAD() function.
+    @staticmethod
+    def lead(expr: Expression, offset: int = 1, default: Expression | None = None) -> Function:
+        """Create a LEAD() function.
 
-    Access a row at a given offset after the current row.
+        Access a row at a given offset after the current row.
 
-    Args:
-        expr: Expression to retrieve.
-        offset: Number of rows forward (default 1).
-        default: Default value if offset goes out of bounds.
+        Args:
+            expr: Expression to retrieve.
+            offset: Number of rows forward (default 1).
+            default: Default value if offset goes out of bounds.
 
-    Example:
-        >>> lead(col("price")).over(order_by=[col("date").asc()])
-        >>> lead(col("price"), 2).over(order_by=[col("date").asc()])
-    """
-    from vw.column import col
+        Example:
+            >>> F.lead(col("price")).over(order_by=[col("date").asc()])
+            >>> F.lead(col("price"), 2).over(order_by=[col("date").asc()])
+        """
+        from vw.column import col
 
-    args: list[Expression] = [expr, col(str(offset))]
-    if default is not None:
-        args.append(default)
-    return Function(name="LEAD", args=args)
+        args: list[Expression] = [expr, col(str(offset))]
+        if default is not None:
+            args.append(default)
+        return Function(name="LEAD", args=args)
 
+    @staticmethod
+    def first_value(expr: Expression) -> Function:
+        """Create a FIRST_VALUE() function.
 
-def first_value(expr: Expression) -> Function:
-    """Create a FIRST_VALUE() function.
+        Returns the first value in the window frame.
 
-    Returns the first value in the window frame.
+        Args:
+            expr: Expression to retrieve.
 
-    Args:
-        expr: Expression to retrieve.
+        Example:
+            >>> F.first_value(col("price")).over(
+            ...     partition_by=[col("category")],
+            ...     order_by=[col("date").asc()]
+            ... )
+        """
+        return Function(name="FIRST_VALUE", args=[expr])
 
-    Example:
-        >>> first_value(col("price")).over(
-        ...     partition_by=[col("category")],
-        ...     order_by=[col("date").asc()]
-        ... )
-    """
-    return Function(name="FIRST_VALUE", args=[expr])
+    @staticmethod
+    def last_value(expr: Expression) -> Function:
+        """Create a LAST_VALUE() function.
 
+        Returns the last value in the window frame.
 
-def last_value(expr: Expression) -> Function:
-    """Create a LAST_VALUE() function.
+        Args:
+            expr: Expression to retrieve.
 
-    Returns the last value in the window frame.
+        Example:
+            >>> F.last_value(col("price")).over(
+            ...     partition_by=[col("category")],
+            ...     order_by=[col("date").asc()]
+            ... )
+        """
+        return Function(name="LAST_VALUE", args=[expr])
 
-    Args:
-        expr: Expression to retrieve.
+    # -------------------------------------------------------------------------
+    # Null handling functions
+    # -------------------------------------------------------------------------
 
-    Example:
-        >>> last_value(col("price")).over(
-        ...     partition_by=[col("category")],
-        ...     order_by=[col("date").asc()]
-        ... )
-    """
-    return Function(name="LAST_VALUE", args=[expr])
+    @staticmethod
+    def coalesce(*exprs: Expression) -> Function:
+        """Create a COALESCE() function.
 
+        Returns the first non-NULL expression from the arguments.
 
-# -----------------------------------------------------------------------------
-# Null handling functions
-# -----------------------------------------------------------------------------
+        Args:
+            *exprs: Expressions to evaluate in order.
 
+        Example:
+            >>> F.coalesce(col("nickname"), col("name"))
+            >>> F.coalesce(col("preferred_email"), col("work_email"), col("personal_email"))
+        """
+        return Function(name="COALESCE", args=list(exprs))
 
-def coalesce(*exprs: Expression) -> Function:
-    """Create a COALESCE() function.
+    @staticmethod
+    def nullif(expr1: Expression, expr2: Expression) -> Function:
+        """Create a NULLIF() function.
 
-    Returns the first non-NULL expression from the arguments.
+        Returns NULL if expr1 equals expr2, otherwise returns expr1.
 
-    Args:
-        *exprs: Expressions to evaluate in order.
+        Args:
+            expr1: The expression to return if not equal to expr2.
+            expr2: The expression to compare against.
 
-    Example:
-        >>> coalesce(col("nickname"), col("name"))
-        >>> coalesce(col("preferred_email"), col("work_email"), col("personal_email"))
-    """
-    return Function(name="COALESCE", args=list(exprs))
+        Example:
+            >>> F.nullif(col("value"), param("empty", ""))
+            >>> F.nullif(col("divisor"), col("0"))
+        """
+        return Function(name="NULLIF", args=[expr1, expr2])
 
+    # -------------------------------------------------------------------------
+    # Comparison functions
+    # -------------------------------------------------------------------------
 
-def nullif(expr1: Expression, expr2: Expression) -> Function:
-    """Create a NULLIF() function.
+    @staticmethod
+    def greatest(*exprs: Expression) -> Function:
+        """Create a GREATEST() function.
 
-    Returns NULL if expr1 equals expr2, otherwise returns expr1.
+        Returns the largest value from the arguments.
 
-    Args:
-        expr1: The expression to return if not equal to expr2.
-        expr2: The expression to compare against.
+        Args:
+            *exprs: Expressions to compare.
 
-    Example:
-        >>> nullif(col("value"), param("empty", ""))  # Returns NULL if value is empty string
-        >>> nullif(col("divisor"), col("0"))  # Returns NULL if divisor is 0 (avoids division by zero)
-    """
-    return Function(name="NULLIF", args=[expr1, expr2])
+        Example:
+            >>> F.greatest(col("price"), col("min_price"))
+            >>> F.greatest(col("a"), col("b"), col("c"))
+        """
+        return Function(name="GREATEST", args=list(exprs))
 
+    @staticmethod
+    def least(*exprs: Expression) -> Function:
+        """Create a LEAST() function.
 
-def greatest(*exprs: Expression) -> Function:
-    """Create a GREATEST() function.
+        Returns the smallest value from the arguments.
 
-    Returns the largest value from the arguments.
+        Args:
+            *exprs: Expressions to compare.
 
-    Args:
-        *exprs: Expressions to compare.
-
-    Example:
-        >>> greatest(col("price"), col("min_price"))
-        >>> greatest(col("a"), col("b"), col("c"))
-    """
-    return Function(name="GREATEST", args=list(exprs))
-
-
-def least(*exprs: Expression) -> Function:
-    """Create a LEAST() function.
-
-    Returns the smallest value from the arguments.
-
-    Args:
-        *exprs: Expressions to compare.
-
-    Example:
-        >>> least(col("price"), col("max_price"))
-        >>> least(col("a"), col("b"), col("c"))
-    """
-    return Function(name="LEAST", args=list(exprs))
+        Example:
+            >>> F.least(col("price"), col("max_price"))
+            >>> F.least(col("a"), col("b"), col("c"))
+        """
+        return Function(name="LEAST", args=list(exprs))
 
 
 __all__ = [
-    # Classes
+    "F",
     "Function",
     "WindowFunction",
-    # Window-only functions
-    "row_number",
-    "rank",
-    "dense_rank",
-    "ntile",
-    # Aggregate/window functions
-    "sum_",
-    "count",
-    "avg",
-    "min_",
-    "max_",
-    # Offset functions
-    "lag",
-    "lead",
-    "first_value",
-    "last_value",
-    # Null handling functions
-    "coalesce",
-    "nullif",
-    # Comparison functions
-    "greatest",
-    "least",
 ]

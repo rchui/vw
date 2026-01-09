@@ -46,17 +46,17 @@
 - [x] Logical operators: NOT
 
 ## Functions
-- [x] Aggregate functions: COUNT, SUM, AVG, MIN, MAX (via `vw.functions`)
-- [x] Window functions (via `vw.functions` with `.over()`)
+- [x] Aggregate functions: COUNT, SUM, AVG, MIN, MAX (via `F.count`, `F.sum`, `F.avg`, `F.min`, `F.max`)
+- [x] Window functions (via `F` namespace with `.over()`)
 - [ ] Window function frame clauses (ROWS/RANGE BETWEEN)
 - [ ] String operations
 - [ ] Date/time operations
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
 - [ ] SQL type constructors (e.g., `vw.types.varchar(255)`, `vw.types.decimal(10, 2)`) to prevent typos
 - [x] NULL handling: `.is_null()` and `.is_not_null()` methods
-- [x] COALESCE function (via `vw.functions.coalesce`)
-- [x] NULLIF function (via `vw.functions.nullif`)
-- [x] GREATEST / LEAST functions (via `vw.functions.greatest`, `vw.functions.least`)
+- [x] COALESCE function (via `F.coalesce`)
+- [x] NULLIF function (via `F.nullif`)
+- [x] GREATEST / LEAST functions (via `F.greatest`, `F.least`)
 - [x] CASE expressions (via `vw.when().then().otherwise()`)
 
 ## Advanced Query Features

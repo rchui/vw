@@ -2,25 +2,7 @@
 
 import vw
 from tests.utils import sql
-from vw.functions import (
-    avg,
-    coalesce,
-    count,
-    dense_rank,
-    first_value,
-    greatest,
-    lag,
-    last_value,
-    lead,
-    least,
-    max_,
-    min_,
-    ntile,
-    nullif,
-    rank,
-    row_number,
-    sum_,
-)
+from vw.functions import F
 
 
 def describe_window_only_functions():
@@ -32,7 +14,7 @@ def describe_window_only_functions():
         """
         stmt = vw.Source(name="users").select(
             vw.col("id"),
-            row_number().over(order_by=[vw.col("created_at").desc()]),
+            F.row_number().over(order_by=[vw.col("created_at").desc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -43,7 +25,7 @@ def describe_window_only_functions():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            row_number().over(
+            F.row_number().over(
                 partition_by=[vw.col("customer_id")],
                 order_by=[vw.col("order_date").asc()],
             ),
@@ -57,7 +39,7 @@ def describe_window_only_functions():
         """
         stmt = vw.Source(name="employees").select(
             vw.col("name"),
-            rank().over(
+            F.rank().over(
                 partition_by=[vw.col("department")],
                 order_by=[vw.col("salary").desc()],
             ),
@@ -71,7 +53,7 @@ def describe_window_only_functions():
         """
         stmt = vw.Source(name="employees").select(
             vw.col("name"),
-            dense_rank().over(order_by=[vw.col("salary").desc()]),
+            F.dense_rank().over(order_by=[vw.col("salary").desc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -82,7 +64,7 @@ def describe_window_only_functions():
         """
         stmt = vw.Source(name="scores").select(
             vw.col("student_id"),
-            ntile(4).over(order_by=[vw.col("score").desc()]),
+            F.ntile(4).over(order_by=[vw.col("score").desc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -97,7 +79,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            sum_(vw.col("amount")).over(partition_by=[vw.col("customer_id")]),
+            F.sum(vw.col("amount")).over(partition_by=[vw.col("customer_id")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -108,7 +90,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            count().over(partition_by=[vw.col("customer_id")]),
+            F.count().over(partition_by=[vw.col("customer_id")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -119,7 +101,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            count(vw.col("discount")).over(partition_by=[vw.col("customer_id")]),
+            F.count(vw.col("discount")).over(partition_by=[vw.col("customer_id")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -130,7 +112,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="products").select(
             vw.col("id"),
-            avg(vw.col("price")).over(partition_by=[vw.col("category")]),
+            F.avg(vw.col("price")).over(partition_by=[vw.col("category")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -141,7 +123,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="products").select(
             vw.col("id"),
-            min_(vw.col("price")).over(partition_by=[vw.col("category")]),
+            F.min(vw.col("price")).over(partition_by=[vw.col("category")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -152,7 +134,7 @@ def describe_aggregate_functions_as_window():
         """
         stmt = vw.Source(name="products").select(
             vw.col("id"),
-            max_(vw.col("price")).over(partition_by=[vw.col("category")]),
+            F.max(vw.col("price")).over(partition_by=[vw.col("category")]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -163,37 +145,37 @@ def describe_aggregate_functions_without_window():
 
     def it_generates_sum_as_aggregate(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT SUM(amount) FROM orders"
-        stmt = vw.Source(name="orders").select(sum_(vw.col("amount")))
+        stmt = vw.Source(name="orders").select(F.sum(vw.col("amount")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_count_star(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COUNT(*) FROM users"
-        stmt = vw.Source(name="users").select(count())
+        stmt = vw.Source(name="users").select(F.count())
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_count_column(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COUNT(email) FROM users"
-        stmt = vw.Source(name="users").select(count(vw.col("email")))
+        stmt = vw.Source(name="users").select(F.count(vw.col("email")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_avg_as_aggregate(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT AVG(price) FROM products"
-        stmt = vw.Source(name="products").select(avg(vw.col("price")))
+        stmt = vw.Source(name="products").select(F.avg(vw.col("price")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_min_as_aggregate(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT MIN(price) FROM products"
-        stmt = vw.Source(name="products").select(min_(vw.col("price")))
+        stmt = vw.Source(name="products").select(F.min(vw.col("price")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_max_as_aggregate(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT MAX(price) FROM products"
-        stmt = vw.Source(name="products").select(max_(vw.col("price")))
+        stmt = vw.Source(name="products").select(F.max(vw.col("price")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -207,7 +189,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            lag(vw.col("price")).over(order_by=[vw.col("date").asc()]),
+            F.lag(vw.col("price")).over(order_by=[vw.col("date").asc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -218,7 +200,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            lag(vw.col("price"), 3).over(order_by=[vw.col("date").asc()]),
+            F.lag(vw.col("price"), 3).over(order_by=[vw.col("date").asc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -229,7 +211,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            lag(vw.col("price"), 1, vw.col("0")).over(order_by=[vw.col("date").asc()]),
+            F.lag(vw.col("price"), 1, vw.col("0")).over(order_by=[vw.col("date").asc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -240,7 +222,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            lead(vw.col("price")).over(order_by=[vw.col("date").asc()]),
+            F.lead(vw.col("price")).over(order_by=[vw.col("date").asc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -251,7 +233,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            lead(vw.col("price"), 2).over(order_by=[vw.col("date").asc()]),
+            F.lead(vw.col("price"), 2).over(order_by=[vw.col("date").asc()]),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -262,7 +244,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            first_value(vw.col("price")).over(
+            F.first_value(vw.col("price")).over(
                 partition_by=[vw.col("product_id")],
                 order_by=[vw.col("date").asc()],
             ),
@@ -276,7 +258,7 @@ def describe_offset_functions():
         """
         stmt = vw.Source(name="prices").select(
             vw.col("date"),
-            last_value(vw.col("price")).over(
+            F.last_value(vw.col("price")).over(
                 partition_by=[vw.col("product_id")],
                 order_by=[vw.col("date").asc()],
             ),
@@ -294,7 +276,7 @@ def describe_window_function_aliasing():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            row_number().over(order_by=[vw.col("id").asc()]).alias("row_num"),
+            F.row_number().over(order_by=[vw.col("id").asc()]).alias("row_num"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -302,7 +284,7 @@ def describe_window_function_aliasing():
     def it_aliases_aggregate_function(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT SUM(amount) AS total FROM orders"
         stmt = vw.Source(name="orders").select(
-            sum_(vw.col("amount")).alias("total"),
+            F.sum(vw.col("amount")).alias("total"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -313,7 +295,7 @@ def describe_window_function_aliasing():
         """
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            sum_(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("running_total"),
+            F.sum(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("running_total"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -326,7 +308,7 @@ def describe_empty_over_clause():
         expected_sql = "SELECT id, ROW_NUMBER() OVER () FROM users"
         stmt = vw.Source(name="users").select(
             vw.col("id"),
-            row_number().over(),
+            F.row_number().over(),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -335,7 +317,7 @@ def describe_empty_over_clause():
         expected_sql = "SELECT id, SUM(amount) OVER () FROM orders"
         stmt = vw.Source(name="orders").select(
             vw.col("id"),
-            sum_(vw.col("amount")).over(),
+            F.sum(vw.col("amount")).over(),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -354,9 +336,9 @@ def describe_multiple_window_functions():
         """
         stmt = vw.Source(name="sales").select(
             vw.col("id"),
-            row_number().over(order_by=[vw.col("amount").desc()]).alias("rank"),
-            sum_(vw.col("amount")).over(partition_by=[vw.col("region")]).alias("region_total"),
-            lag(vw.col("amount")).over(order_by=[vw.col("date").asc()]).alias("prev_amount"),
+            F.row_number().over(order_by=[vw.col("amount").desc()]).alias("rank"),
+            F.sum(vw.col("amount")).over(partition_by=[vw.col("region")]).alias("region_total"),
+            F.lag(vw.col("amount")).over(order_by=[vw.col("date").asc()]).alias("prev_amount"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -368,7 +350,7 @@ def describe_coalesce():
     def it_generates_coalesce_with_two_args(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COALESCE(nickname, name) FROM users"
         stmt = vw.Source(name="users").select(
-            coalesce(vw.col("nickname"), vw.col("name")),
+            F.coalesce(vw.col("nickname"), vw.col("name")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -376,7 +358,7 @@ def describe_coalesce():
     def it_generates_coalesce_with_multiple_args(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COALESCE(preferred_email, work_email, personal_email) FROM users"
         stmt = vw.Source(name="users").select(
-            coalesce(vw.col("preferred_email"), vw.col("work_email"), vw.col("personal_email")),
+            F.coalesce(vw.col("preferred_email"), vw.col("work_email"), vw.col("personal_email")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -384,7 +366,7 @@ def describe_coalesce():
     def it_generates_coalesce_with_alias(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COALESCE(nickname, name) AS display_name FROM users"
         stmt = vw.Source(name="users").select(
-            coalesce(vw.col("nickname"), vw.col("name")).alias("display_name"),
+            F.coalesce(vw.col("nickname"), vw.col("name")).alias("display_name"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -392,7 +374,7 @@ def describe_coalesce():
     def it_generates_coalesce_with_param_default(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT COALESCE(nickname, :default_name) FROM users"
         stmt = vw.Source(name="users").select(
-            coalesce(vw.col("nickname"), vw.param("default_name", "Unknown")),
+            F.coalesce(vw.col("nickname"), vw.param("default_name", "Unknown")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"default_name": "Unknown"})
@@ -404,7 +386,7 @@ def describe_nullif():
     def it_generates_nullif_with_two_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT NULLIF(value, default_value) FROM settings"
         stmt = vw.Source(name="settings").select(
-            nullif(vw.col("value"), vw.col("default_value")),
+            F.nullif(vw.col("value"), vw.col("default_value")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -412,7 +394,7 @@ def describe_nullif():
     def it_generates_nullif_with_param(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT NULLIF(status, :empty) FROM users"
         stmt = vw.Source(name="users").select(
-            nullif(vw.col("status"), vw.param("empty", "")),
+            F.nullif(vw.col("status"), vw.param("empty", "")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"empty": ""})
@@ -420,7 +402,7 @@ def describe_nullif():
     def it_generates_nullif_with_alias(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT NULLIF(divisor, :zero) AS safe_divisor FROM calc"
         stmt = vw.Source(name="calc").select(
-            nullif(vw.col("divisor"), vw.param("zero", 0)).alias("safe_divisor"),
+            F.nullif(vw.col("divisor"), vw.param("zero", 0)).alias("safe_divisor"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"zero": 0})
@@ -432,7 +414,7 @@ def describe_greatest():
     def it_generates_greatest_with_two_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT GREATEST(price, min_price) FROM products"
         stmt = vw.Source(name="products").select(
-            greatest(vw.col("price"), vw.col("min_price")),
+            F.greatest(vw.col("price"), vw.col("min_price")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -440,7 +422,7 @@ def describe_greatest():
     def it_generates_greatest_with_multiple_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT GREATEST(a, b, c) FROM values"
         stmt = vw.Source(name="values").select(
-            greatest(vw.col("a"), vw.col("b"), vw.col("c")),
+            F.greatest(vw.col("a"), vw.col("b"), vw.col("c")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -448,7 +430,7 @@ def describe_greatest():
     def it_generates_greatest_with_param(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT GREATEST(price, :floor) FROM products"
         stmt = vw.Source(name="products").select(
-            greatest(vw.col("price"), vw.param("floor", 10)),
+            F.greatest(vw.col("price"), vw.param("floor", 10)),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"floor": 10})
@@ -456,7 +438,7 @@ def describe_greatest():
     def it_generates_greatest_with_alias(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT GREATEST(price, :floor) AS final_price FROM products"
         stmt = vw.Source(name="products").select(
-            greatest(vw.col("price"), vw.param("floor", 10)).alias("final_price"),
+            F.greatest(vw.col("price"), vw.param("floor", 10)).alias("final_price"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"floor": 10})
@@ -468,7 +450,7 @@ def describe_least():
     def it_generates_least_with_two_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT LEAST(price, max_price) FROM products"
         stmt = vw.Source(name="products").select(
-            least(vw.col("price"), vw.col("max_price")),
+            F.least(vw.col("price"), vw.col("max_price")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -476,7 +458,7 @@ def describe_least():
     def it_generates_least_with_multiple_columns(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT LEAST(a, b, c) FROM values"
         stmt = vw.Source(name="values").select(
-            least(vw.col("a"), vw.col("b"), vw.col("c")),
+            F.least(vw.col("a"), vw.col("b"), vw.col("c")),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -484,7 +466,7 @@ def describe_least():
     def it_generates_least_with_param(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT LEAST(price, :ceiling) FROM products"
         stmt = vw.Source(name="products").select(
-            least(vw.col("price"), vw.param("ceiling", 100)),
+            F.least(vw.col("price"), vw.param("ceiling", 100)),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
@@ -492,7 +474,7 @@ def describe_least():
     def it_generates_least_with_alias(render_config: vw.RenderConfig) -> None:
         expected_sql = "SELECT LEAST(price, :ceiling) AS capped_price FROM products"
         stmt = vw.Source(name="products").select(
-            least(vw.col("price"), vw.param("ceiling", 100)).alias("capped_price"),
+            F.least(vw.col("price"), vw.param("ceiling", 100)).alias("capped_price"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
