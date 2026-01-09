@@ -9,6 +9,7 @@ All public exports from `vw/__init__.py`:
 - `param(name, value)` - Create a parameterized value
 - `cte(name, query)` - Create a Common Table Expression
 - `exists(subquery)` - Create an EXISTS expression for a subquery
+- `when(condition)` - Start a CASE expression (returns `When` object)
 
 ### Functions Module (`vw.functions`)
 - `row_number()` - ROW_NUMBER() window function
@@ -41,6 +42,8 @@ All public exports from `vw/__init__.py`:
 - `SetOperation` - Combined queries via UNION/INTERSECT/EXCEPT (extends Expression and RowSet)
 - `Function` - SQL function (from `vw.functions`)
 - `WindowFunction` - Window function with OVER clause (from `vw.functions`)
+- `When` - Incomplete WHEN clause, call `.then()` to complete (from `vw.operators`)
+- `CaseExpression` - Complete CASE expression (from `vw.operators`)
 - `InnerJoin` - Inner join operation
 - `RenderResult` - Rendering result with SQL and params
 - `RenderConfig` - Rendering configuration
@@ -77,6 +80,7 @@ For comprehensive examples, see the integration tests in `tests/integration/`:
 - `test_ctes.py` - Common Table Expressions
 - `test_set_operations.py` - UNION, INTERSECT, EXCEPT
 - `test_window_functions.py` - Window functions and aggregates
+- `test_case_expressions.py` - CASE/WHEN expressions
 
 ### Basic SELECT
 
@@ -537,6 +541,52 @@ result = (query1 | query2 | query3).render()
 combined = (query1 | query2).alias("all_ids")
 result = combined.select(vw.col("*")).render()
 # SELECT * FROM ((SELECT id FROM users) UNION (SELECT id FROM admins)) AS all_ids
+```
+
+### CASE Expressions
+
+Use `vw.when()` to build CASE expressions with polars-style chaining:
+
+```python
+# Simple CASE with ELSE
+result = vw.Source(name="users").select(
+    vw.when(vw.col("status") == vw.col("'active'"))
+    .then(vw.col("1"))
+    .otherwise(vw.col("0"))
+    .alias("is_active")
+).render()
+# SELECT CASE WHEN status = 'active' THEN 1 ELSE 0 END AS is_active FROM users
+
+# Multiple WHEN branches
+result = vw.Source(name="users").select(
+    vw.when(vw.col("age") >= vw.col("18"))
+    .then(vw.col("'adult'"))
+    .when(vw.col("age") >= vw.col("13"))
+    .then(vw.col("'teen'"))
+    .otherwise(vw.col("'child'"))
+    .alias("age_group")
+).render()
+# SELECT CASE WHEN age >= 18 THEN 'adult' WHEN age >= 13 THEN 'teen' ELSE 'child' END AS age_group FROM users
+
+# CASE without ELSE (returns NULL when no match)
+result = vw.Source(name="users").select(
+    vw.when(vw.col("status") == vw.col("'active'"))
+    .then(vw.col("1"))
+).render()
+# SELECT CASE WHEN status = 'active' THEN 1 END FROM users
+
+# CASE in WHERE clause
+result = (
+    vw.Source(name="orders")
+    .select(vw.col("*"))
+    .where(
+        vw.when(vw.col("priority") == vw.col("'high'"))
+        .then(vw.col("1"))
+        .otherwise(vw.col("0"))
+        == vw.col("1")
+    )
+).render()
+# SELECT * FROM orders WHERE (CASE WHEN priority = 'high' THEN 1 ELSE 0 END = 1)
 ```
 
 ### Window Functions

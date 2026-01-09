@@ -56,7 +56,7 @@
 - [ ] COALESCE function
 - [ ] NULLIF function
 - [ ] GREATEST / LEAST functions
-- [ ] CASE expressions
+- [x] CASE expressions (via `vw.when().then().otherwise()`)
 
 ## Advanced Query Features
 - [x] Subqueries in FROM/JOIN (via Statement as RowSet)

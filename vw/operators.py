@@ -254,3 +254,106 @@ def exists(subquery: Expression, /) -> Exists:
         ... )
     """
     return Exists(subquery=subquery)
+
+
+# -----------------------------------------------------------------------------
+# CASE/WHEN expressions
+# -----------------------------------------------------------------------------
+
+
+@dataclass(kw_only=True, frozen=True)
+class WhenThen:
+    """A single WHEN ... THEN ... branch."""
+
+    when: Expression
+    then: Expression
+
+
+@dataclass(kw_only=True, frozen=True, eq=False)
+class CaseExpression(Expression):
+    """A CASE expression with branches and optional ELSE.
+
+    Example SQL: CASE WHEN x = 1 THEN 'one' WHEN x = 2 THEN 'two' ELSE 'other' END
+    """
+
+    branches: list[WhenThen]
+    _otherwise: Expression | None = None
+
+    def when(self, condition: Expression, /) -> When:
+        """Add another WHEN branch to this CASE expression.
+
+        Args:
+            condition: The condition to check.
+
+        Returns:
+            A When object that must be completed with .then().
+        """
+        return When(condition=condition, branches=self.branches)
+
+    def otherwise(self, result: Expression, /) -> CaseExpression:
+        """Complete this CASE expression with an ELSE clause.
+
+        Args:
+            result: The result when no WHEN conditions match.
+
+        Returns:
+            A CaseExpression with the ELSE clause.
+        """
+        return CaseExpression(branches=self.branches, _otherwise=result)
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the CASE expression."""
+        parts = ["CASE"]
+        for branch in self.branches:
+            when_sql = branch.when.__vw_render__(context)
+            then_sql = branch.then.__vw_render__(context)
+            parts.append(f"WHEN {when_sql} THEN {then_sql}")
+        if self._otherwise is not None:
+            parts.append(f"ELSE {self._otherwise.__vw_render__(context)}")
+        parts.append("END")
+        return " ".join(parts)
+
+
+@dataclass(kw_only=True, frozen=True)
+class When:
+    """Incomplete WHEN clause waiting for .then().
+
+    This is not an Expression - it must be completed with .then().
+    """
+
+    condition: Expression
+    branches: list[WhenThen] | None = None
+
+    def then(self, result: Expression, /) -> CaseExpression:
+        """Complete this WHEN clause with a THEN result.
+
+        Args:
+            result: The result when the condition is true.
+
+        Returns:
+            A CaseExpression that can be extended with .when() or .otherwise().
+        """
+        new_branch = WhenThen(when=self.condition, then=result)
+        prior = self.branches or []
+        return CaseExpression(branches=[*prior, new_branch])
+
+
+def when(condition: Expression, /) -> When:
+    """Start a CASE expression with a WHEN clause.
+
+    Args:
+        condition: The condition to check.
+
+    Returns:
+        A When object that must be completed with .then().
+
+    Example:
+        >>> from vw import when, col
+        >>> when(col("status") == col("'active'")).then(col("1"))
+        ...     .when(col("status") == col("'pending'")).then(col("2"))
+        ...     .otherwise(col("0"))
+
+        # Can also be used without .otherwise() (NULL when no match):
+        >>> when(col("status") == col("'active'")).then(col("1"))
+    """
+    return When(condition=condition)

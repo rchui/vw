@@ -9,7 +9,25 @@ if TYPE_CHECKING:
     from vw.build import Statement
     from vw.column import Column
     from vw.joins import Join, JoinAccessor
-    from vw.operators import Alias, And, Asc, Cast, Desc, IsIn, IsNotIn, IsNotNull, IsNull, Not, Or
+    from vw.operators import (
+        Alias,
+        And,
+        Asc,
+        Cast,
+        Desc,
+        Equals,
+        GreaterThan,
+        GreaterThanOrEqual,
+        IsIn,
+        IsNotIn,
+        IsNotNull,
+        IsNull,
+        LessThan,
+        LessThanOrEqual,
+        Not,
+        NotEquals,
+        Or,
+    )
     from vw.render import RenderContext
 
 from typing_extensions import Self
@@ -95,6 +113,84 @@ class Expression:
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the expression."""
         raise NotImplementedError
+
+    def __eq__(self, other: Expression) -> Equals:  # type: ignore[override]
+        """Create an equality comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            An Equals representing the equality comparison.
+        """
+        from vw.operators import Equals
+
+        return Equals(left=self, right=other)
+
+    def __ne__(self, other: Expression) -> NotEquals:  # type: ignore[override]
+        """Create an inequality comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            A NotEquals representing the inequality comparison.
+        """
+        from vw.operators import NotEquals
+
+        return NotEquals(left=self, right=other)
+
+    def __lt__(self, other: Expression) -> LessThan:
+        """Create a less than comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            A LessThan representing the less than comparison.
+        """
+        from vw.operators import LessThan
+
+        return LessThan(left=self, right=other)
+
+    def __le__(self, other: Expression) -> LessThanOrEqual:
+        """Create a less than or equal comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            A LessThanOrEqual representing the less than or equal comparison.
+        """
+        from vw.operators import LessThanOrEqual
+
+        return LessThanOrEqual(left=self, right=other)
+
+    def __gt__(self, other: Expression) -> GreaterThan:
+        """Create a greater than comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            A GreaterThan representing the greater than comparison.
+        """
+        from vw.operators import GreaterThan
+
+        return GreaterThan(left=self, right=other)
+
+    def __ge__(self, other: Expression) -> GreaterThanOrEqual:
+        """Create a greater than or equal comparison expression.
+
+        Args:
+            other: Expression to compare with.
+
+        Returns:
+            A GreaterThanOrEqual representing the greater than or equal comparison.
+        """
+        from vw.operators import GreaterThanOrEqual
+
+        return GreaterThanOrEqual(left=self, right=other)
 
     def __and__(self, other: Expression) -> And:
         """Create a logical AND expression with another expression

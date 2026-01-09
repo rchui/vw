@@ -3,7 +3,7 @@
 from vw import functions
 from vw.build import Source, Statement, cte
 from vw.column import Column, col
-from vw.operators import exists
+from vw.operators import exists, when
 from vw.parameter import Parameter, param
 from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
@@ -23,4 +23,5 @@ __all__: list[str] = [
     "exists",
     "functions",
     "param",
+    "when",
 ]
