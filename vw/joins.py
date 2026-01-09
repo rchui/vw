@@ -22,6 +22,8 @@ class JoinType(StrEnum):
     RIGHT = "RIGHT JOIN"
     FULL_OUTER = "FULL OUTER JOIN"
     CROSS = "CROSS JOIN"
+    SEMI = "SEMI JOIN"
+    ANTI = "ANTI JOIN"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -74,6 +76,20 @@ class CrossJoin(Join):
     """Represents a CROSS JOIN operation."""
 
     jtype: JoinType = JoinType.CROSS
+
+
+@dataclass(kw_only=True, frozen=True)
+class SemiJoin(Join):
+    """Represents a SEMI JOIN operation."""
+
+    jtype: JoinType = JoinType.SEMI
+
+
+@dataclass(kw_only=True, frozen=True)
+class AntiJoin(Join):
+    """Represents an ANTI JOIN operation."""
+
+    jtype: JoinType = JoinType.ANTI
 
 
 class JoinAccessor:
@@ -187,4 +203,58 @@ class JoinAccessor:
         return replace(
             self._row_set,
             _joins=self._row_set._joins + [CrossJoin(right=right)],
+        )
+
+    def semi(self, right: RowSet, *, on: Sequence[Expression] = ()) -> RowSet:
+        """
+        Perform a SEMI JOIN with another row set.
+
+        A SEMI JOIN returns rows from the left table that have matching rows
+        in the right table, without duplicating rows.
+
+        Note: SEMI JOIN is not supported by all databases. Spark SQL and some
+        others support it natively. For other databases, use EXISTS subqueries.
+
+        Args:
+            right: The row set to join with (table, subquery, or CTE).
+            on: Sequence of join condition expressions. Multiple conditions are combined with AND.
+
+        Returns:
+            A new RowSet with the join applied.
+
+        Example:
+            >>> users = Source(name="users")
+            >>> orders = Source(name="orders")
+            >>> users.join.semi(orders, on=[users.col("id") == orders.col("user_id")])
+        """
+        return replace(
+            self._row_set,
+            _joins=self._row_set._joins + [SemiJoin(right=right, on=on)],
+        )
+
+    def anti(self, right: RowSet, *, on: Sequence[Expression] = ()) -> RowSet:
+        """
+        Perform an ANTI JOIN with another row set.
+
+        An ANTI JOIN returns rows from the left table that have no matching rows
+        in the right table.
+
+        Note: ANTI JOIN is not supported by all databases. Spark SQL and some
+        others support it natively. For other databases, use NOT EXISTS subqueries.
+
+        Args:
+            right: The row set to join with (table, subquery, or CTE).
+            on: Sequence of join condition expressions. Multiple conditions are combined with AND.
+
+        Returns:
+            A new RowSet with the join applied.
+
+        Example:
+            >>> users = Source(name="users")
+            >>> orders = Source(name="orders")
+            >>> users.join.anti(orders, on=[users.col("id") == orders.col("user_id")])
+        """
+        return replace(
+            self._row_set,
+            _joins=self._row_set._joins + [AntiJoin(right=right, on=on)],
         )

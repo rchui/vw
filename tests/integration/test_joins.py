@@ -241,6 +241,72 @@ def describe_cross_joins():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
+def describe_semi_joins():
+    """Tests for SEMI JOIN operations."""
+
+    def it_generates_semi_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            SEMI JOIN orders ON (users.id = orders.user_id)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.semi(orders, on=[users.col("id") == orders.col("user_id")])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_semi_join_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            SEMI JOIN orders
+                ON (users.id = orders.user_id)
+                AND (orders.status = 'active')
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.semi(
+            orders,
+            on=[users.col("id") == orders.col("user_id"), orders.col("status") == vw.col("'active'")],
+        )
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_anti_joins():
+    """Tests for ANTI JOIN operations."""
+
+    def it_generates_anti_join(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            ANTI JOIN orders ON (users.id = orders.user_id)
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.anti(orders, on=[users.col("id") == orders.col("user_id")])
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_anti_join_with_multiple_conditions(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT *
+            FROM users
+            ANTI JOIN orders
+                ON (users.id = orders.user_id)
+                AND (orders.status = 'cancelled')
+        """
+        users = vw.Source(name="users")
+        orders = vw.Source(name="orders")
+        joined = users.join.anti(
+            orders,
+            on=[users.col("id") == orders.col("user_id"), orders.col("status") == vw.col("'cancelled'")],
+        )
+        result = joined.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
 def describe_mixed_joins():
     """Tests for mixed join types."""
 

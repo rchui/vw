@@ -19,11 +19,11 @@
 - [x] RIGHT JOIN support with accessor pattern (`Source.join.right()`)
 - [x] FULL OUTER JOIN support with accessor pattern (`Source.join.full_outer()`)
 - [x] CROSS JOIN support with accessor pattern (`Source.join.cross()`)
+- [x] SEMI JOIN support with accessor pattern (`Source.join.semi()`)
+- [x] ANTI JOIN support with accessor pattern (`Source.join.anti()`)
 - [x] Multiple ON conditions in joins (combined with AND)
 - [x] Chaining multiple joins
 - [x] Mixed join types in chain (e.g., inner then left)
-- [ ] ANTI JOIN
-- [ ] SEMI JOIN
 
 ## Parameters
 - [x] Parameterized values via `param(name, value)`
