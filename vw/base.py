@@ -36,6 +36,7 @@ if TYPE_CHECKING:
         Subtract,
     )
     from vw.render import RenderContext
+    from vw.strings import StringAccessor
 
 from typing_extensions import Self
 
@@ -478,3 +479,19 @@ class Expression:
         from vw.operators import NotLike
 
         return NotLike(left=self, right=pattern)
+
+    @property
+    def str(self) -> StringAccessor:
+        """Access string operations.
+
+        Returns:
+            A StringAccessor for string operations.
+
+        Example:
+            >>> col("name").str.upper()
+            >>> col("name").str.lower()
+            >>> col("name").str.trim()
+        """
+        from vw.strings import StringAccessor
+
+        return StringAccessor(self)
