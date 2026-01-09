@@ -350,6 +350,22 @@ def coalesce(*exprs: Expression) -> Function:
     return Function(name="COALESCE", args=list(exprs))
 
 
+def nullif(expr1: Expression, expr2: Expression) -> Function:
+    """Create a NULLIF() function.
+
+    Returns NULL if expr1 equals expr2, otherwise returns expr1.
+
+    Args:
+        expr1: The expression to return if not equal to expr2.
+        expr2: The expression to compare against.
+
+    Example:
+        >>> nullif(col("value"), param("empty", ""))  # Returns NULL if value is empty string
+        >>> nullif(col("divisor"), col("0"))  # Returns NULL if divisor is 0 (avoids division by zero)
+    """
+    return Function(name="NULLIF", args=[expr1, expr2])
+
+
 __all__ = [
     # Classes
     "Function",
@@ -372,4 +388,5 @@ __all__ = [
     "last_value",
     # Null handling functions
     "coalesce",
+    "nullif",
 ]

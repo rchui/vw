@@ -14,6 +14,7 @@ from vw.functions import (
     max_,
     min_,
     ntile,
+    nullif,
     rank,
     row_number,
     sum_,
@@ -393,3 +394,31 @@ def describe_coalesce():
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"default_name": "Unknown"})
+
+
+def describe_nullif():
+    """Tests for NULLIF function."""
+
+    def it_generates_nullif_with_two_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT NULLIF(value, default_value) FROM settings"
+        stmt = vw.Source(name="settings").select(
+            nullif(vw.col("value"), vw.col("default_value")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_nullif_with_param(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT NULLIF(status, :empty) FROM users"
+        stmt = vw.Source(name="users").select(
+            nullif(vw.col("status"), vw.param("empty", "")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"empty": ""})
+
+    def it_generates_nullif_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT NULLIF(divisor, :zero) AS safe_divisor FROM calc"
+        stmt = vw.Source(name="calc").select(
+            nullif(vw.col("divisor"), vw.param("zero", 0)).alias("safe_divisor"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"zero": 0})
