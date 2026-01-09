@@ -478,3 +478,92 @@ def describe_least():
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
+
+
+def describe_frame_clauses():
+    """Tests for window frame clauses."""
+
+    def it_generates_rows_unbounded_preceding_to_current(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_rows_with_n_preceding(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, AVG(price) OVER (ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) FROM prices
+        """
+        stmt = vw.Source(name="prices").select(
+            vw.col("date"),
+            F.avg(vw.col("price"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.preceding(3), vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_rows_between_preceding_and_following(
+        render_config: vw.RenderConfig,
+    ) -> None:
+        expected_sql = """
+            SELECT date, AVG(price) OVER (ORDER BY date ASC ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING) FROM prices
+        """
+        stmt = vw.Source(name="prices").select(
+            vw.col("date"),
+            F.avg(vw.col("price"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.preceding(1), vw.frame.following(1)),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_range_between(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .range_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_rows_current_to_unbounded_following(
+        render_config: vw.RenderConfig,
+    ) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.CURRENT_ROW, vw.frame.UNBOUNDED_FOLLOWING),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_frame_with_partition_and_order(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, SUM(amount) OVER (PARTITION BY customer_id ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM orders
+        """
+        stmt = vw.Source(name="orders").select(
+            vw.col("id"),
+            F.sum(vw.col("amount"))
+            .over(
+                partition_by=[vw.col("customer_id")],
+                order_by=[vw.col("date").asc()],
+            )
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})

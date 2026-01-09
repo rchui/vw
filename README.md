@@ -117,4 +117,4 @@ This project was kickstarted by this article from HackerNews:
 
 - https://willmcgugan.github.io/toad-released/
 
-I will readily admit that this repo and the contents within were primarily written by LLMs. I've had the idea for this library for a few years and I've never had the time, nor the energy, to put pen to paper. This was my first deep dive into "vibe-coding" and prompting a project from the start. Without these tools, it is unlikely that it would have ever seen the light of day. And for that I am thankful.
+I will readily admit that this repo and the contents within with heavy assistance from LLMs. I've had the idea for this library for a few years and I've never had the time, nor the energy, to put pen to paper. Without these tools, it is unlikely that it would have ever seen the light of day. And for that I am thankful.

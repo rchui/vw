@@ -23,10 +23,32 @@ Example:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+
+from strenum import StrEnum
 
 from vw.base import Expression
+from vw.frame import FrameBoundary
 from vw.render import RenderContext
+
+
+class FrameMode(StrEnum):
+    """Window frame mode."""
+
+    ROWS = "ROWS"
+    RANGE = "RANGE"
+
+
+@dataclass(kw_only=True, frozen=True)
+class FrameClause:
+    """Window frame clause specification."""
+
+    mode: FrameMode
+    start: FrameBoundary
+    end: FrameBoundary
+
+    def __str__(self) -> str:
+        return f"{self.mode} BETWEEN {self.start} AND {self.end}"
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -35,14 +57,46 @@ class WindowFunction(Expression):
 
     This is the result of calling .over() on a Function. It contains
     the window specification (PARTITION BY, ORDER BY, frame).
-
-    Note: Frame clauses (ROWS/RANGE BETWEEN) are a future enhancement.
     """
 
     function: Function
     partition_by: list[Expression] = field(default_factory=list)
     order_by: list[Expression] = field(default_factory=list)
-    # Future: frame clause support (ROWS BETWEEN, RANGE BETWEEN)
+    _frame: FrameClause | None = None
+
+    def rows_between(self, start: FrameBoundary, end: FrameBoundary) -> WindowFunction:
+        """Add ROWS BETWEEN frame clause.
+
+        Args:
+            start: The start boundary of the frame.
+            end: The end boundary of the frame.
+
+        Returns:
+            A new WindowFunction with the frame clause.
+
+        Example:
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
+            ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
+            ... )
+        """
+        return replace(self, _frame=FrameClause(mode=FrameMode.ROWS, start=start, end=end))
+
+    def range_between(self, start: FrameBoundary, end: FrameBoundary) -> WindowFunction:
+        """Add RANGE BETWEEN frame clause.
+
+        Args:
+            start: The start boundary of the frame.
+            end: The end boundary of the frame.
+
+        Returns:
+            A new WindowFunction with the frame clause.
+
+        Example:
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).range_between(
+            ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
+            ... )
+        """
+        return replace(self, _frame=FrameClause(mode=FrameMode.RANGE, start=start, end=end))
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Render the window function with OVER clause."""
@@ -55,6 +109,8 @@ class WindowFunction(Expression):
         if self.order_by:
             cols = ", ".join(col.__vw_render__(context) for col in self.order_by)
             over_parts.append(f"ORDER BY {cols}")
+        if self._frame:
+            over_parts.append(str(self._frame))
 
         over_clause = " ".join(over_parts)
         return f"{func_sql} OVER ({over_clause})"

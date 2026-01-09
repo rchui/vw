@@ -48,7 +48,7 @@
 ## Functions
 - [x] Aggregate functions: COUNT, SUM, AVG, MIN, MAX (via `F.count`, `F.sum`, `F.avg`, `F.min`, `F.max`)
 - [x] Window functions (via `F` namespace with `.over()`)
-- [ ] Window function frame clauses (ROWS/RANGE BETWEEN)
+- [x] Window function frame clauses (ROWS/RANGE BETWEEN via `.rows_between()`, `.range_between()`)
 - [ ] String operations
 - [ ] Date/time operations
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
