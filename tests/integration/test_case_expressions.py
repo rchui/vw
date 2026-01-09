@@ -12,9 +12,7 @@ def describe_case_expressions():
             SELECT CASE WHEN status = 'active' THEN 1 ELSE 0 END FROM users
         """
         stmt = vw.Source(name="users").select(
-            vw.when(vw.col("status") == vw.col("'active'"))
-            .then(vw.col("1"))
-            .otherwise(vw.col("0"))
+            vw.when(vw.col("status") == vw.col("'active'")).then(vw.col("1")).otherwise(vw.col("0"))
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -23,9 +21,7 @@ def describe_case_expressions():
         expected_sql = """
             SELECT CASE WHEN status = 'active' THEN 1 END FROM users
         """
-        stmt = vw.Source(name="users").select(
-            vw.when(vw.col("status") == vw.col("'active'")).then(vw.col("1"))
-        )
+        stmt = vw.Source(name="users").select(vw.when(vw.col("status") == vw.col("'active'")).then(vw.col("1")))
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -101,10 +97,7 @@ def describe_case_expressions():
             SELECT CASE WHEN status = 'active' THEN 1 ELSE 0 END AS is_active FROM users
         """
         stmt = vw.Source(name="users").select(
-            vw.when(vw.col("status") == vw.col("'active'"))
-            .then(vw.col("1"))
-            .otherwise(vw.col("0"))
-            .alias("is_active")
+            vw.when(vw.col("status") == vw.col("'active'")).then(vw.col("1")).otherwise(vw.col("0")).alias("is_active")
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -117,10 +110,7 @@ def describe_case_expressions():
             vw.Source(name="orders")
             .select(vw.col("*"))
             .where(
-                vw.when(vw.col("priority") == vw.col("'high'"))
-                .then(vw.col("1"))
-                .otherwise(vw.col("0"))
-                == vw.col("1")
+                vw.when(vw.col("priority") == vw.col("'high'")).then(vw.col("1")).otherwise(vw.col("0")) == vw.col("1")
             )
         )
         result = stmt.render(config=render_config)
@@ -134,14 +124,8 @@ def describe_case_expressions():
             FROM users
         """
         stmt = vw.Source(name="users").select(
-            vw.when(vw.col("status") == vw.col("'active'"))
-            .then(vw.col("1"))
-            .otherwise(vw.col("0"))
-            .alias("is_active"),
-            vw.when(vw.col("role") == vw.col("'admin'"))
-            .then(vw.col("1"))
-            .otherwise(vw.col("0"))
-            .alias("is_admin"),
+            vw.when(vw.col("status") == vw.col("'active'")).then(vw.col("1")).otherwise(vw.col("0")).alias("is_active"),
+            vw.when(vw.col("role") == vw.col("'admin'")).then(vw.col("1")).otherwise(vw.col("0")).alias("is_admin"),
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -156,9 +140,7 @@ def describe_case_expressions():
             .otherwise(vw.col("'active_user'"))
         )
         stmt = vw.Source(name="users").select(
-            vw.when(vw.col("status") == vw.col("'active'"))
-            .then(inner_case)
-            .otherwise(vw.col("'inactive'"))
+            vw.when(vw.col("status") == vw.col("'active'")).then(inner_case).otherwise(vw.col("'inactive'"))
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
