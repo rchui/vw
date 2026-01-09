@@ -26,10 +26,12 @@ if TYPE_CHECKING:
         IsNull,
         LessThan,
         LessThanOrEqual,
+        Like,
         Modulo,
         Multiply,
         Not,
         NotEquals,
+        NotLike,
         Or,
         Subtract,
     )
@@ -444,3 +446,35 @@ class Expression:
         from vw.operators import IsNotIn
 
         return IsNotIn(expr=self, values=values)
+
+    def like(self, pattern: str) -> Like:
+        """Create a LIKE pattern match expression.
+
+        Args:
+            pattern: Pattern string to match against.
+
+        Returns:
+            A Like expression representing the LIKE comparison.
+
+        Example:
+            >>> col("name").like("%john%")
+        """
+        from vw.operators import Like
+
+        return Like(left=self, right=pattern)
+
+    def not_like(self, pattern: str) -> NotLike:
+        """Create a NOT LIKE pattern match expression.
+
+        Args:
+            pattern: Pattern string to match against.
+
+        Returns:
+            A NotLike expression representing the NOT LIKE comparison.
+
+        Example:
+            >>> col("name").not_like("%admin%")
+        """
+        from vw.operators import NotLike
+
+        return NotLike(left=self, right=pattern)

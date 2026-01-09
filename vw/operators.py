@@ -160,6 +160,30 @@ class Modulo(Expression):
 
 
 @dataclass(kw_only=True, frozen=True)
+class Like(Expression):
+    """Represents a LIKE pattern match."""
+
+    left: Expression
+    right: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the LIKE comparison."""
+        return f"{self.left.__vw_render__(context)} LIKE '{self.right}'"
+
+
+@dataclass(kw_only=True, frozen=True)
+class NotLike(Expression):
+    """Represents a NOT LIKE pattern match."""
+
+    left: Expression
+    right: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the NOT LIKE comparison."""
+        return f"{self.left.__vw_render__(context)} NOT LIKE '{self.right}'"
+
+
+@dataclass(kw_only=True, frozen=True)
 class IsNull(Expression):
     """Represents an IS NULL check."""
 

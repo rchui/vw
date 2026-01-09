@@ -39,7 +39,7 @@
 - [x] Less than or equal comparison (`<=`)
 - [x] Greater than comparison (`>`)
 - [x] Greater than or equal comparison (`>=`)
-- [ ] LIKE comparison
+- [x] LIKE / NOT LIKE pattern matching (via `.like()`, `.not_like()`)
 - [x] IN comparison via `.is_in()` / `.is_not_in()`
 - [x] Mathematical operators: `+`, `-`, `*`, `/`, `%`
 - [x] Logical operators: AND, OR

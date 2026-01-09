@@ -13,10 +13,12 @@ from vw.operators import (
     IsNull,
     LessThan,
     LessThanOrEqual,
+    Like,
     Modulo,
     Multiply,
     Not,
     NotEquals,
+    NotLike,
     Or,
     Subtract,
 )
@@ -298,3 +300,62 @@ def describe_math_with_other_operators() -> None:
         """Should work with alias."""
         expr = (col("price") * col("quantity")).alias("total")
         assert expr.__vw_render__(render_context) == "price * quantity AS total"
+
+
+# -----------------------------------------------------------------------------
+# LIKE operators
+# -----------------------------------------------------------------------------
+
+
+def describe_like() -> None:
+    """Tests for Like class."""
+
+    def it_renders_like_comparison(render_context: vw.RenderContext) -> None:
+        """Should render LIKE comparison."""
+        like = Like(left=col("name"), right="%john%")
+        assert like.__vw_render__(render_context) == "name LIKE '%john%'"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create Like via .like() method."""
+        result = col("name").like("%john%")
+        assert isinstance(result, Like)
+        assert result.__vw_render__(render_context) == "name LIKE '%john%'"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("users.name").like("%test%")
+        assert result.__vw_render__(render_context) == "users.name LIKE '%test%'"
+
+
+def describe_not_like() -> None:
+    """Tests for NotLike class."""
+
+    def it_renders_not_like_comparison(render_context: vw.RenderContext) -> None:
+        """Should render NOT LIKE comparison."""
+        not_like = NotLike(left=col("name"), right="%admin%")
+        assert not_like.__vw_render__(render_context) == "name NOT LIKE '%admin%'"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create NotLike via .not_like() method."""
+        result = col("name").not_like("%admin%")
+        assert isinstance(result, NotLike)
+        assert result.__vw_render__(render_context) == "name NOT LIKE '%admin%'"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("users.email").not_like("%spam%")
+        assert result.__vw_render__(render_context) == "users.email NOT LIKE '%spam%'"
+
+
+def describe_like_with_logical_operators() -> None:
+    """Tests for LIKE combined with logical operators."""
+
+    def it_combines_like_with_and(render_context: vw.RenderContext) -> None:
+        """Should combine LIKE with AND."""
+        expr = col("name").like("%john%") & (col("active") == col("true"))
+        assert expr.__vw_render__(render_context) == "(name LIKE '%john%') AND (active = true)"
+
+    def it_combines_not_like_with_or(render_context: vw.RenderContext) -> None:
+        """Should combine NOT LIKE with OR."""
+        expr = col("name").not_like("%admin%") | col("name").not_like("%system%")
+        assert expr.__vw_render__(render_context) == "(name NOT LIKE '%admin%') OR (name NOT LIKE '%system%')"
