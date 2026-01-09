@@ -366,6 +366,36 @@ def nullif(expr1: Expression, expr2: Expression) -> Function:
     return Function(name="NULLIF", args=[expr1, expr2])
 
 
+def greatest(*exprs: Expression) -> Function:
+    """Create a GREATEST() function.
+
+    Returns the largest value from the arguments.
+
+    Args:
+        *exprs: Expressions to compare.
+
+    Example:
+        >>> greatest(col("price"), col("min_price"))
+        >>> greatest(col("a"), col("b"), col("c"))
+    """
+    return Function(name="GREATEST", args=list(exprs))
+
+
+def least(*exprs: Expression) -> Function:
+    """Create a LEAST() function.
+
+    Returns the smallest value from the arguments.
+
+    Args:
+        *exprs: Expressions to compare.
+
+    Example:
+        >>> least(col("price"), col("max_price"))
+        >>> least(col("a"), col("b"), col("c"))
+    """
+    return Function(name="LEAST", args=list(exprs))
+
+
 __all__ = [
     # Classes
     "Function",
@@ -389,4 +419,7 @@ __all__ = [
     # Null handling functions
     "coalesce",
     "nullif",
+    # Comparison functions
+    "greatest",
+    "least",
 ]

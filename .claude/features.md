@@ -56,7 +56,7 @@
 - [x] NULL handling: `.is_null()` and `.is_not_null()` methods
 - [x] COALESCE function (via `vw.functions.coalesce`)
 - [x] NULLIF function (via `vw.functions.nullif`)
-- [ ] GREATEST / LEAST functions
+- [x] GREATEST / LEAST functions (via `vw.functions.greatest`, `vw.functions.least`)
 - [x] CASE expressions (via `vw.when().then().otherwise()`)
 
 ## Advanced Query Features

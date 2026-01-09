@@ -8,9 +8,11 @@ from vw.functions import (
     count,
     dense_rank,
     first_value,
+    greatest,
     lag,
     last_value,
     lead,
+    least,
     max_,
     min_,
     ntile,
@@ -422,3 +424,75 @@ def describe_nullif():
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"zero": 0})
+
+
+def describe_greatest():
+    """Tests for GREATEST function."""
+
+    def it_generates_greatest_with_two_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT GREATEST(price, min_price) FROM products"
+        stmt = vw.Source(name="products").select(
+            greatest(vw.col("price"), vw.col("min_price")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_greatest_with_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT GREATEST(a, b, c) FROM values"
+        stmt = vw.Source(name="values").select(
+            greatest(vw.col("a"), vw.col("b"), vw.col("c")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_greatest_with_param(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT GREATEST(price, :floor) FROM products"
+        stmt = vw.Source(name="products").select(
+            greatest(vw.col("price"), vw.param("floor", 10)),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"floor": 10})
+
+    def it_generates_greatest_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT GREATEST(price, :floor) AS final_price FROM products"
+        stmt = vw.Source(name="products").select(
+            greatest(vw.col("price"), vw.param("floor", 10)).alias("final_price"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"floor": 10})
+
+
+def describe_least():
+    """Tests for LEAST function."""
+
+    def it_generates_least_with_two_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT LEAST(price, max_price) FROM products"
+        stmt = vw.Source(name="products").select(
+            least(vw.col("price"), vw.col("max_price")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_least_with_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT LEAST(a, b, c) FROM values"
+        stmt = vw.Source(name="values").select(
+            least(vw.col("a"), vw.col("b"), vw.col("c")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_least_with_param(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT LEAST(price, :ceiling) FROM products"
+        stmt = vw.Source(name="products").select(
+            least(vw.col("price"), vw.param("ceiling", 100)),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
+
+    def it_generates_least_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT LEAST(price, :ceiling) AS capped_price FROM products"
+        stmt = vw.Source(name="products").select(
+            least(vw.col("price"), vw.param("ceiling", 100)).alias("capped_price"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
