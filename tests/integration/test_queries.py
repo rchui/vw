@@ -401,3 +401,37 @@ def describe_distinct():
         stmt = vw.Source(name="users").select(vw.col("name")).distinct().order_by(vw.col("name").asc())
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_on_single_column(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT ON (department) department, name, salary FROM employees"
+        stmt = (
+            vw.Source(name="employees")
+            .select(vw.col("department"), vw.col("name"), vw.col("salary"))
+            .distinct(on=[vw.col("department")])
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_on_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT ON (department, region) department, region, name FROM employees"
+        stmt = (
+            vw.Source(name="employees")
+            .select(vw.col("department"), vw.col("region"), vw.col("name"))
+            .distinct(on=[vw.col("department"), vw.col("region")])
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_on_with_order_by(render_config: vw.RenderConfig) -> None:
+        expected_sql = (
+            "SELECT DISTINCT ON (department) department, name, salary "
+            "FROM employees ORDER BY department ASC, salary DESC"
+        )
+        stmt = (
+            vw.Source(name="employees")
+            .select(vw.col("department"), vw.col("name"), vw.col("salary"))
+            .distinct(on=[vw.col("department")])
+            .order_by(vw.col("department").asc(), vw.col("salary").desc())
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})

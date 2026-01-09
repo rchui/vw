@@ -25,6 +25,17 @@ class Limit:
 
 
 @dataclass(kw_only=True, frozen=True)
+class Distinct:
+    """Represents DISTINCT or DISTINCT ON clause.
+
+    When `on` is None, renders as DISTINCT.
+    When `on` is a list of expressions, renders as DISTINCT ON (PostgreSQL only).
+    """
+
+    on: list[Expression] | None = None
+
+
+@dataclass(kw_only=True, frozen=True)
 class CommonTableExpression(RowSet):
     """A Common Table Expression (CTE) for use in WITH clauses.
 
@@ -148,7 +159,7 @@ class Statement(RowSet, Expression):
     having_conditions: list[Expression] = field(default_factory=list)
     order_by_columns: list[Expression] = field(default_factory=list)
     _limit: Limit | None = None
-    _distinct: bool = False
+    _distinct: Distinct | None = None
 
     def where(self, *exprs: Expression) -> Statement:
         """
@@ -233,16 +244,20 @@ class Statement(RowSet, Expression):
         """
         return replace(self, _limit=Limit(count=n, offset=offset))
 
-    def distinct(self) -> Statement:
+    def distinct(self, *, on: list[Expression] | None = None) -> Statement:
         """Return only distinct rows.
+
+        Args:
+            on: Optional columns for DISTINCT ON (PostgreSQL only).
 
         Returns:
             A new Statement with DISTINCT applied.
 
         Example:
             >>> Source(name="users").select(col("name")).distinct()
+            >>> Source(name="users").select(col("dept"), col("name")).distinct(on=[col("dept")])
         """
-        return replace(self, _distinct=True)
+        return replace(self, _distinct=Distinct(on=on))
 
     def render(self, config: RenderConfig | None = None) -> RenderResult:
         """
@@ -273,8 +288,12 @@ class Statement(RowSet, Expression):
         source_str = self.source.__vw_render__(context.recurse())
 
         sql = "SELECT"
-        if self._distinct:
-            sql += " DISTINCT"
+        if self._distinct is not None:
+            if self._distinct.on is not None:
+                on_cols = ", ".join(col.__vw_render__(context) for col in self._distinct.on)
+                sql += f" DISTINCT ON ({on_cols})"
+            else:
+                sql += " DISTINCT"
         sql += f" {columns_str} FROM {source_str}"
 
         if self.where_conditions:
