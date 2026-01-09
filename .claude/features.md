@@ -50,7 +50,7 @@
 - [x] Window functions (via `F` namespace with `.over()`)
 - [x] Window function frame clauses (ROWS/RANGE BETWEEN via `.rows_between()`, `.range_between()`)
 - [x] String operations (via `.str` accessor: upper, lower, trim, ltrim, rtrim, length, substring, replace, concat)
-- [ ] Date/time operations
+- [x] Date/time operations (via `.dt` accessor: year, quarter, month, week, day, hour, minute, second, weekday, truncate, date, time; standalone: current_timestamp, current_date, current_time, now)
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
 - [ ] SQL type constructors (e.g., `vw.types.varchar(255)`, `vw.types.decimal(10, 2)`) to prevent typos
 - [x] NULL handling: `.is_null()` and `.is_not_null()` methods

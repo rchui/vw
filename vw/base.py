@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from vw.build import Statement
     from vw.column import Column
+    from vw.datetime import DateTimeAccessor
     from vw.joins import Join, JoinAccessor
     from vw.operators import (
         Add,
@@ -495,3 +496,19 @@ class Expression:
         from vw.strings import StringAccessor
 
         return StringAccessor(self)
+
+    @property
+    def dt(self) -> DateTimeAccessor:
+        """Access datetime operations.
+
+        Returns:
+            A DateTimeAccessor for datetime operations.
+
+        Example:
+            >>> col("created_at").dt.year()
+            >>> col("created_at").dt.month()
+            >>> col("created_at").dt.truncate("month")
+        """
+        from vw.datetime import DateTimeAccessor
+
+        return DateTimeAccessor(self)
