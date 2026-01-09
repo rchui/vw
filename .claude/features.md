@@ -10,7 +10,7 @@
 - [x] GROUP BY / HAVING
 - [x] ORDER BY (with `.asc()` and `.desc()`)
 - [x] LIMIT / OFFSET (with dialect-aware rendering for SQL Server)
-- [ ] DISTINCT
+- [x] DISTINCT (via `.distinct()` method)
 
 ## Joins
 - [x] INNER JOIN support with accessor pattern (`Source.join.inner()`)

@@ -373,3 +373,31 @@ def describe_limit():
             vw.Source(name="users").select(vw.col("*")).order_by(vw.col("id").asc()).limit(10).render(config=config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_distinct():
+    """Tests for DISTINCT queries."""
+
+    def it_generates_distinct(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT name FROM users"
+        stmt = vw.Source(name="users").select(vw.col("name")).distinct()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_multiple_columns(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT first_name, last_name FROM users"
+        stmt = vw.Source(name="users").select(vw.col("first_name"), vw.col("last_name")).distinct()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_with_where(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT name FROM users WHERE (active = true)"
+        stmt = vw.Source(name="users").select(vw.col("name")).distinct().where(vw.col("active") == vw.col("true"))
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_distinct_with_order_by(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DISTINCT name FROM users ORDER BY name ASC"
+        stmt = vw.Source(name="users").select(vw.col("name")).distinct().order_by(vw.col("name").asc())
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})

@@ -148,6 +148,7 @@ class Statement(RowSet, Expression):
     having_conditions: list[Expression] = field(default_factory=list)
     order_by_columns: list[Expression] = field(default_factory=list)
     _limit: Limit | None = None
+    _distinct: bool = False
 
     def where(self, *exprs: Expression) -> Statement:
         """
@@ -232,6 +233,17 @@ class Statement(RowSet, Expression):
         """
         return replace(self, _limit=Limit(count=n, offset=offset))
 
+    def distinct(self) -> Statement:
+        """Return only distinct rows.
+
+        Returns:
+            A new Statement with DISTINCT applied.
+
+        Example:
+            >>> Source(name="users").select(col("name")).distinct()
+        """
+        return replace(self, _distinct=True)
+
     def render(self, config: RenderConfig | None = None) -> RenderResult:
         """
         Render the SQL statement with parameter tracking.
@@ -260,7 +272,10 @@ class Statement(RowSet, Expression):
         columns_str = ", ".join(rendered_columns)
         source_str = self.source.__vw_render__(context.recurse())
 
-        sql = f"SELECT {columns_str} FROM {source_str}"
+        sql = "SELECT"
+        if self._distinct:
+            sql += " DISTINCT"
+        sql += f" {columns_str} FROM {source_str}"
 
         if self.where_conditions:
             conditions: list[str] = [f"({expr.__vw_render__(context)})" for expr in self.where_conditions]
