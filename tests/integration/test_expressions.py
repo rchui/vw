@@ -2,6 +2,7 @@
 
 import vw
 from tests.utils import sql
+from vw import dtypes
 
 
 def describe_cast():
@@ -13,17 +14,19 @@ def describe_cast():
         """
         result = (
             vw.Source(name="orders")
-            .select(vw.col("id"), vw.col("price").cast("DECIMAL(10,2)"))
+            .select(vw.col("id"), vw.col("price").cast(dtypes.decimal(10, 2)))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_cast_with_postgres_dialect() -> None:
         expected_sql = """
-            SELECT id, price::numeric FROM orders
+            SELECT id, price::NUMERIC FROM orders
         """
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
-        result = vw.Source(name="orders").select(vw.col("id"), vw.col("price").cast("numeric")).render(config=config)
+        result = (
+            vw.Source(name="orders").select(vw.col("id"), vw.col("price").cast(dtypes.numeric())).render(config=config)
+        )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_cast_with_alias(render_config: vw.RenderConfig) -> None:
@@ -32,7 +35,7 @@ def describe_cast():
         """
         result = (
             vw.Source(name="orders")
-            .select(vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price"))
+            .select(vw.col("price").cast(dtypes.decimal(10, 2)).alias("formatted_price"))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -42,7 +45,7 @@ def describe_cast():
             SELECT $value::VARCHAR FROM orders
         """
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
-        result = vw.Source(name="orders").select(vw.param("value", 123).cast("VARCHAR")).render(config=config)
+        result = vw.Source(name="orders").select(vw.param("value", 123).cast(dtypes.varchar())).render(config=config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"value": 123})
 
 

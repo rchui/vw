@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from vw.build import Statement
     from vw.column import Column
     from vw.datetime import DateTimeAccessor
+    from vw.dtypes import dtype
     from vw.joins import Join, JoinAccessor
     from vw.operators import (
         Add,
@@ -347,7 +348,7 @@ class Expression:
 
         return Alias(expr=self, name=name)
 
-    def cast(self, data_type: str, /) -> Cast:
+    def cast(self, data_type: dtype, /) -> Cast:
         """Cast expression to a SQL type.
 
         Args:
@@ -357,7 +358,7 @@ class Expression:
             A Cast expression.
 
         Example:
-            >>> col("price").cast("DECIMAL(10,2)")
+            >>> col("price").cast(decimal(10, 2))
         """
         from vw.operators import Cast
 

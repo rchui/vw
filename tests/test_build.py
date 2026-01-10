@@ -3,6 +3,7 @@
 import pytest
 
 import vw
+from vw import dtypes
 from vw.build import CommonTableExpression, Source, Statement
 from vw.exceptions import CTENameCollisionError
 
@@ -262,19 +263,19 @@ def describe_cast() -> None:
 
     def it_casts_column_with_function_style(render_context: vw.RenderContext) -> None:
         """Should render CAST(column AS type) for SQLAlchemy dialect."""
-        expr = vw.col("price").cast("DECIMAL(10,2)")
+        expr = vw.col("price").cast(dtypes.decimal(10, 2))
         assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2))"
 
     def it_casts_column_with_operator_style() -> None:
         """Should render column::type for PostgreSQL dialect."""
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
         context = vw.RenderContext(config=config)
-        expr = vw.col("price").cast("numeric")
-        assert expr.__vw_render__(context) == "price::numeric"
+        expr = vw.col("price").cast(dtypes.numeric())
+        assert expr.__vw_render__(context) == "price::NUMERIC"
 
     def it_casts_parameter(render_context: vw.RenderContext) -> None:
         """Should render CAST(parameter AS type)."""
-        expr = vw.param("value", 123).cast("VARCHAR")
+        expr = vw.param("value", 123).cast(dtypes.varchar())
         assert expr.__vw_render__(render_context) == "CAST(:value AS VARCHAR)"
         assert render_context.params == {"value": 123}
 
@@ -282,12 +283,12 @@ def describe_cast() -> None:
         """Should render CAST() for SQL Server dialect."""
         config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
         context = vw.RenderContext(config=config)
-        expr = vw.col("price").cast("DECIMAL(10,2)")
+        expr = vw.col("price").cast(dtypes.decimal(10, 2))
         assert expr.__vw_render__(context) == "CAST(price AS DECIMAL(10,2))"
 
     def it_chains_cast_and_alias(render_context: vw.RenderContext) -> None:
         """Should allow chaining cast and alias."""
-        expr = vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price")
+        expr = vw.col("price").cast(dtypes.decimal(10, 2)).alias("formatted_price")
         assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2)) AS formatted_price"
 
     def it_renders_in_select(render_config: vw.RenderConfig) -> None:
@@ -296,7 +297,7 @@ def describe_cast() -> None:
             Source(name="orders")
             .select(
                 vw.col("id"),
-                vw.col("price").cast("DECIMAL(10,2)"),
+                vw.col("price").cast(dtypes.decimal(10, 2)),
             )
             .render(config=render_config)
         )
@@ -304,6 +305,10 @@ def describe_cast() -> None:
             sql="SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders",
             params={},
         )
+
+    def it_can_be_raw() -> None:
+        """Should allow raw dtypes."""
+        vw.col("price").cast(dtypes.dtype("INTEGER"))
 
 
 def describe_alias() -> None:

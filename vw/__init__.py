@@ -1,6 +1,6 @@
 """vw - A SQL builder library with method chaining."""
 
-from vw import frame, functions
+from vw import frame
 from vw.build import Source, Statement, cte
 from vw.column import Column, col
 from vw.datetime import current_date, current_time, current_timestamp, now
@@ -17,7 +17,6 @@ __all__: list[str] = [
     "F",
     "Parameter",
     "RenderConfig",
-    "RenderContext",
     "RenderResult",
     "Source",
     "Statement",
@@ -28,7 +27,6 @@ __all__: list[str] = [
     "current_timestamp",
     "exists",
     "frame",
-    "functions",
     "now",
     "param",
     "when",

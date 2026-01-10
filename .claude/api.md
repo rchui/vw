@@ -293,20 +293,20 @@ Use `.cast()` to cast expressions to SQL types. The syntax varies by dialect:
 ```python
 # SQLAlchemy/SQL Server: CAST(expr AS type)
 result = vw.Source(name="orders").select(
-    vw.col("price").cast("DECIMAL(10,2)")
+    vw.col("price").cast(dtype(decimal(10, 2)))
 ).render()
 # SELECT CAST(price AS DECIMAL(10,2)) FROM orders
 
 # PostgreSQL: expr::type
 config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
 result = vw.Source(name="orders").select(
-    vw.col("price").cast("numeric")
+    vw.col("price").cast(dtype(numeric()))
 ).render(config=config)
 # SELECT price::numeric FROM orders
 
 # Cast can be chained with alias
 result = vw.Source(name="orders").select(
-    vw.col("price").cast("DECIMAL(10,2)").alias("formatted_price")
+    vw.col("price").cast(dtype(decimal(10, 2))).alias("formatted_price")
 ).render()
 # SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
 ```
