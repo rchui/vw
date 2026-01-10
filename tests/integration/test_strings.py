@@ -11,56 +11,56 @@ def describe_string_functions():
         expected_sql = """
             SELECT UPPER(name) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.upper()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.upper()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_lower(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT LOWER(email) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("email").str.lower()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("email").text.lower()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_trim(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT TRIM(name) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.trim()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.trim()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_ltrim(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT LTRIM(name) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.ltrim()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.ltrim()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_rtrim(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT RTRIM(name) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.rtrim()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.rtrim()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_length(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT LENGTH(name) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.length()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.length()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_substring_with_length(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT SUBSTRING(name, 1, 5) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.substring(1, 5)).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.substring(1, 5)).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_substring_without_length(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT SUBSTRING(name, 3) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.substring(3)).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.substring(3)).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_replace(render_config: vw.RenderConfig) -> None:
@@ -68,7 +68,7 @@ def describe_string_functions():
             SELECT REPLACE(text, 'foo', 'bar') FROM documents
         """
         result = (
-            vw.Source(name="documents").select(vw.col("text").str.replace("foo", "bar")).render(config=render_config)
+            vw.Source(name="documents").select(vw.col("text").text.replace("foo", "bar")).render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -78,7 +78,7 @@ def describe_string_functions():
         """
         result = (
             vw.Source(name="users")
-            .select(vw.col("first_name").str.concat(vw.col("last_name")))
+            .select(vw.col("first_name").text.concat(vw.col("last_name")))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -89,7 +89,7 @@ def describe_string_functions():
         """
         result = (
             vw.Source(name="users")
-            .select(vw.col("first_name").str.concat(vw.col("' '"), vw.col("last_name")))
+            .select(vw.col("first_name").text.concat(vw.col("' '"), vw.col("last_name")))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -102,14 +102,14 @@ def describe_string_chaining():
         expected_sql = """
             SELECT UPPER(TRIM(name)) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("name").str.trim().str.upper()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("name").text.trim().text.upper()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_chains_lower_and_trim(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT TRIM(LOWER(email)) FROM users
         """
-        result = vw.Source(name="users").select(vw.col("email").str.lower().str.trim()).render(config=render_config)
+        result = vw.Source(name="users").select(vw.col("email").text.lower().text.trim()).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
 
@@ -121,7 +121,7 @@ def describe_string_with_alias():
             SELECT UPPER(name) AS upper_name FROM users
         """
         result = (
-            vw.Source(name="users").select(vw.col("name").str.upper().alias("upper_name")).render(config=render_config)
+            vw.Source(name="users").select(vw.col("name").text.upper().alias("upper_name")).render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -136,7 +136,7 @@ def describe_string_in_where():
         result = (
             vw.Source(name="users")
             .select(vw.col("*"))
-            .where(vw.col("name").str.upper() == vw.col("'JOHN'"))
+            .where(vw.col("name").text.upper() == vw.col("'JOHN'"))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -148,7 +148,7 @@ def describe_string_in_where():
         result = (
             vw.Source(name="users")
             .select(vw.col("*"))
-            .where(vw.col("name").str.length() > vw.col("5"))
+            .where(vw.col("name").text.length() > vw.col("5"))
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
@@ -165,7 +165,7 @@ def describe_string_with_parameters():
         result = (
             vw.Source(name="users")
             .select(vw.col("*"))
-            .where(vw.col("name").str.upper() == search.str.upper())
+            .where(vw.col("name").text.upper() == search.text.upper())
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"search": "john"})

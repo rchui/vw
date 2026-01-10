@@ -2,7 +2,7 @@
 
 import vw
 from vw.column import Column
-from vw.strings import Concat, Length, Lower, LTrim, Replace, RTrim, Substring, Trim, Upper
+from vw.text import Concat, Length, Lower, LTrim, Replace, RTrim, Substring, Trim, Upper
 
 
 def describe_upper() -> None:
@@ -90,43 +90,43 @@ def describe_string_accessor() -> None:
 
     def it_creates_upper_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.upper()
+        result = col.text.upper()
         assert isinstance(result, Upper)
         assert result.expr == col
 
     def it_creates_lower_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.lower()
+        result = col.text.lower()
         assert isinstance(result, Lower)
         assert result.expr == col
 
     def it_creates_trim_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.trim()
+        result = col.text.trim()
         assert isinstance(result, Trim)
         assert result.expr == col
 
     def it_creates_ltrim_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.ltrim()
+        result = col.text.ltrim()
         assert isinstance(result, LTrim)
         assert result.expr == col
 
     def it_creates_rtrim_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.rtrim()
+        result = col.text.rtrim()
         assert isinstance(result, RTrim)
         assert result.expr == col
 
     def it_creates_length_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.length()
+        result = col.text.length()
         assert isinstance(result, Length)
         assert result.expr == col
 
     def it_creates_substring_via_accessor() -> None:
         col = Column(name="name")
-        result = col.str.substring(1, 5)
+        result = col.text.substring(1, 5)
         assert isinstance(result, Substring)
         assert result.expr == col
         assert result.start == 1
@@ -134,7 +134,7 @@ def describe_string_accessor() -> None:
 
     def it_creates_replace_via_accessor() -> None:
         col = Column(name="text")
-        result = col.str.replace("old", "new")
+        result = col.text.replace("old", "new")
         assert isinstance(result, Replace)
         assert result.expr == col
         assert result.old == "old"
@@ -143,12 +143,12 @@ def describe_string_accessor() -> None:
     def it_creates_concat_via_accessor() -> None:
         col1 = Column(name="first")
         col2 = Column(name="last")
-        result = col1.str.concat(col2)
+        result = col1.text.concat(col2)
         assert isinstance(result, Concat)
         assert result.exprs == (col1, col2)
 
     def it_works_with_parameters(render_context: vw.RenderContext) -> None:
         param = vw.param("search_term", "test")
-        result = param.str.upper()
+        result = param.text.upper()
         assert isinstance(result, Upper)
         assert result.__vw_render__(render_context) == "UPPER(:search_term)"

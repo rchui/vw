@@ -45,8 +45,3 @@ ignore = [
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
-
-[tool.ty.rules]
-# Ignore false positive from .str property shadowing builtin str type
-# See .claude/todo.md for tracking removal of this workaround
-invalid-type-form = "ignore"

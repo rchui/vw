@@ -108,7 +108,7 @@ class Concat(Expression):
         return f"CONCAT({rendered})"
 
 
-class StringAccessor:
+class TextAccessor:
     """Accessor for string operations on an Expression."""
 
     def __init__(self, expr: Expression):
@@ -121,7 +121,7 @@ class StringAccessor:
             An Upper expression.
 
         Example:
-            >>> col("name").str.upper()
+            >>> col("name").text.upper()
         """
         return Upper(expr=self._expr)
 
@@ -132,7 +132,7 @@ class StringAccessor:
             A Lower expression.
 
         Example:
-            >>> col("name").str.lower()
+            >>> col("name").text.lower()
         """
         return Lower(expr=self._expr)
 
@@ -143,7 +143,7 @@ class StringAccessor:
             A Trim expression.
 
         Example:
-            >>> col("name").str.trim()
+            >>> col("name").text.trim()
         """
         return Trim(expr=self._expr)
 
@@ -154,7 +154,7 @@ class StringAccessor:
             An LTrim expression.
 
         Example:
-            >>> col("name").str.ltrim()
+            >>> col("name").text.ltrim()
         """
         return LTrim(expr=self._expr)
 
@@ -165,7 +165,7 @@ class StringAccessor:
             An RTrim expression.
 
         Example:
-            >>> col("name").str.rtrim()
+            >>> col("name").text.rtrim()
         """
         return RTrim(expr=self._expr)
 
@@ -176,7 +176,7 @@ class StringAccessor:
             A Length expression.
 
         Example:
-            >>> col("name").str.length()
+            >>> col("name").text.length()
         """
         return Length(expr=self._expr)
 
@@ -191,7 +191,7 @@ class StringAccessor:
             A Substring expression.
 
         Example:
-            >>> col("name").str.substring(1, 5)
+            >>> col("name").text.substring(1, 5)
         """
         return Substring(expr=self._expr, start=start, length=length)
 
@@ -206,7 +206,7 @@ class StringAccessor:
             A Replace expression.
 
         Example:
-            >>> col("text").str.replace("foo", "bar")
+            >>> col("text").text.replace("foo", "bar")
         """
         return Replace(expr=self._expr, old=old, new=new)
 
@@ -220,6 +220,6 @@ class StringAccessor:
             A Concat expression.
 
         Example:
-            >>> col("first_name").str.concat(col("' '"), col("last_name"))
+            >>> col("first_name").text.concat(col("' '"), col("last_name"))
         """
         return Concat(exprs=(self._expr, *others))

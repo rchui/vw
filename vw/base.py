@@ -37,7 +37,7 @@ if TYPE_CHECKING:
         Subtract,
     )
     from vw.render import RenderContext
-    from vw.strings import StringAccessor
+    from vw.text import TextAccessor
 
 from typing_extensions import Self
 
@@ -482,20 +482,20 @@ class Expression:
         return NotLike(left=self, right=pattern)
 
     @property
-    def str(self) -> StringAccessor:
+    def text(self) -> TextAccessor:
         """Access string operations.
 
         Returns:
-            A StringAccessor for string operations.
+            A TextAccessor for string operations.
 
         Example:
-            >>> col("name").str.upper()
-            >>> col("name").str.lower()
-            >>> col("name").str.trim()
+            >>> col("name").text.upper()
+            >>> col("name").text.lower()
+            >>> col("name").text.trim()
         """
-        from vw.strings import StringAccessor
+        from vw.text import TextAccessor
 
-        return StringAccessor(self)
+        return TextAccessor(self)
 
     @property
     def dt(self) -> DateTimeAccessor:
