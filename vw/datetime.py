@@ -3,13 +3,10 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal
+from typing import Literal
 
 from vw.base import Expression
-
-if TYPE_CHECKING:
-    from vw.render import RenderContext
-
+from vw.render import Dialect, RenderContext
 
 # Type alias for truncation units
 TruncateUnit = Literal["year", "quarter", "month", "week", "day", "hour", "minute", "second"]
@@ -94,6 +91,65 @@ class Now(Expression):
 
     def __vw_render__(self, context: RenderContext) -> str:
         return "NOW()"
+
+
+@dataclass(kw_only=True, frozen=True, eq=False)
+class Interval(Expression):
+    """Represents an INTERVAL value for use with operators."""
+
+    amount: int | float
+    unit: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        from vw.exceptions import UnsupportedDialectError
+
+        if context.config.dialect in (Dialect.POSTGRES, Dialect.SQLALCHEMY):
+            return f"INTERVAL '{self.amount} {self.unit}'"
+        elif context.config.dialect == Dialect.SQLSERVER:
+            raise UnsupportedDialectError(
+                "SQL Server does not support standalone INTERVAL literals. Use date_add/date_sub methods instead."
+            )
+        raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
+
+
+@dataclass(kw_only=True, frozen=True, eq=False)
+class AddInterval(Expression):
+    """Represents datetime/timestamp + interval."""
+
+    expr: Expression
+    amount: int | float
+    unit: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        from vw.exceptions import UnsupportedDialectError
+
+        if context.config.dialect == Dialect.POSTGRES:
+            return f"DATE_ADD({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
+        elif context.config.dialect == Dialect.SQLALCHEMY:
+            return f"DATE_ADD({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
+        elif context.config.dialect == Dialect.SQLSERVER:
+            return f"DATEADD({self.unit}, {self.amount}, {self.expr.__vw_render__(context)})"
+        raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
+
+
+@dataclass(kw_only=True, frozen=True, eq=False)
+class SubtractInterval(Expression):
+    """Represents datetime/timestamp - interval."""
+
+    expr: Expression
+    amount: int | float
+    unit: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        from vw.exceptions import UnsupportedDialectError
+
+        if context.config.dialect == Dialect.POSTGRES:
+            return f"DATE_SUB({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
+        elif context.config.dialect == Dialect.SQLALCHEMY:
+            return f"DATE_SUB({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
+        elif context.config.dialect == Dialect.SQLSERVER:
+            return f"DATEADD({self.unit}, {-self.amount}, {self.expr.__vw_render__(context)})"
+        raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
 
 
 class DateTimeAccessor:
@@ -243,6 +299,42 @@ class DateTimeAccessor:
         """
         return ToTime(expr=self._expr)
 
+    # Interval arithmetic
+
+    def date_add(self, amount: int | float, unit: str) -> AddInterval:
+        """Add an interval to this datetime expression.
+
+        Args:
+            amount: The amount to add (can be positive or negative).
+            unit: The unit of time (e.g., "days", "hours", "months").
+                  For SQL Server, use singular forms like "day", "hour".
+
+        Returns:
+            An AddInterval expression.
+
+        Example:
+            >>> col("created_at").dt.date_add(1, "days")
+            >>> col("created_at").dt.date_add(6, "hours")
+        """
+        return AddInterval(expr=self._expr, amount=amount, unit=unit)
+
+    def date_sub(self, amount: int | float, unit: str) -> SubtractInterval:
+        """Subtract an interval from this datetime expression.
+
+        Args:
+            amount: The amount to subtract (can be positive or negative).
+            unit: The unit of time (e.g., "days", "hours", "months").
+                  For SQL Server, use singular forms like "day", "hour".
+
+        Returns:
+            A SubtractInterval expression.
+
+        Example:
+            >>> col("created_at").dt.date_sub(1, "days")
+            >>> col("created_at").dt.date_sub(6, "hours")
+        """
+        return SubtractInterval(expr=self._expr, amount=amount, unit=unit)
+
 
 # Standalone functions
 
@@ -293,3 +385,20 @@ def now() -> Now:
         >>> vw.now()
     """
     return Now()
+
+
+def interval(amount: int | float, unit: str) -> Interval:
+    """Create an interval value for use with + and - operators.
+
+    Args:
+        amount: The amount of time for the interval.
+        unit: The unit of time (e.g., "days", "hours", "months").
+
+    Returns:
+        An Interval expression.
+
+    Example:
+        >>> vw.interval(1, "days")
+        >>> vw.interval(6, "hours")
+    """
+    return Interval(amount=amount, unit=unit)

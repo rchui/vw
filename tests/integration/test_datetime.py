@@ -193,3 +193,99 @@ def describe_datetime_with_parameter() -> None:
             .render(config=render_config)
         )
         assert result == vw.RenderResult(sql=expected_sql, params={"year": 2024})
+
+
+def describe_date_add_sub() -> None:
+    """Tests for date_add and date_sub rendering."""
+
+    def it_generates_date_add_days(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DATE_ADD(created_at, INTERVAL '1 days') FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at").dt.date_add(1, "days")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_add_hours(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DATE_ADD(created_at, INTERVAL '6 hours') FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at").dt.date_add(6, "hours")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_add_months(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DATE_ADD(created_at, INTERVAL '3 months') FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at").dt.date_add(3, "months")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_sub_days(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DATE_SUB(created_at, INTERVAL '7 days') FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at").dt.date_sub(7, "days")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_sub_weeks(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT DATE_SUB(created_at, INTERVAL '2 weeks') FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at").dt.date_sub(2, "weeks")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_add_in_where(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT * FROM events WHERE (created_at > DATE_ADD(created_at, INTERVAL '7 days'))"
+        result = (
+            vw.Source(name="events")
+            .select(vw.col("*"))
+            .where(vw.col("created_at") > vw.col("created_at").dt.date_add(7, "days"))
+            .render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+
+def describe_interval_standalone() -> None:
+    """Tests for standalone interval function rendering."""
+
+    def it_generates_interval_days(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT created_at + INTERVAL '1 days' FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at") + vw.interval(1, "days")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_interval_hours(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT created_at + INTERVAL '6 hours' FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at") + vw.interval(6, "hours")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_interval_subtraction(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT created_at - INTERVAL '30 days' FROM events"
+        result = (
+            vw.Source(name="events").select(vw.col("created_at") - vw.interval(30, "days")).render(config=render_config)
+        )
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+
+def describe_date_add_sub_sqlserver() -> None:
+    """Tests for date_add and date_sub with SQL Server dialect."""
+
+    def it_generates_date_add_days_sqlserver() -> None:
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        expected_sql = "SELECT DATEADD(day, 1, created_at) FROM events"
+        result = vw.Source(name="events").select(vw.col("created_at").dt.date_add(1, "day")).render(config=config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_add_hours_sqlserver() -> None:
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        expected_sql = "SELECT DATEADD(hour, 6, created_at) FROM events"
+        result = vw.Source(name="events").select(vw.col("created_at").dt.date_add(6, "hour")).render(config=config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_generates_date_sub_days_sqlserver() -> None:
+        config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
+        expected_sql = "SELECT DATEADD(day, -7, created_at) FROM events"
+        result = vw.Source(name="events").select(vw.col("created_at").dt.date_sub(7, "day")).render(config=config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})

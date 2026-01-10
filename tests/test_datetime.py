@@ -146,3 +146,57 @@ def describe_chaining() -> None:
         assert isinstance(result, Extract)
         assert result.field == "day"
         assert isinstance(result.expr, ToDate)
+
+
+def describe_interval() -> None:
+    """Tests for Interval expressions."""
+
+    def it_creates_interval_days() -> None:
+        result = vw.interval(1, "days")
+        assert result.amount == 1
+        assert result.unit == "days"
+
+    def it_creates_interval_hours() -> None:
+        result = vw.interval(6, "hours")
+        assert result.amount == 6
+        assert result.unit == "hours"
+
+    def it_creates_interval_with_float() -> None:
+        result = vw.interval(2.5, "hours")
+        assert result.amount == 2.5
+        assert result.unit == "hours"
+
+    def it_creates_interval_with_months() -> None:
+        result = vw.interval(1, "months")
+        assert result.amount == 1
+        assert result.unit == "months"
+
+
+def describe_add_interval() -> None:
+    """Tests for AddInterval expressions."""
+
+    def it_creates_add_interval_days() -> None:
+        result = vw.col("created_at").dt.date_add(1, "days")
+        assert result.expr == vw.col("created_at")
+        assert result.amount == 1
+        assert result.unit == "days"
+
+    def it_creates_add_interval_hours() -> None:
+        result = vw.col("created_at").dt.date_add(6, "hours")
+        assert result.amount == 6
+        assert result.unit == "hours"
+
+
+def describe_subtract_interval() -> None:
+    """Tests for SubtractInterval expressions."""
+
+    def it_creates_subtract_interval_days() -> None:
+        result = vw.col("created_at").dt.date_sub(1, "days")
+        assert result.expr == vw.col("created_at")
+        assert result.amount == 1
+        assert result.unit == "days"
+
+    def it_creates_subtract_interval_months() -> None:
+        result = vw.col("created_at").dt.date_sub(3, "months")
+        assert result.amount == 3
+        assert result.unit == "months"
