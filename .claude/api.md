@@ -52,6 +52,8 @@ All SQL functions are accessed via the `F` class:
 - `LessThanOrEqual` - Less than or equal comparison operator (<=)
 - `GreaterThan` - Greater than comparison operator (>)
 - `GreaterThanOrEqual` - Greater than or equal comparison operator (>=)
+- `Between` - BETWEEN range comparison operator
+- `NotBetween` - NOT BETWEEN range comparison operator
 - `Source` - Table/view source (extends RowSet)
 - `Statement` - SQL statement (extends Expression and RowSet)
 - `SetOperation` - Combined queries via UNION/INTERSECT/EXCEPT (extends Expression and RowSet)
@@ -81,6 +83,8 @@ All SQL functions are accessed via the `F` class:
 - `.is_not_null()` - IS NOT NULL check
 - `.is_in(*values)` - IN check (values or subquery)
 - `.is_not_in(*values)` - NOT IN check (values or subquery)
+- `.between(start, end)` - BETWEEN range check (inclusive)
+- `.not_between(start, end)` - NOT BETWEEN range check (inclusive)
 - `.alias(name)` - Alias expression (AS name)
 - `.cast(type)` - Type cast
 - `.asc()` - Ascending sort order
@@ -191,6 +195,39 @@ result = (
 # result.params: {"user_id": 123, "status": "active"}
 ```
 
+### BETWEEN Range Checks
+
+Use `.between()` and `.not_between()` for range filtering:
+
+```python
+# Basic BETWEEN with parameters
+result = vw.Source(name="users").select(vw.col("*")).where(
+    vw.col("age").between(vw.param("min_age", 18), vw.param("max_age", 65))
+).render()
+# result.sql: "SELECT * FROM users WHERE (age BETWEEN :min_age AND :max_age)"
+# result.params: {"min_age": 18, "max_age": 65}
+
+# NOT BETWEEN with column literals
+result = vw.Source(name="products").select(vw.col("name"), vw.col("price")).where(
+    vw.col("price").not_between(vw.col("10"), vw.col("100"))
+).render()
+# result.sql: "SELECT name, price FROM products WHERE (price NOT BETWEEN 10 AND 100)"
+
+# BETWEEN with expressions and logical operators
+result = vw.Source(name="orders").select(vw.col("*")).where(
+    (vw.col("amount").between(vw.col("100"), vw.col("1000"))) & 
+    (vw.col("status") == vw.col("'complete'"))
+).render()
+# result.sql: "SELECT * FROM orders WHERE ((amount BETWEEN 100 AND 1000) AND (status = 'complete'))"
+
+# Using NOT operator with BETWEEN
+result = vw.Source(name="users").select(vw.col("*")).where(
+    ~vw.col("age").between(vw.param("min", 18), vw.param("max", 65))
+).render()
+# result.sql: "SELECT * FROM users WHERE NOT (age BETWEEN :min AND :max)"
+# result.params: {"min": 18, "max": 65}
+```
+
 ### SQL Dialects
 
 The `Dialect` enum controls both parameter style and cast syntax:
@@ -286,29 +323,104 @@ result = (
 )
 ```
 
+### SQL Type Constructors
+
+The library provides comprehensive SQL type constructors via the `dtypes` module to prevent typos and ensure type safety:
+
+```python
+from vw import col, param
+from vw import dtypes  # Import the module
+# or specific imports
+from vw.dtypes import decimal, varchar, integer, boolean
+```
+
+#### Character String Types
+```python
+dtypes.char(50)        # CHAR(50)
+dtypes.char()          # CHAR
+dtypes.varchar(255)    # VARCHAR(255)
+dtypes.varchar()       # VARCHAR
+dtypes.text()          # TEXT
+```
+
+#### Numeric Types
+```python
+dtypes.smallint()      # SMALLINT
+dtypes.integer()       # INTEGER
+dtypes.bigint()        # BIGINT
+dtypes.decimal(10, 2)  # DECIMAL(10,2)
+dtypes.decimal()       # DECIMAL
+dtypes.numeric(10, 2)  # NUMERIC(10,2)
+dtypes.numeric()       # NUMERIC
+dtypes.float()         # FLOAT
+dtypes.real()          # REAL
+dtypes.double()        # DOUBLE
+dtypes.double_precision()  # DOUBLE PRECISION
+```
+
+#### Date and Time Types
+```python
+dtypes.date()          # DATE
+dtypes.time()          # TIME
+dtypes.datetime()      # DATETIME
+dtypes.timestamp()     # TIMESTAMP
+dtypes.timestamptz()   # TIMESTAMP WITH TIME ZONE
+```
+
+#### Boolean and Binary Types
+```python
+dtypes.boolean()       # BOOLEAN
+dtypes.bytea()         # BYTEA
+dtypes.blob()          # BLOB
+dtypes.uuid()          # UUID
+```
+
+#### Container Types
+```python
+dtypes.array(dtypes.integer(), 5)     # INTEGER[5]
+dtypes.array(dtypes.text())           # TEXT[]
+dtypes.list(dtypes.varchar(100))      # VARCHAR(100)[]
+dtypes.json()          # JSON
+dtypes.jsonb()         # JSONB
+dtypes.variant()       # VARIANT
+
+# Struct type
+dtypes.struct({
+    "id": dtypes.integer(),
+    "name": dtypes.varchar(100),
+    "active": dtypes.boolean()
+})  # STRUCT(id INTEGER, name VARCHAR(100), active BOOLEAN)
+```
+
 ### Type Casting
 
-Use `.cast()` to cast expressions to SQL types. The syntax varies by dialect:
+Use `.cast()` with SQL type constructors to cast expressions to SQL types. The syntax varies by dialect:
 
 ```python
 # SQLAlchemy/SQL Server: CAST(expr AS type)
 result = vw.Source(name="orders").select(
-    vw.col("price").cast(dtype(decimal(10, 2)))
+    vw.col("price").cast(dtypes.decimal(10, 2))
 ).render()
 # SELECT CAST(price AS DECIMAL(10,2)) FROM orders
 
 # PostgreSQL: expr::type
 config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
 result = vw.Source(name="orders").select(
-    vw.col("price").cast(dtype(numeric()))
+    vw.col("price").cast(dtypes.numeric())
 ).render(config=config)
 # SELECT price::numeric FROM orders
 
 # Cast can be chained with alias
 result = vw.Source(name="orders").select(
-    vw.col("price").cast(dtype(decimal(10, 2))).alias("formatted_price")
+    vw.col("price").cast(dtypes.decimal(10, 2)).alias("formatted_price")
 ).render()
 # SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
+
+# Cast parameters too
+result = vw.Source(name="users").select(
+    vw.param("age", 25).cast(dtypes.smallint())
+).render()
+# SELECT CAST(:age AS SMALLINT) FROM users
 ```
 
 ### LIMIT / OFFSET

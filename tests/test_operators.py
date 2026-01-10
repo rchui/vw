@@ -5,6 +5,7 @@ from vw.column import col
 from vw.operators import (
     Add,
     And,
+    Between,
     Divide,
     Equals,
     GreaterThan,
@@ -17,6 +18,7 @@ from vw.operators import (
     Modulo,
     Multiply,
     Not,
+    NotBetween,
     NotEquals,
     NotLike,
     Or,
@@ -359,3 +361,109 @@ def describe_like_with_logical_operators() -> None:
         """Should combine NOT LIKE with OR."""
         expr = col("name").not_like("%admin%") | col("name").not_like("%system%")
         assert expr.__vw_render__(render_context) == "(name NOT LIKE '%admin%') OR (name NOT LIKE '%system%')"
+
+
+# -----------------------------------------------------------------------------
+# BETWEEN operators
+# -----------------------------------------------------------------------------
+
+
+def describe_between() -> None:
+    """Tests for Between class."""
+
+    def it_renders_between_comparison(render_context: vw.RenderContext) -> None:
+        """Should render BETWEEN comparison."""
+        between = Between(expr=col("age"), lower_bound=col("18"), upper_bound=col("65"))
+        assert between.__vw_render__(render_context) == "age BETWEEN 18 AND 65"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create Between via .between() method."""
+        result = col("price").between(col("10"), col("100"))
+        assert isinstance(result, Between)
+        assert result.__vw_render__(render_context) == "price BETWEEN 10 AND 100"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("users.age").between(col("18"), col("65"))
+        assert result.__vw_render__(render_context) == "users.age BETWEEN 18 AND 65"
+
+    def it_works_with_expressions_as_bounds(render_context: vw.RenderContext) -> None:
+        """Should work with expressions as bounds."""
+        result = col("score").between(col("min_score"), col("max_score"))
+        assert result.__vw_render__(render_context) == "score BETWEEN min_score AND max_score"
+
+    def it_works_with_math_expressions(render_context: vw.RenderContext) -> None:
+        """Should work with mathematical expressions."""
+        result = col("age").between(col("18") + col("0"), col("65") - col("0"))
+        assert result.__vw_render__(render_context) == "age BETWEEN 18 + 0 AND 65 - 0"
+
+
+def describe_not_between() -> None:
+    """Tests for NotBetween class."""
+
+    def it_renders_not_between_comparison(render_context: vw.RenderContext) -> None:
+        """Should render NOT BETWEEN comparison."""
+        not_between = NotBetween(expr=col("score"), lower_bound=col("0"), upper_bound=col("100"))
+        assert not_between.__vw_render__(render_context) == "score NOT BETWEEN 0 AND 100"
+
+    def it_creates_via_method(render_context: vw.RenderContext) -> None:
+        """Should create NotBetween via .not_between() method."""
+        result = col("age").not_between(col("0"), col("18"))
+        assert isinstance(result, NotBetween)
+        assert result.__vw_render__(render_context) == "age NOT BETWEEN 0 AND 18"
+
+    def it_works_with_qualified_column(render_context: vw.RenderContext) -> None:
+        """Should work with qualified column names."""
+        result = col("products.price").not_between(col("1"), col("10"))
+        assert result.__vw_render__(render_context) == "products.price NOT BETWEEN 1 AND 10"
+
+    def it_works_with_expressions_as_bounds(render_context: vw.RenderContext) -> None:
+        """Should work with expressions as bounds."""
+        result = col("value").not_between(col("lower"), col("upper"))
+        assert result.__vw_render__(render_context) == "value NOT BETWEEN lower AND upper"
+
+
+def describe_between_with_logical_operators() -> None:
+    """Tests for BETWEEN combined with logical operators."""
+
+    def it_combines_between_with_and(render_context: vw.RenderContext) -> None:
+        """Should combine BETWEEN with AND."""
+        expr = col("age").between(col("18"), col("65")) & (col("status") == col("'active'"))
+        assert expr.__vw_render__(render_context) == "(age BETWEEN 18 AND 65) AND (status = 'active')"
+
+    def it_combines_not_between_with_or(render_context: vw.RenderContext) -> None:
+        """Should combine NOT BETWEEN with OR."""
+        expr = col("score").not_between(col("0"), col("60")) | col("grade").not_between(col("90"), col("100"))
+        assert expr.__vw_render__(render_context) == "(score NOT BETWEEN 0 AND 60) OR (grade NOT BETWEEN 90 AND 100)"
+
+    def it_negates_between_with_not(render_context: vw.RenderContext) -> None:
+        """Should negate BETWEEN with NOT operator."""
+        expr = ~col("age").between(col("18"), col("65"))
+        assert expr.__vw_render__(render_context) == "NOT (age BETWEEN 18 AND 65)"
+
+    def it_combines_multiple_between_clauses(render_context: vw.RenderContext) -> None:
+        """Should combine multiple BETWEEN clauses."""
+        expr = (
+            col("age").between(col("18"), col("65"))
+            & col("salary").between(col("30000"), col("100000"))
+            & col("experience").not_between(col("0"), col("1"))
+        )
+        assert (
+            expr.__vw_render__(render_context)
+            == "((age BETWEEN 18 AND 65) AND (salary BETWEEN 30000 AND 100000)) AND (experience NOT BETWEEN 0 AND 1)"
+        )
+
+    def it_works_with_mathematical_expressions(render_context: vw.RenderContext) -> None:
+        """Should work with mathematical expressions."""
+        expr = (col("price") * col("quantity")).between(col("100"), col("1000"))
+        assert expr.__vw_render__(render_context) == "price * quantity BETWEEN 100 AND 1000"
+
+    def it_works_with_complex_nested_expressions(render_context: vw.RenderContext) -> None:
+        """Should work with complex nested expressions."""
+        expr = (col("base_salary") + col("bonus")).between(col("50000"), col("200000")) & col(
+            "years_experience"
+        ).between(col("2"), col("10"))
+        assert (
+            expr.__vw_render__(render_context)
+            == "(base_salary + bonus BETWEEN 50000 AND 200000) AND (years_experience BETWEEN 2 AND 10)"
+        )

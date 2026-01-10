@@ -41,6 +41,7 @@
 - [x] Greater than or equal comparison (`>=`)
 - [x] LIKE / NOT LIKE pattern matching (via `.like()`, `.not_like()`)
 - [x] IN comparison via `.is_in()` / `.is_not_in()`
+- [x] BETWEEN / NOT BETWEEN range checks (via `.between()`, `.not_between()`)
 - [x] Mathematical operators: `+`, `-`, `*`, `/`, `%`
 - [x] Logical operators: AND, OR
 - [x] Logical operators: NOT
@@ -52,7 +53,7 @@
 - [x] String operations (via `.str` accessor: upper, lower, trim, ltrim, rtrim, length, substring, replace, concat)
 - [x] Date/time operations (via `.dt` accessor: year, quarter, month, week, day, hour, minute, second, weekday, truncate, date, time; standalone: current_timestamp, current_date, current_time, now)
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
-- [ ] SQL type constructors (e.g., `vw.types.varchar(255)`, `vw.types.decimal(10, 2)`) to prevent typos
+- [x] SQL type constructors (e.g., `vw.dtypes.varchar(255)`, `vw.dtypes.decimal(10, 2)`) to prevent typos
 - [x] NULL handling: `.is_null()` and `.is_not_null()` methods
 - [x] COALESCE function (via `F.coalesce`)
 - [x] NULLIF function (via `F.nullif`)

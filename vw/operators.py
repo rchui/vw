@@ -320,6 +320,40 @@ class IsNotIn(Expression):
 
 
 @dataclass(kw_only=True, frozen=True)
+class Between(Expression):
+    """Represents a BETWEEN check for a value within a range."""
+
+    expr: Expression
+    lower_bound: Expression
+    upper_bound: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the BETWEEN check."""
+        nested = context.recurse()
+        return (
+            f"{self.expr.__vw_render__(context)} BETWEEN "
+            f"{self.lower_bound.__vw_render__(nested)} AND {self.upper_bound.__vw_render__(nested)}"
+        )
+
+
+@dataclass(kw_only=True, frozen=True)
+class NotBetween(Expression):
+    """Represents a NOT BETWEEN check for a value outside a range."""
+
+    expr: Expression
+    lower_bound: Expression
+    upper_bound: Expression
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Return the SQL representation of the NOT BETWEEN check."""
+        nested = context.recurse()
+        return (
+            f"{self.expr.__vw_render__(context)} NOT BETWEEN "
+            f"{self.lower_bound.__vw_render__(nested)} AND {self.upper_bound.__vw_render__(nested)}"
+        )
+
+
+@dataclass(kw_only=True, frozen=True)
 class Exists(Expression):
     """Represents an EXISTS check on a subquery."""
 

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
         Alias,
         And,
         Asc,
+        Between,
         Cast,
         Desc,
         Divide,
@@ -32,6 +33,7 @@ if TYPE_CHECKING:
         Modulo,
         Multiply,
         Not,
+        NotBetween,
         NotEquals,
         NotLike,
         Or,
@@ -481,6 +483,40 @@ class Expression:
         from vw.operators import NotLike
 
         return NotLike(left=self, right=pattern)
+
+    def between(self, lower_bound: Expression, upper_bound: Expression) -> Between:
+        """Create a BETWEEN range check expression.
+
+        Args:
+            lower_bound: The lower bound of the range (inclusive).
+            upper_bound: The upper bound of the range (inclusive).
+
+        Returns:
+            A Between expression representing the range check.
+
+        Example:
+            >>> col("age").between(col("18"), col("65"))
+        """
+        from vw.operators import Between
+
+        return Between(expr=self, lower_bound=lower_bound, upper_bound=upper_bound)
+
+    def not_between(self, lower_bound: Expression, upper_bound: Expression) -> NotBetween:
+        """Create a NOT BETWEEN range check expression.
+
+        Args:
+            lower_bound: The lower bound of the range (inclusive).
+            upper_bound: The upper bound of the range (inclusive).
+
+        Returns:
+            A NotBetween expression representing the negated range check.
+
+        Example:
+            >>> col("score").not_between(col("0"), col("100"))
+        """
+        from vw.operators import NotBetween
+
+        return NotBetween(expr=self, lower_bound=lower_bound, upper_bound=upper_bound)
 
     @property
     def text(self) -> TextAccessor:

@@ -152,6 +152,16 @@ Parameterized value class:
 - `Parameter` - Parameterized values for safe query building
 - `param()` - Helper function to create parameters
 
+### vw/dtypes.py
+SQL type constructors for type-safe casting:
+- `dtype` - NewType for SQL data types (essentially typed string)
+- Character types: `char()`, `varchar()`, `text()`
+- Numeric types: `smallint()`, `integer()`, `bigint()`, `decimal()`, `numeric()`, `float()`, `real()`, `double()`, `double_precision()`
+- Date/Time types: `date()`, `time()`, `datetime()`, `timestamp()`, `timestamptz()`
+- Boolean types: `boolean()`
+- Binary types: `bytea()`, `blob()`, `uuid()`
+- Container types: `array()`, `list()`, `json()`, `jsonb()`, `struct()`, `variant()`
+
 ### vw/operators.py
 Comparison and logical operators:
 - `Equals`, `NotEquals`, `LessThan`, `LessThanOrEqual`, `GreaterThan`, `GreaterThanOrEqual` - Comparison operators
