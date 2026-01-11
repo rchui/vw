@@ -185,7 +185,7 @@ def describe_datetime_with_parameter() -> None:
     """Tests for datetime with parameters."""
 
     def it_uses_parameter_with_extract(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT * FROM events WHERE (EXTRACT(YEAR FROM created_at) = :year)"
+        expected_sql = "SELECT * FROM events WHERE (EXTRACT(YEAR FROM created_at) = $year)"
         result = (
             vw.Source(name="events")
             .select(vw.col("*"))

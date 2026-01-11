@@ -380,7 +380,7 @@ def describe_subqueries():
         expected_sql = """
             SELECT *
             FROM users
-            INNER JOIN (SELECT user_id FROM orders WHERE (status = :status)) AS active_orders
+            INNER JOIN (SELECT user_id FROM orders WHERE (status = $status)) AS active_orders
         """
         users = vw.Source(name="users")
         active_orders = (
@@ -491,7 +491,7 @@ def describe_parameters_in_joins():
             FROM users
             INNER JOIN orders
                 ON (users.id = orders.user_id)
-                AND (users.status = :status)
+                AND (users.status = $status)
         """
         users = vw.Source(name="users")
         orders = vw.Source(name="orders")
@@ -510,8 +510,8 @@ def describe_parameters_in_joins():
             SELECT users.name, orders.total
             FROM users
             INNER JOIN orders
-                ON (users.id = :user_id)
-                AND (orders.status = :status)
+                ON (users.id = $user_id)
+                AND (orders.status = $status)
         """
         users = vw.Source(name="users")
         orders = vw.Source(name="orders")
@@ -529,8 +529,8 @@ def describe_parameters_in_joins():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON (users.age = :threshold)
-                AND (orders.quantity = :threshold)
+                ON (users.age = $threshold)
+                AND (orders.quantity = $threshold)
         """
         users = vw.Source(name="users")
         orders = vw.Source(name="orders")

@@ -8,12 +8,6 @@ import vw
 def describe_parameter() -> None:
     """Tests for Parameter class."""
 
-    def it_renders_parameter_with_default_dialect(render_context: vw.RenderContext) -> None:
-        """Should render parameter with colon prefix and register in context."""
-        param = vw.param("age", 25)
-        assert param.__vw_render__(render_context) == ":age"
-        assert render_context.params == {"age": 25}
-
     def it_renders_parameter_with_postgres_dialect() -> None:
         """Should render parameter with dollar prefix for PostgreSQL."""
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
@@ -33,19 +27,19 @@ def describe_parameter() -> None:
     def it_renders_string_parameter(render_context: vw.RenderContext) -> None:
         """Should render string parameter."""
         param = vw.param("name", "Alice")
-        assert param.__vw_render__(render_context) == ":name"
+        assert param.__vw_render__(render_context) == "$name"
         assert render_context.params == {"name": "Alice"}
 
     def it_renders_float_parameter(render_context: vw.RenderContext) -> None:
         """Should render float parameter."""
         param = vw.param("price", 19.99)
-        assert param.__vw_render__(render_context) == ":price"
+        assert param.__vw_render__(render_context) == "$price"
         assert render_context.params == {"price": 19.99}
 
     def it_renders_bool_parameter(render_context: vw.RenderContext) -> None:
         """Should render boolean parameter."""
         param = vw.param("active", True)
-        assert param.__vw_render__(render_context) == ":active"
+        assert param.__vw_render__(render_context) == "$active"
         assert render_context.params == {"active": True}
 
     def it_allows_reusing_same_parameter(render_context: vw.RenderContext) -> None:
@@ -53,8 +47,8 @@ def describe_parameter() -> None:
         param = vw.param("threshold", 100)
         result1 = param.__vw_render__(render_context)
         result2 = param.__vw_render__(render_context)
-        assert result1 == ":threshold"
-        assert result2 == ":threshold"
+        assert result1 == "$threshold"
+        assert result2 == "$threshold"
         assert render_context.params == {"threshold": 100}
 
 

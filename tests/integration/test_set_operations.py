@@ -71,9 +71,9 @@ def describe_set_operations():
 
     def it_preserves_parameters_in_set_operations(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            (SELECT id FROM users WHERE (status = :status1))
+            (SELECT id FROM users WHERE (status = $status1))
             UNION
-            (SELECT id FROM admins WHERE (status = :status2))
+            (SELECT id FROM admins WHERE (status = $status2))
         """
         query1 = vw.Source(name="users").select(vw.col("id")).where(vw.col("status") == vw.param("status1", "active"))
         query2 = (

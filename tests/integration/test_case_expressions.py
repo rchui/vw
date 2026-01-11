@@ -79,7 +79,7 @@ def describe_case_expressions():
 
     def it_generates_case_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT CASE WHEN status = :active_status THEN :active_value ELSE :default_value END FROM users
+            SELECT CASE WHEN status = $active_status THEN $active_value ELSE $default_value END FROM users
         """
         stmt = vw.Source(name="users").select(
             vw.when(vw.col("status") == vw.param("active_status", "active"))

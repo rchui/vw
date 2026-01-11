@@ -159,7 +159,7 @@ def describe_string_with_parameters():
 
     def it_uses_parameter_with_upper(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE (UPPER(name) = UPPER(:search))
+            SELECT * FROM users WHERE (UPPER(name) = UPPER($search))
         """
         search = vw.param("search", "john")
         result = (

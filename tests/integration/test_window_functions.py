@@ -372,7 +372,7 @@ def describe_coalesce():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_coalesce_with_param_default(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT COALESCE(nickname, :default_name) FROM users"
+        expected_sql = "SELECT COALESCE(nickname, $default_name) FROM users"
         stmt = vw.Source(name="users").select(
             F.coalesce(vw.col("nickname"), vw.param("default_name", "Unknown")),
         )
@@ -392,7 +392,7 @@ def describe_nullif():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_nullif_with_param(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT NULLIF(status, :empty) FROM users"
+        expected_sql = "SELECT NULLIF(status, $empty) FROM users"
         stmt = vw.Source(name="users").select(
             F.nullif(vw.col("status"), vw.param("empty", "")),
         )
@@ -400,7 +400,7 @@ def describe_nullif():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"empty": ""})
 
     def it_generates_nullif_with_alias(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT NULLIF(divisor, :zero) AS safe_divisor FROM calc"
+        expected_sql = "SELECT NULLIF(divisor, $zero) AS safe_divisor FROM calc"
         stmt = vw.Source(name="calc").select(
             F.nullif(vw.col("divisor"), vw.param("zero", 0)).alias("safe_divisor"),
         )
@@ -428,7 +428,7 @@ def describe_greatest():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_greatest_with_param(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT GREATEST(price, :floor) FROM products"
+        expected_sql = "SELECT GREATEST(price, $floor) FROM products"
         stmt = vw.Source(name="products").select(
             F.greatest(vw.col("price"), vw.param("floor", 10)),
         )
@@ -436,7 +436,7 @@ def describe_greatest():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"floor": 10})
 
     def it_generates_greatest_with_alias(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT GREATEST(price, :floor) AS final_price FROM products"
+        expected_sql = "SELECT GREATEST(price, $floor) AS final_price FROM products"
         stmt = vw.Source(name="products").select(
             F.greatest(vw.col("price"), vw.param("floor", 10)).alias("final_price"),
         )
@@ -464,7 +464,7 @@ def describe_least():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
     def it_generates_least_with_param(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT LEAST(price, :ceiling) FROM products"
+        expected_sql = "SELECT LEAST(price, $ceiling) FROM products"
         stmt = vw.Source(name="products").select(
             F.least(vw.col("price"), vw.param("ceiling", 100)),
         )
@@ -472,7 +472,7 @@ def describe_least():
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"ceiling": 100})
 
     def it_generates_least_with_alias(render_config: vw.RenderConfig) -> None:
-        expected_sql = "SELECT LEAST(price, :ceiling) AS capped_price FROM products"
+        expected_sql = "SELECT LEAST(price, $ceiling) AS capped_price FROM products"
         stmt = vw.Source(name="products").select(
             F.least(vw.col("price"), vw.param("ceiling", 100)).alias("capped_price"),
         )

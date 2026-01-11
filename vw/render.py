@@ -16,9 +16,6 @@ if TYPE_CHECKING:
 class Dialect(StrEnum):
     """Supported SQL dialects for rendering."""
 
-    SQLALCHEMY = "sqlalchemy"
-    """SQLAlchemy style: :param, CAST(expr AS type)"""
-
     POSTGRES = "postgres"
     """PostgreSQL style: $param, expr::type"""
 
@@ -30,7 +27,7 @@ class Dialect(StrEnum):
 class RenderConfig:
     """Configuration for SQL rendering."""
 
-    dialect: Dialect = Dialect.SQLALCHEMY
+    dialect: Dialect = Dialect.POSTGRES
 
 
 @dataclass(kw_only=True)
@@ -78,9 +75,7 @@ class RenderContext:
             UnsupportedDialectError: If the dialect is not supported.
         """
         self.params[name] = value
-        if self.config.dialect == Dialect.SQLALCHEMY:
-            return f":{name}"
-        elif self.config.dialect == Dialect.POSTGRES:
+        if self.config.dialect == Dialect.POSTGRES:
             return f"${name}"
         elif self.config.dialect == Dialect.SQLSERVER:
             return f"@{name}"

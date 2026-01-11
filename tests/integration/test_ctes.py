@@ -37,7 +37,7 @@ def describe_basic_ctes():
 
     def it_generates_cte_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            WITH active_users AS (SELECT * FROM users WHERE (status = :status))
+            WITH active_users AS (SELECT * FROM users WHERE (status = $status))
             SELECT * FROM active_users
         """
         status = vw.param("status", "active")

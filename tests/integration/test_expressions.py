@@ -8,17 +8,6 @@ from vw import dtypes
 def describe_cast():
     """Tests for type casting."""
 
-    def it_generates_cast_with_sqlalchemy_dialect(render_config: vw.RenderConfig) -> None:
-        expected_sql = """
-            SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders
-        """
-        result = (
-            vw.Source(name="orders")
-            .select(vw.col("id"), vw.col("price").cast(dtypes.decimal(10, 2)))
-            .render(config=render_config)
-        )
-        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
-
     def it_generates_cast_with_postgres_dialect() -> None:
         expected_sql = """
             SELECT id, price::NUMERIC FROM orders
@@ -31,7 +20,7 @@ def describe_cast():
 
     def it_generates_cast_with_alias(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
+            SELECT price::DECIMAL(10,2) AS formatted_price FROM orders
         """
         result = (
             vw.Source(name="orders")
@@ -65,7 +54,7 @@ def describe_expression_alias():
 
     def it_generates_aliased_parameter_in_select(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT id, :tax_rate AS tax FROM orders
+            SELECT id, $tax_rate AS tax FROM orders
         """
         result = (
             vw.Source(name="orders")
@@ -102,10 +91,10 @@ def describe_parameters():
             SELECT *
             FROM users
             INNER JOIN orders
-                ON (users.name = :name)
-                AND (users.age = :age)
-                AND (orders.price = :price)
-                AND (users.active = :active)
+                ON (users.name = $name)
+                AND (users.age = $age)
+                AND (orders.price = $price)
+                AND (users.active = $active)
         """
         users = vw.Source(name="users")
         orders = vw.Source(name="orders")
@@ -199,7 +188,7 @@ def describe_null_handling():
 
     def it_generates_null_check_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE (deleted_at IS NULL) AND (status = :status)
+            SELECT * FROM users WHERE (deleted_at IS NULL) AND (status = $status)
         """
         result = (
             vw.Source(name="users")
@@ -286,7 +275,7 @@ def describe_in_subqueries():
 
     def it_generates_in_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE (id IN (:id1, :id2, :id3))
+            SELECT * FROM users WHERE (id IN ($id1, $id2, $id3))
         """
         result = (
             vw.Source(name="users")
@@ -299,7 +288,7 @@ def describe_in_subqueries():
     def it_generates_in_with_subquery(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * FROM users
-            WHERE (id IN ((SELECT user_id FROM orders WHERE (total > :min_total))))
+            WHERE (id IN ((SELECT user_id FROM orders WHERE (total > $min_total))))
         """
         orders_subquery = (
             vw.Source(name="orders").select(vw.col("user_id")).where(vw.col("total") > vw.param("min_total", 100))
@@ -329,7 +318,7 @@ def describe_in_subqueries():
     def it_combines_in_with_other_conditions(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * FROM users
-            WHERE (status IN ('active', 'pending')) AND (age >= :min_age)
+            WHERE (status IN ('active', 'pending')) AND (age >= $min_age)
         """
         result = (
             vw.Source(name="users")
@@ -371,7 +360,7 @@ def describe_exists_subqueries():
     def it_generates_exists_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * FROM customers
-            WHERE (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = customers.id) AND (orders.total > :min_total)))
+            WHERE (EXISTS (SELECT 1 FROM orders WHERE (orders.customer_id = customers.id) AND (orders.total > $min_total)))
         """
         customers = vw.Source(name="customers")
         orders = vw.Source(name="orders")
@@ -435,7 +424,7 @@ def describe_scalar_subqueries():
     def it_generates_scalar_subquery_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
             SELECT * FROM products
-            WHERE (price < (SELECT AVG(price) FROM products WHERE (category = :category)))
+            WHERE (price < (SELECT AVG(price) FROM products WHERE (category = $category)))
         """
         avg_in_category = (
             vw.Source(name="products")

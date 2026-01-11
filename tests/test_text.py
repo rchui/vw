@@ -151,4 +151,4 @@ def describe_string_accessor() -> None:
         param = vw.param("search_term", "test")
         result = param.text.upper()
         assert isinstance(result, Upper)
-        assert result.__vw_render__(render_context) == "UPPER(:search_term)"
+        assert result.__vw_render__(render_context) == "UPPER($search_term)"

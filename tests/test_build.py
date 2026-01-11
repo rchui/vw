@@ -116,7 +116,7 @@ def describe_where() -> None:
         status = vw.param("status", "active")
         statement = source.select(vw.col("*")).where(vw.col("age") >= min_age, vw.col("status") == status)
         assert statement.render(config=render_config) == vw.RenderResult(
-            sql="SELECT * FROM users WHERE (age >= :min_age) AND (status = :status)",
+            sql="SELECT * FROM users WHERE (age >= $min_age) AND (status = $status)",
             params={"min_age": 18, "status": "active"},
         )
 
@@ -261,11 +261,6 @@ def describe_cte_function() -> None:
 def describe_cast() -> None:
     """Tests for expression casting."""
 
-    def it_casts_column_with_function_style(render_context: vw.RenderContext) -> None:
-        """Should render CAST(column AS type) for SQLAlchemy dialect."""
-        expr = vw.col("price").cast(dtypes.decimal(10, 2))
-        assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2))"
-
     def it_casts_column_with_operator_style() -> None:
         """Should render column::type for PostgreSQL dialect."""
         config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
@@ -276,7 +271,7 @@ def describe_cast() -> None:
     def it_casts_parameter(render_context: vw.RenderContext) -> None:
         """Should render CAST(parameter AS type)."""
         expr = vw.param("value", 123).cast(dtypes.varchar())
-        assert expr.__vw_render__(render_context) == "CAST(:value AS VARCHAR)"
+        assert expr.__vw_render__(render_context) == "$value::VARCHAR"
         assert render_context.params == {"value": 123}
 
     def it_casts_with_sqlserver_dialect() -> None:
@@ -289,7 +284,7 @@ def describe_cast() -> None:
     def it_chains_cast_and_alias(render_context: vw.RenderContext) -> None:
         """Should allow chaining cast and alias."""
         expr = vw.col("price").cast(dtypes.decimal(10, 2)).alias("formatted_price")
-        assert expr.__vw_render__(render_context) == "CAST(price AS DECIMAL(10,2)) AS formatted_price"
+        assert expr.__vw_render__(render_context) == "price::DECIMAL(10,2) AS formatted_price"
 
     def it_renders_in_select(render_config: vw.RenderConfig) -> None:
         """Should render cast in SELECT."""
@@ -302,7 +297,7 @@ def describe_cast() -> None:
             .render(config=render_config)
         )
         assert result == vw.RenderResult(
-            sql="SELECT id, CAST(price AS DECIMAL(10,2)) FROM orders",
+            sql="SELECT id, price::DECIMAL(10,2) FROM orders",
             params={},
         )
 
@@ -322,7 +317,7 @@ def describe_alias() -> None:
     def it_aliases_parameter(render_context: vw.RenderContext) -> None:
         """Should render parameter AS alias."""
         expr = vw.param("tax_rate", 0.08).alias("tax")
-        assert expr.__vw_render__(render_context) == ":tax_rate AS tax"
+        assert expr.__vw_render__(render_context) == "$tax_rate AS tax"
         assert render_context.params == {"tax_rate": 0.08}
 
     def it_aliases_comparison_expression(render_context: vw.RenderContext) -> None:
@@ -675,7 +670,7 @@ def describe_having() -> None:
             .render(config=render_config)
         )
         assert result == vw.RenderResult(
-            sql="SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING (COUNT(*) > :min_orders)",
+            sql="SELECT customer_id, COUNT(*) FROM orders GROUP BY customer_id HAVING (COUNT(*) > $min_orders)",
             params={"min_orders": 5},
         )
 
@@ -705,6 +700,6 @@ def describe_having() -> None:
             .render(config=render_config)
         )
         assert result == vw.RenderResult(
-            sql="SELECT customer_id, COUNT(*) FROM orders WHERE (status = 'completed') GROUP BY customer_id HAVING (COUNT(*) > :min_orders)",
+            sql="SELECT customer_id, COUNT(*) FROM orders WHERE (status = 'completed') GROUP BY customer_id HAVING (COUNT(*) > $min_orders)",
             params={"min_orders": 5},
         )

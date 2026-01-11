@@ -103,7 +103,7 @@ class Interval(Expression):
     def __vw_render__(self, context: RenderContext) -> str:
         from vw.exceptions import UnsupportedDialectError
 
-        if context.config.dialect in (Dialect.POSTGRES, Dialect.SQLALCHEMY):
+        if context.config.dialect == Dialect.POSTGRES:
             return f"INTERVAL '{self.amount} {self.unit}'"
         elif context.config.dialect == Dialect.SQLSERVER:
             raise UnsupportedDialectError(
@@ -125,8 +125,6 @@ class AddInterval(Expression):
 
         if context.config.dialect == Dialect.POSTGRES:
             return f"DATE_ADD({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
-        elif context.config.dialect == Dialect.SQLALCHEMY:
-            return f"DATE_ADD({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
         elif context.config.dialect == Dialect.SQLSERVER:
             return f"DATEADD({self.unit}, {self.amount}, {self.expr.__vw_render__(context)})"
         raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
@@ -144,8 +142,6 @@ class SubtractInterval(Expression):
         from vw.exceptions import UnsupportedDialectError
 
         if context.config.dialect == Dialect.POSTGRES:
-            return f"DATE_SUB({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
-        elif context.config.dialect == Dialect.SQLALCHEMY:
             return f"DATE_SUB({self.expr.__vw_render__(context)}, INTERVAL '{self.amount} {self.unit}')"
         elif context.config.dialect == Dialect.SQLSERVER:
             return f"DATEADD({self.unit}, {-self.amount}, {self.expr.__vw_render__(context)})"

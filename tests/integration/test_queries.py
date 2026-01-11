@@ -62,7 +62,7 @@ def describe_where():
 
     def it_generates_where_with_parameters(render_config: vw.RenderConfig) -> None:
         expected_sql = """
-            SELECT * FROM users WHERE (age >= :min_age) AND (status = :status)
+            SELECT * FROM users WHERE (age >= $min_age) AND (status = $status)
         """
         min_age = vw.param("min_age", 18)
         status = vw.param("status", "active")
@@ -230,7 +230,7 @@ def describe_having():
             SELECT customer_id, COUNT(*)
             FROM orders
             GROUP BY customer_id
-            HAVING (COUNT(*) > :min_orders)
+            HAVING (COUNT(*) > $min_orders)
         """
         result = (
             vw.Source(name="orders")
@@ -245,9 +245,9 @@ def describe_having():
         expected_sql = """
             SELECT customer_id, COUNT(*), SUM(total)
             FROM orders
-            WHERE (status = :status)
+            WHERE (status = $status)
             GROUP BY customer_id
-            HAVING (COUNT(*) >= :min_orders) AND (SUM(total) > :min_total)
+            HAVING (COUNT(*) >= $min_orders) AND (SUM(total) > $min_total)
         """
         result = (
             vw.Source(name="orders")
@@ -329,9 +329,9 @@ def describe_limit():
         expected_sql = """
             SELECT customer_id, COUNT(*), SUM(total)
             FROM orders
-            WHERE (status = :status)
+            WHERE (status = $status)
             GROUP BY customer_id
-            HAVING (COUNT(*) >= :min_orders)
+            HAVING (COUNT(*) >= $min_orders)
             ORDER BY SUM(total) DESC
             LIMIT 10 OFFSET 5
         """

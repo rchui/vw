@@ -266,7 +266,7 @@ class Cast(Expression):
 
         if context.config.dialect == Dialect.POSTGRES:
             return f"{self.expr.__vw_render__(context)}::{self.data_type}"
-        elif context.config.dialect in (Dialect.SQLALCHEMY, Dialect.SQLSERVER):
+        elif context.config.dialect == Dialect.SQLSERVER:
             return f"CAST({self.expr.__vw_render__(context)} AS {self.data_type})"
         raise UnsupportedDialectError(f"Unsupported dialect: {context.config.dialect}")
 

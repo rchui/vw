@@ -313,7 +313,7 @@ class Statement(RowSet, Expression):
             sql += f" ORDER BY {', '.join(order_cols)}"
 
         if self._limit is not None:
-            if context.config.dialect in (Dialect.SQLALCHEMY, Dialect.POSTGRES):
+            if context.config.dialect == Dialect.POSTGRES:
                 sql += f" LIMIT {self._limit.count}"
                 if self._limit.offset is not None:
                     sql += f" OFFSET {self._limit.offset}"

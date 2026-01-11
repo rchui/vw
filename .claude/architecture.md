@@ -8,7 +8,7 @@ The rendering system uses a context pattern to collect parameters during tree tr
 
 ```python
 # Create context
-config = RenderConfig(dialect=Dialect.SQLALCHEMY)
+config = RenderConfig(dialect=Dialect.POSTGRES)
 context = RenderContext(config=config)
 
 # Render expression tree
@@ -182,7 +182,6 @@ Query builder classes:
 ### vw/render.py
 Rendering infrastructure:
 - `Dialect` - Enum for SQL dialects (controls parameter style and cast syntax)
-  - `SQLALCHEMY` - :param, CAST(expr AS type)
   - `POSTGRES` - $param, expr::type
   - `SQLSERVER` - @param, CAST(expr AS type)
 - `RenderConfig` - Rendering configuration (dialect selection)

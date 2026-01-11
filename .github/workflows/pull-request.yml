@@ -16,12 +16,7 @@ jobs:
           cache-dependency-glob: 'uv.lock'
 
       - run: |
-          uv sync --locked --all-extras --dev
+          make env
 
       - run: |
-          uv run pytest
-
-      - run: |
-          uv run ruff check .
-          uv run ruff format --check .
-          uv run ty check
+          make test

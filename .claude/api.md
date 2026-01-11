@@ -215,7 +215,7 @@ result = vw.Source(name="products").select(vw.col("name"), vw.col("price")).wher
 
 # BETWEEN with expressions and logical operators
 result = vw.Source(name="orders").select(vw.col("*")).where(
-    (vw.col("amount").between(vw.col("100"), vw.col("1000"))) & 
+    (vw.col("amount").between(vw.col("100"), vw.col("1000"))) &
     (vw.col("status") == vw.col("'complete'"))
 ).render()
 # result.sql: "SELECT * FROM orders WHERE ((amount BETWEEN 100 AND 1000) AND (status = 'complete'))"
@@ -233,9 +233,7 @@ result = vw.Source(name="users").select(vw.col("*")).where(
 The `Dialect` enum controls both parameter style and cast syntax:
 
 ```python
-# Default is SQLAlchemy dialect (:param, CAST())
-config = vw.RenderConfig(dialect=vw.Dialect.SQLALCHEMY)
-result = query.render(config=config)  # Uses :name, CAST(x AS type)
+# Default is PostgreSQL
 
 # PostgreSQL dialect ($param, ::type)
 config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
@@ -397,7 +395,7 @@ dtypes.struct({
 Use `.cast()` with SQL type constructors to cast expressions to SQL types. The syntax varies by dialect:
 
 ```python
-# SQLAlchemy/SQL Server: CAST(expr AS type)
+# SQL Server: CAST(expr AS type)
 result = vw.Source(name="orders").select(
     vw.col("price").cast(dtypes.decimal(10, 2))
 ).render()
@@ -414,13 +412,13 @@ result = vw.Source(name="orders").select(
 result = vw.Source(name="orders").select(
     vw.col("price").cast(dtypes.decimal(10, 2)).alias("formatted_price")
 ).render()
-# SELECT CAST(price AS DECIMAL(10,2)) AS formatted_price FROM orders
+# SELECT price::DECIMAL(10,2) AS formatted_price FROM orders
 
 # Cast parameters too
 result = vw.Source(name="users").select(
     vw.param("age", 25).cast(dtypes.smallint())
 ).render()
-# SELECT CAST(:age AS SMALLINT) FROM users
+# SELECT $age::SMALLINT FROM users
 ```
 
 ### LIMIT / OFFSET
