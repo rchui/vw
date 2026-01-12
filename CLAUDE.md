@@ -61,13 +61,20 @@ These coding principles are mandatory:
 - Keep tests simple and focused on verifying observable behavior.
 
 10. Incrementality
-- Favor working in small, digestable pieces.
+- Before starting any work, breakdown the work that needs to be done into a list of sequential, atomic, complete changes.
+- Favor working in digestable pieces that can be easily rolled back.
 - Keep PRs as simple and focused on the task at hand.
 - Leave breadcrumb comments where known future work will go.
 
 11. Testability
-- Work should be continuously tested.
-- Ensure that all tests, linters, and type checks are successful before proceeding.
+- Work should be continuously tested at the end of each piece of work.
+- New work should add unit tests (mandatory), and integration tests (if appropriate).
+- Ensure that all tests, linters, and type checks are successful before moving on to the next piece of work.
+
+12. Refactoring
+- When making a change, consider how that change fits in with the rest of the codebase.
+- Look for opportunities to refactor related code when making any changes.
+- Remove or simplify code whenever possible.
 
 ```bash
 uv run pytest          # Run tests
