@@ -39,6 +39,7 @@ if TYPE_CHECKING:
         Subtract,
     )
     from vw.render import RenderContext
+    from vw.star import StarExpression
     from vw.text import TextAccessor
 
 from typing_extensions import Self
@@ -90,6 +91,23 @@ class RowSet:
         if self._alias:
             return Column(name=f"{self._alias}.{column_name}")
         return Column(name=column_name)
+
+    @property
+    def star(self) -> StarExpression:
+        """Create a star expression qualified with this row set's alias.
+
+        Returns:
+            A StarExpression with the alias as prefix.
+
+        Example:
+            >>> Source(name="users").alias("u").star()  # Returns StarExpression(Column("u.*"))
+        """
+        from vw.column import Column
+        from vw.star import StarExpression
+
+        if self._alias:
+            return StarExpression(column=Column(name=f"{self._alias}.*"))
+        return StarExpression(column=Column(name="*"))
 
     @property
     def join(self) -> JoinAccessor:

@@ -3,6 +3,7 @@
 ## Query Building
 - [x] Basic SELECT statements
 - [x] SELECT * FROM table
+- [x] SELECT * {EXCLUDE,REPLACE,RENAME} (...) FROM table (`vw.star`, `Source.star`)
 - [x] SELECT col1, col2 FROM table
 - [x] Method chaining (Source → join → select → render)
 - [x] Qualified column references via `Source.col()`

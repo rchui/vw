@@ -22,7 +22,7 @@ All public exports from `vw/__init__.py`:
 ### Frame Module (Window Functions)
 Import as `import vw.frame`:
 - `frame.UNBOUNDED_PRECEDING` - Window frame start boundary
-- `frame.UNBOUNDED_FOLLOWING` - Window frame end boundary  
+- `frame.UNBOUNDED_FOLLOWING` - Window frame end boundary
 - `frame.CURRENT_ROW` - Current row boundary
 - `frame.preceding(n)` - n rows preceding boundary
 - `frame.following(n)` - n rows following boundary
@@ -170,6 +170,23 @@ result = users.select(
     users.col("name")
 ).render()
 # result.sql: "SELECT users.id, users.name FROM users"
+```
+
+### SELECT * Extensions
+
+```python
+users = vw.Source(name="users")
+result = users.star
+# result.sql: "SELECT * FROM users"
+
+result = users.star.exclude(vw.col("id"))
+# result.sql: "SELECT * EXCLUDE (id) FROM users"
+
+result = users.star.replace(vw.col("id").alias("internal_id"))
+# result.sql: "SELECT * REPLACE (id as internal_id)"
+
+result = users.star.rename(vw.col("id").alias("identifier"))
+# result.sql: "SELECT * RENAME (id as identifier)"
 ```
 
 ### INNER JOIN
@@ -856,7 +873,7 @@ result = (
     )
     .render()
 )
-# SELECT id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS order_num, 
+# SELECT id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS order_num,
 #        SUM(amount) OVER (PARTITION BY customer_id) AS customer_total FROM orders
 
 # LAG/LEAD for accessing previous/next rows
