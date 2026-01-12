@@ -71,14 +71,14 @@ These coding principles are mandatory:
 - New work should add unit tests (mandatory), and integration tests (if appropriate).
 - Ensure that all tests, linters, and type checks are successful before moving on to the next piece of work.
 
-12. Refactoring
-- When making a change, consider how that change fits in with the rest of the codebase.
-- Look for opportunities to refactor related code when making any changes.
-- Remove or simplify code whenever possible.
-
 ```bash
 uv run pytest          # Run tests
 uv run ruff check      # Lint
 uv run ruff format     # Format
 uv run ty check        # Type check
 ```
+
+12. Refactoring
+- When making a change, consider how that change fits in with the rest of the codebase.
+- Look for opportunities to refactor related code when making any changes.
+- Remove or simplify code whenever possible.
