@@ -3,6 +3,7 @@
 import pytest
 
 import vw
+from vw.exceptions import UnsupportedParamStyleError
 
 
 def describe_parameter() -> None:
@@ -69,3 +70,36 @@ def describe_param_function() -> None:
 
         with pytest.raises(TypeError, match="Unsupported parameter type: dict"):
             vw.param("config", {"key": "value"})  # type: ignore
+
+
+def describe_parameter_rendering() -> None:
+    """Tests for rendering Parameter objects."""
+
+    @pytest.mark.parametrize(
+        "style, expected_placeholder",
+        [
+            (vw.render.ParamStyle.COLON, ":age"),
+            (vw.render.ParamStyle.DOLLAR, "$age"),
+            (vw.render.ParamStyle.AT, "@age"),
+            (vw.render.ParamStyle.PYFORMAT, "%(age)s"),
+        ],
+    )
+    def it_renders_with_style_overrides(style, expected_placeholder) -> None:
+        """Should render parameter with the correct placeholder for each style override."""
+        param = vw.param("age", 25)
+        config = vw.RenderConfig(param_style=style)
+        context = vw.RenderContext(config=config)
+        assert param.__vw_render__(context) == expected_placeholder
+        assert context.params == {"age": 25}
+
+    def it_raises_error_for_unsupported_param_style() -> None:
+        """Should raise UnsupportedParamStyleError for an unknown style."""
+        config = vw.RenderConfig(param_style="invalid_style")  # type: ignore
+        context = vw.RenderContext(config=config)
+        param = vw.param("age", 25)
+        with pytest.raises(
+            UnsupportedParamStyleError,
+            match="Unsupported parameter style: invalid_style",
+        ):
+            param.__vw_render__(context)
+

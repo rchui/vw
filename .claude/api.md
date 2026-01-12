@@ -63,9 +63,11 @@ All SQL functions are accessed via the `F` class:
 - `CaseExpression` - Complete CASE expression (from `vw.operators`)
 - `InnerJoin` - Inner join operation
 - `RenderResult` - Rendering result with SQL and params
-- `RenderConfig` - Rendering configuration
+- `RenderConfig` - Rendering configuration, including dialect and optional parameter style override
 - `RenderContext` - Rendering context (for advanced use)
-- `Dialect` - SQL dialect enum (controls parameter style and cast syntax)
+- `Dialect` - SQL dialect enum (controls cast syntax and default parameter style)
+- `ParamStyle` - Enum for specifying parameter placeholder style (e.g., `:name`, `$name`, `@name`, `%(name)s`)
+
 
 ### Operators (via Expression methods)
 - `&` - Logical AND (`expr1 & expr2`)
@@ -228,20 +230,42 @@ result = vw.Source(name="users").select(vw.col("*")).where(
 # result.params: {"min": 18, "max": 65}
 ```
 
-### SQL Dialects
 
-The `Dialect` enum controls both parameter style and cast syntax:
+### Parameter Style Override
+
+The default parameter style is determined by the selected `Dialect`. However, you can explicitly override this using the `param_style` attribute in `RenderConfig`.
 
 ```python
-# Default is PostgreSQL
+import vw
+from vw.render import RenderConfig, ParamStyle, Dialect
 
-# PostgreSQL dialect ($param, ::type)
-config = vw.RenderConfig(dialect=vw.Dialect.POSTGRES)
-result = query.render(config=config)  # Uses $name, x::type
+users = vw.Source(name="users")
+min_age_param = vw.param("min_age", 18)
 
-# SQL Server dialect (@param, CAST())
-config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
-result = query.render(config=config)  # Uses @name, CAST(x AS type)
+# Default for PostgreSQL is DOLLAR ($param)
+query_pg_default = users.select(vw.col("*")).where(vw.col("age") >= min_age_param)
+result = query_pg_default.render(config=RenderConfig(dialect=Dialect.POSTGRES))
+# result.sql: "SELECT * FROM users WHERE (age >= $min_age)"
+
+# Override to COLON style for PostgreSQL
+config_pg_colon = RenderConfig(dialect=Dialect.POSTGRES, param_style=ParamStyle.COLON)
+result_pg_colon = query_pg_default.render(config=config_pg_colon)
+# result_pg_colon.sql: "SELECT * FROM users WHERE (age >= :min_age)"
+
+# Override to PYFORMAT style
+config_pyformat = RenderConfig(param_style=ParamStyle.PYFORMAT)
+result_pyformat = users.select(vw.col("*")).where(vw.col("age") >= min_age_param).render(config=config_pyformat)
+# result_pyformat.sql: "SELECT * FROM users WHERE (age >= %(min_age)s)"
+
+# Default for SQL Server is AT (@param)
+query_ss_default = users.select(vw.col("*")).where(vw.col("age") >= min_age_param)
+result_ss_default = query_ss_default.render(config=RenderConfig(dialect=Dialect.SQLSERVER))
+# result_ss_default.sql: "SELECT * FROM users WHERE (age >= @min_age)"
+
+# Override to COLON style for SQL Server
+config_ss_colon = RenderConfig(dialect=Dialect.SQLSERVER, param_style=ParamStyle.COLON)
+result_ss_colon = query_ss_default.render(config=config_ss_colon)
+# result_ss_colon.sql: "SELECT * FROM users WHERE (age >= :min_age)"
 ```
 
 ### ORDER BY

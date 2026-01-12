@@ -7,10 +7,23 @@ from typing import TYPE_CHECKING, Any
 
 from strenum import StrEnum
 
-from vw.exceptions import CTENameCollisionError, UnsupportedDialectError
+from vw.exceptions import (
+    CTENameCollisionError,
+    UnsupportedDialectError,
+    UnsupportedParamStyleError,
+)
 
 if TYPE_CHECKING:
     from vw.build import CommonTableExpression
+
+
+class ParamStyle(StrEnum):
+    """Supported parameter styles for rendering."""
+
+    COLON = "colon"  # :param_name
+    DOLLAR = "dollar"  # $param_name
+    AT = "at"  # @param_name
+    PYFORMAT = "pyformat"  # %(param_name)s
 
 
 class Dialect(StrEnum):
@@ -28,6 +41,7 @@ class RenderConfig:
     """Configuration for SQL rendering."""
 
     dialect: Dialect = Dialect.POSTGRES
+    param_style: ParamStyle | None = None
 
 
 @dataclass(kw_only=True)
@@ -72,14 +86,31 @@ class RenderContext:
             The SQL placeholder string for this parameter.
 
         Raises:
-            UnsupportedDialectError: If the dialect is not supported.
+            UnsupportedDialectError: If the dialect is not supported for default styling.
+            UnsupportedParamStyleError: If the parameter style is not supported.
         """
         self.params[name] = value
+
+        # User specified parameter style takes precedence
+        if self.config.param_style:
+            if self.config.param_style == ParamStyle.DOLLAR:
+                return f"${name}"
+            elif self.config.param_style == ParamStyle.AT:
+                return f"@{name}"
+            elif self.config.param_style == ParamStyle.COLON:
+                return f":{name}"
+            elif self.config.param_style == ParamStyle.PYFORMAT:
+                return f"%({name})s"
+            else:
+                raise UnsupportedParamStyleError(f"Unsupported parameter style: {self.config.param_style}")
+
+        # Default parameter style based on dialect
         if self.config.dialect == Dialect.POSTGRES:
             return f"${name}"
         elif self.config.dialect == Dialect.SQLSERVER:
             return f"@{name}"
-        raise UnsupportedDialectError(f"Unsupported dialect: {self.config.dialect}")
+        else:
+            raise UnsupportedDialectError(f"Unsupported dialect for parameter styling: {self.config.dialect}")
 
 
 @dataclass(kw_only=True, frozen=True)
