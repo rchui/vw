@@ -5,21 +5,18 @@ Usage:
     >>> vw.col()
 """
 
-from typing_extensions import NewType
-
-dtype = NewType("dtype", str)
 
 # --- Character String ----------------------------------------------------------------------------------------------- #
 
 
-def char(n: int | None = None) -> dtype:
+def char(n: int | None = None) -> str:
     """Fixed-length character type with length n.
 
     Args:
         n: Length of the char.
 
     Returns:
-        dtype: A string representing the char type.
+        str: A string representing the char type.
 
     Example:
         >>> char(10)
@@ -29,18 +26,18 @@ def char(n: int | None = None) -> dtype:
     """
 
     if n is None:
-        return dtype("CHAR")
-    return dtype(f"CHAR({n})")
+        return "CHAR"
+    return f"CHAR({n})"
 
 
-def varchar(n: int | None = None) -> dtype:
+def varchar(n: int | None = None) -> str:
     """Variable-length character type with maximum length n.
 
     Args:
         n: Maximum length of the varchar.
 
     Returns:
-        dtype: A string representing the varchar type.
+        str: A string representing the varchar type.
 
     Example:
         >>> varchar(50)
@@ -50,186 +47,186 @@ def varchar(n: int | None = None) -> dtype:
     """
 
     if n is None:
-        return dtype("VARCHAR")
-    return dtype(f"VARCHAR({n})")
+        return "VARCHAR"
+    return f"VARCHAR({n})"
 
 
-def text() -> dtype:
+def text() -> str:
     """Text type.
 
     Returns:
-        dtype: A string representing the text type.
+        str: A string representing the text type.
 
     Example:
         >>> text()
         'TEXT'
     """
-    return dtype("TEXT")
+    return "TEXT"
 
 
 # --- Binary --------------------------------------------------------------------------------------------------------- #
 
 
-def bytea() -> dtype:
+def bytea() -> str:
     """Binary data type.
 
     Returns:
-        dtype: A string representing the binary data type.
+        str: A string representing the binary data type.
 
     Example:
         >>> bytea()
         'BYTEA'
     """
-    return dtype("BYTEA")
+    return "BYTEA"
 
 
-def blob() -> dtype:
+def blob() -> str:
     """Binary Large Object type.
 
     Returns:
-        dtype: A string representing the BLOB type.
+        str: A string representing the BLOB type.
 
     Example:
         >>> blob()
         'BLOB'
     """
-    return dtype("BLOB")
+    return "BLOB"
 
 
-def uuid() -> dtype:
+def uuid() -> str:
     """UUID type.
 
     Returns:
-        dtype: A string representing the UUID type.
+        str: A string representing the UUID type.
 
     Example:
         >>> uuid()
         'UUID'
     """
-    return dtype("UUID")
+    return "UUID"
 
 
 # --- Numeric -------------------------------------------------------------------------------------------------------- #
 
 
-def smallint() -> dtype:
+def smallint() -> str:
     """Small integer type.
 
     Returns:
-        dtype: A string representing the small integer type.
+        str: A string representing the small integer type.
 
     Example:
         >>> smallint()
         'SMALLINT'
     """
-    return dtype("SMALLINT")
+    return "SMALLINT"
 
 
-def integer() -> dtype:
+def integer() -> str:
     """Integer type.
 
     Returns:
-        dtype: A string representing the integer type.
+        str: A string representing the integer type.
 
     Example:
         >>> integer()
         'INTEGER'
     """
-    return dtype("INTEGER")
+    return "INTEGER"
 
 
-def bigint() -> dtype:
+def bigint() -> str:
     """Big integer type.
 
     Returns:
-        dtype: A string representing the big integer type.
+        str: A string representing the big integer type.
 
     Example:
         >>> bigint()
         'BIGINT'
     """
-    return dtype("BIGINT")
+    return "BIGINT"
 
 
-def float() -> dtype:
+def float() -> str:
     """Floating-point number type.
 
     Returns:
-        dtype: A string representing the floating-point number type.
+        str: A string representing the floating-point number type.
 
     Example:
         >>> float()
         'FLOAT'
     """
-    return dtype("FLOAT")
+    return "FLOAT"
 
 
-def float4() -> dtype:
+def float4() -> str:
     """4-byte floating-point number type.
 
     Returns:
-        dtype: A string representing the 4-byte floating-point number type.
+        str: A string representing the 4-byte floating-point number type.
 
     Example:
         >>> float4()
         'FLOAT4'
     """
-    return dtype("FLOAT4")
+    return "FLOAT4"
 
 
-def real() -> dtype:
+def real() -> str:
     """Real number type.
 
     Returns:
-        dtype: A string representing the real number type.
+        str: A string representing the real number type.
 
     Example:
         >>> real()
         'REAL'
     """
-    return dtype("REAL")
+    return "REAL"
 
 
-def double() -> dtype:
+def double() -> str:
     """Double precision floating-point number type.
 
     Returns:
-        dtype: A string representing the double precision floating-point number type.
+        str: A string representing the double precision floating-point number type.
 
     Example:
         >>> double()
         'DOUBLE'
     """
-    return dtype("DOUBLE")
+    return "DOUBLE"
 
 
-def float8() -> dtype:
+def float8() -> str:
     """8-byte floating-point number type.
 
     Returns:
-        dtype: A string representing the 8-byte floating-point number type.
+        str: A string representing the 8-byte floating-point number type.
 
     Example:
         >>> float8()
         'FLOAT8'
     """
-    return dtype("FLOAT8")
+    return "FLOAT8"
 
 
-def double_precision() -> dtype:
+def double_precision() -> str:
     """Double precision floating-point number type.
 
     Returns:
-        dtype: A string representing the double precision floating-point number type.
+        str: A string representing the double precision floating-point number type.
 
     Example:
         >>> double_precision()
         'DOUBLE PRECISION'
     """
-    return dtype("DOUBLE PRECISION")
+    return "DOUBLE PRECISION"
 
 
-def numeric(precision: int | None = None, scale: int | None = None) -> dtype:
+def numeric(precision: int | None = None, scale: int | None = None) -> str:
     """Numeric type with specified precision and scale.
 
     Args:
@@ -237,20 +234,20 @@ def numeric(precision: int | None = None, scale: int | None = None) -> dtype:
         scale: Number of digits to the right of the decimal point.
 
     Returns:
-        dtype: A string representing the numeric type.
+        str: A string representing the numeric type.
 
     Example:
         >>> numeric(10, 2)
         'NUMERIC(10,2)'
     """
     if precision is None and scale is None:
-        return dtype("NUMERIC")
+        return "NUMERIC"
     if scale is None:
-        return dtype(f"NUMERIC({precision})")
-    return dtype(f"NUMERIC({precision},{scale})")
+        return f"NUMERIC({precision})"
+    return f"NUMERIC({precision},{scale})"
 
 
-def decimal(precision: int | None = None, scale: int | None = None) -> dtype:
+def decimal(precision: int | None = None, scale: int | None = None) -> str:
     """Decimal type with specified precision and scale.
 
     Args:
@@ -258,39 +255,39 @@ def decimal(precision: int | None = None, scale: int | None = None) -> dtype:
         scale: Number of digits to the right of the decimal point.
 
     Returns:
-        dtype: A string representing the decimal type.
+        str: A string representing the decimal type.
 
     Example:
         >>> decimal(10, 2)
         'DECIMAL(10,2)'
     """
     if precision is None and scale is None:
-        return dtype("DECIMAL")
+        return "DECIMAL"
     if scale is None:
-        return dtype(f"DECIMAL({precision})")
-    return dtype(f"DECIMAL({precision},{scale})")
+        return f"DECIMAL({precision})"
+    return f"DECIMAL({precision},{scale})"
 
 
 # --- Logical -------------------------------------------------------------------------------------------------------- #
 
 
-def boolean() -> dtype:
+def boolean() -> str:
     """Boolean type.
 
     Returns:
-        dtype: A string representing the boolean type.
+        str: A string representing the boolean type.
 
     Example:
         >>> boolean()
         'BOOLEAN'
     """
-    return dtype("BOOLEAN")
+    return "BOOLEAN"
 
 
 # --- Container ------------------------------------------------------------------------------------------------------ #
 
 
-def array(element_type: str, n: int | None = None) -> dtype:
+def array(element_type: str, n: int | None = None) -> str:
     """Array type with specified element type and length.
 
     Args:
@@ -298,7 +295,7 @@ def array(element_type: str, n: int | None = None) -> dtype:
         n: Length of the array.
 
     Returns:
-        dtype: A string representing the array type.
+        str: A string representing the array type.
 
     Example:
         >>> array(integer(), 5)
@@ -306,60 +303,60 @@ def array(element_type: str, n: int | None = None) -> dtype:
     """
 
     if n is None:
-        return dtype(f"{element_type}[]")
-    return dtype(f"{element_type}[{n}]")
+        return f"{element_type}[]"
+    return f"{element_type}[{n}]"
 
 
-def list(element_type: str) -> dtype:
+def list(element_type: str) -> str:
     """List type with specified element type.
 
     Args:
         element_type: The type of elements in the list.
 
     Returns:
-        dtype: A string representing the list type.
+        str: A string representing the list type.
 
     Example:
         >>> list(text())
         'TEXT[]'
     """
-    return dtype(f"{element_type}[]")
+    return f"{element_type}[]"
 
 
-def json() -> dtype:
+def json() -> str:
     """JSON type.
 
     Returns:
-        dtype: A string representing the JSON type.
+        str: A string representing the JSON type.
 
     Example:
         >>> json()
         'JSON'
     """
-    return dtype("JSON")
+    return "JSON"
 
 
-def jsonb() -> dtype:
+def jsonb() -> str:
     """Binary JSON type.
 
     Returns:
-        dtype: A string representing the binary JSON type.
+        str: A string representing the binary JSON type.
 
     Example:
         >>> jsonb()
         'JSONB'
     """
-    return dtype("JSONB")
+    return "JSONB"
 
 
-def struct(entries: dict[str, str]) -> dtype:
+def struct(entries: dict[str, str]) -> str:
     """Struct type with specified entries.
 
     Args:
         entries: A dictionary mapping field names to their types.
 
     Returns:
-        dtype: A string representing the struct type.
+        str: A string representing the struct type.
 
     Example:
         >>> struct({'id': integer(), 'name': text()})
@@ -367,85 +364,85 @@ def struct(entries: dict[str, str]) -> dtype:
     """
 
     fields = ", ".join(f"{name} {dtype}" for name, dtype in entries.items())
-    return dtype(f"STRUCT({fields})")
+    return f"STRUCT({fields})"
 
 
-def variant() -> dtype:
+def variant() -> str:
     """Variant type.
 
     Returns:
-        dtype: A string representing the variant type.
+        str: A string representing the variant type.
 
     Example:
         >>> variant()
         'VARIANT'
     """
-    return dtype("VARIANT")
+    return "VARIANT"
 
 
 # --- Date and Time -------------------------------------------------------------------------------------------------- #
 
 
-def date() -> dtype:
+def date() -> str:
     """Date type.
 
     Returns:
-        dtype: A string representing the date type.
+        str: A string representing the date type.
 
     Example:
         >>> date()
         'DATE'
     """
-    return dtype("DATE")
+    return "DATE"
 
 
-def time() -> dtype:
+def time() -> str:
     """Time type.
 
     Returns:
-        dtype: A string representing the time type.
+        str: A string representing the time type.
 
     Example:
         >>> time()
         'TIME'
     """
-    return dtype("TIME")
+    return "TIME"
 
 
-def datetime() -> dtype:
+def datetime() -> str:
     """Datetime type.
 
     Returns:
-        dtype: A string representing the datetime type.
+        str: A string representing the datetime type.
 
     Example:
         >>> datetime()
         'DATETIME'
     """
-    return dtype("DATETIME")
+    return "DATETIME"
 
 
-def timestamp() -> dtype:
+def timestamp() -> str:
     """Timestamp type.
 
     Returns:
-        dtype: A string representing the timestamp type.
+        str: A string representing the timestamp type.
 
     Example:
         >>> timestamp()
         'TIMESTAMP'
     """
-    return dtype("TIMESTAMP")
+    return "TIMESTAMP"
 
 
-def timestamptz() -> dtype:
+def timestamptz() -> str:
     """Timestamp with time zone type.
 
     Returns:
-        dtype: A string representing the timestamp with time zone type.
+        str: A string representing the timestamp with time zone type.
 
     Example:
         >>> timestamptz()
         'TIMESTAMPTZ'
     """
-    return dtype("TIMESTAMP WITH TIME ZONE")
+    return "TIMESTAMP WITH TIME ZONE"

@@ -303,7 +303,7 @@ def describe_cast() -> None:
 
     def it_can_be_raw() -> None:
         """Should allow raw dtypes."""
-        vw.col("price").cast(dtypes.dtype("INTEGER"))
+        vw.col("price").cast("INTEGER")
 
 
 def describe_alias() -> None:
