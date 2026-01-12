@@ -3,7 +3,7 @@
 from vw import frame
 from vw.build import Source, Statement, cte
 from vw.column import Column, col
-from vw.datetime import current_date, current_time, current_timestamp, interval, now
+from vw.datetime import current_date, current_time, current_timestamp, date, interval, now
 from vw.functions import F
 from vw.operators import exists, when
 from vw.parameter import Parameter, param
@@ -25,6 +25,7 @@ __all__: list[str] = [
     "current_date",
     "current_time",
     "current_timestamp",
+    "date",
     "exists",
     "frame",
     "interval",

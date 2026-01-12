@@ -17,6 +17,7 @@ All public exports from `vw/__init__.py`:
 - `current_time()` - Get current time
 - `now()` - Get current timestamp (NOW() function)
 - `interval(amount, unit)` - Create an INTERVAL value for arithmetic
+- `date(value)` - Create a DATE literal (e.g., `date("2023-01-01")`)
 
 ### Frame Module (Window Functions)
 Import as `import vw.frame`:

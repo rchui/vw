@@ -94,6 +94,16 @@ class Now(Expression):
 
 
 @dataclass(kw_only=True, frozen=True, eq=False)
+class Date(Expression):
+    """Represents a DATE literal."""
+
+    value: str
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        return f"DATE '{self.value}'"
+
+
+@dataclass(kw_only=True, frozen=True, eq=False)
 class Interval(Expression):
     """Represents an INTERVAL value for use with operators."""
 
@@ -398,3 +408,19 @@ def interval(amount: int | float, unit: str) -> Interval:
         >>> vw.interval(6, "hours")
     """
     return Interval(amount=amount, unit=unit)
+
+
+def date(value: str) -> Date:
+    """Create a date literal.
+
+    Args:
+        value: The date string in "YYYY-MM-DD" format.
+
+    Returns:
+        A Date expression.
+
+    Example:
+        >>> from vw.datetime import date
+        >>> date("2023-01-01")
+    """
+    return Date(value=value)

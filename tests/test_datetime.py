@@ -200,3 +200,19 @@ def describe_subtract_interval() -> None:
         result = vw.col("created_at").dt.date_sub(3, "months")
         assert result.amount == 3
         assert result.unit == "months"
+
+
+def describe_date_literal() -> None:
+    """Tests for the date() literal function."""
+
+    def it_creates_a_date_literal() -> None:
+        """Creating a date literal returns a Date object."""
+        result = vw.date("2023-01-01")
+        assert isinstance(result, vw.datetime.Date)
+        assert result.value == "2023-01-01"
+
+    def it_renders_correctly() -> None:
+        """The date literal renders to DATE 'YYYY-MM-DD'."""
+        query = vw.Source(name="test").select(vw.date("2023-01-01"))
+        result = query.render()
+        assert result.sql == "SELECT DATE '2023-01-01' FROM test"
