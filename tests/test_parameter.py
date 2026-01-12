@@ -102,4 +102,3 @@ def describe_parameter_rendering() -> None:
             match="Unsupported parameter style: invalid_style",
         ):
             param.__vw_render__(context)
-

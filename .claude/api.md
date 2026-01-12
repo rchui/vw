@@ -11,6 +11,21 @@ All public exports from `vw/__init__.py`:
 - `exists(subquery)` - Create an EXISTS expression for a subquery
 - `when(condition)` - Start a CASE expression (returns `When` object)
 
+### Date/Time Functions
+- `current_timestamp()` - Get current timestamp
+- `current_date()` - Get current date
+- `current_time()` - Get current time
+- `now()` - Get current timestamp (NOW() function)
+- `interval(amount, unit)` - Create an INTERVAL value for arithmetic
+
+### Frame Module (Window Functions)
+Import as `import vw.frame`:
+- `frame.UNBOUNDED_PRECEDING` - Window frame start boundary
+- `frame.UNBOUNDED_FOLLOWING` - Window frame end boundary  
+- `frame.CURRENT_ROW` - Current row boundary
+- `frame.preceding(n)` - n rows preceding boundary
+- `frame.following(n)` - n rows following boundary
+
 ### Functions Namespace (`F` from `vw.functions` or `vw.F`)
 All SQL functions are accessed via the `F` class:
 
@@ -67,6 +82,37 @@ All SQL functions are accessed via the `F` class:
 - `RenderContext` - Rendering context (for advanced use)
 - `Dialect` - SQL dialect enum (controls cast syntax and default parameter style)
 - `ParamStyle` - Enum for specifying parameter placeholder style (e.g., `:name`, `$name`, `@name`, `%(name)s`)
+
+### Exceptions (from `vw.exceptions`)
+- `VWError` - Base exception for all vw errors
+- `CTENameCollisionError` - Raised when multiple CTEs with the same name are registered
+- `UnsupportedParamStyleError` - Raised when an unsupported parameter style is used
+- `UnsupportedDialectError` - Raised when a feature is not supported for the selected dialect
+
+### Accessors
+
+#### Text Accessor (`.text`)
+Access string operations on any expression via `.text`:
+- `.text.upper()` - Convert to uppercase
+- `.text.lower()` - Convert to lowercase
+- `.text.trim()` - Remove leading/trailing whitespace
+- `.text.ltrim()` - Remove leading whitespace
+- `.text.rstrip()` - Remove trailing whitespace
+- `.text.length()` - Get string length
+- `.text.substring(start, length=None)` - Extract substring
+- `.text.replace(old, new)` - Replace occurrences
+- `.text.concat(*others)` - Concatenate with other expressions
+
+#### DateTime Accessor (`.dt`)
+Access datetime operations on any expression via `.dt`:
+- `.dt.year()`, `.dt.month()`, `.dt.day()` - Extract date parts
+- `.dt.hour()`, `.dt.minute()`, `.dt.second()` - Extract time parts
+- `.dt.quarter()`, `.dt.week()`, `.dt.weekday()` - Extract temporal units
+- `.dt.truncate(unit)` - Truncate to specified unit ("year", "month", etc.)
+- `.dt.date()` - Extract date part
+- `.dt.time()` - Extract time part
+- `.dt.date_add(amount, unit)` - Add interval
+- `.dt.date_sub(amount, unit)` - Subtract interval
 
 
 ### Operators (via Expression methods)
@@ -236,36 +282,14 @@ result = vw.Source(name="users").select(vw.col("*")).where(
 The default parameter style is determined by the selected `Dialect`. However, you can explicitly override this using the `param_style` attribute in `RenderConfig`.
 
 ```python
-import vw
 from vw.render import RenderConfig, ParamStyle, Dialect
 
-users = vw.Source(name="users")
-min_age_param = vw.param("min_age", 18)
-
-# Default for PostgreSQL is DOLLAR ($param)
-query_pg_default = users.select(vw.col("*")).where(vw.col("age") >= min_age_param)
-result = query_pg_default.render(config=RenderConfig(dialect=Dialect.POSTGRES))
-# result.sql: "SELECT * FROM users WHERE (age >= $min_age)"
-
-# Override to COLON style for PostgreSQL
-config_pg_colon = RenderConfig(dialect=Dialect.POSTGRES, param_style=ParamStyle.COLON)
-result_pg_colon = query_pg_default.render(config=config_pg_colon)
-# result_pg_colon.sql: "SELECT * FROM users WHERE (age >= :min_age)"
-
-# Override to PYFORMAT style
-config_pyformat = RenderConfig(param_style=ParamStyle.PYFORMAT)
-result_pyformat = users.select(vw.col("*")).where(vw.col("age") >= min_age_param).render(config=config_pyformat)
-# result_pyformat.sql: "SELECT * FROM users WHERE (age >= %(min_age)s)"
-
-# Default for SQL Server is AT (@param)
-query_ss_default = users.select(vw.col("*")).where(vw.col("age") >= min_age_param)
-result_ss_default = query_ss_default.render(config=RenderConfig(dialect=Dialect.SQLSERVER))
-# result_ss_default.sql: "SELECT * FROM users WHERE (age >= @min_age)"
-
-# Override to COLON style for SQL Server
-config_ss_colon = RenderConfig(dialect=Dialect.SQLSERVER, param_style=ParamStyle.COLON)
-result_ss_colon = query_ss_default.render(config=config_ss_colon)
-# result_ss_colon.sql: "SELECT * FROM users WHERE (age >= :min_age)"
+# Override parameter style for any dialect
+config = RenderConfig(dialect=Dialect.POSTGRES, param_style=ParamStyle.COLON)
+result = vw.Source(name="users").select(vw.col("*")).where(
+    vw.col("age") >= vw.param("min_age", 18)
+).render(config=config)
+# result.sql: "SELECT * FROM users WHERE (age >= :min_age)"
 ```
 
 ### ORDER BY
@@ -273,32 +297,14 @@ result_ss_colon = query_ss_default.render(config=config_ss_colon)
 Use `.order_by()` with `.asc()` or `.desc()` for sorting:
 
 ```python
-# Basic ORDER BY (ascending)
+# Basic ORDER BY
 result = (
     vw.Source(name="users")
     .select(vw.col("*"))
-    .order_by(vw.col("name").asc())
+    .order_by(vw.col("name").asc(), vw.col("created_at").desc())
     .render()
 )
-# SELECT * FROM users ORDER BY name ASC
-
-# Descending order
-result = (
-    vw.Source(name="users")
-    .select(vw.col("*"))
-    .order_by(vw.col("created_at").desc())
-    .render()
-)
-# SELECT * FROM users ORDER BY created_at DESC
-
-# Multiple columns with mixed directions
-result = (
-    vw.Source(name="users")
-    .select(vw.col("*"))
-    .order_by(vw.col("last_name").asc(), vw.col("first_name").asc(), vw.col("created_at").desc())
-    .render()
-)
-# SELECT * FROM users ORDER BY last_name ASC, first_name ASC, created_at DESC
+# SELECT * FROM users ORDER BY name ASC, created_at DESC
 
 # Without explicit direction (defaults to database default, typically ASC)
 result = (
@@ -375,8 +381,10 @@ dtypes.decimal()       # DECIMAL
 dtypes.numeric(10, 2)  # NUMERIC(10,2)
 dtypes.numeric()       # NUMERIC
 dtypes.float()         # FLOAT
+dtypes.float4()        # FLOAT4 (4-byte floating point)
 dtypes.real()          # REAL
 dtypes.double()        # DOUBLE
+dtypes.float8()        # FLOAT8 (8-byte floating point)
 dtypes.double_precision()  # DOUBLE PRECISION
 ```
 
@@ -738,6 +746,95 @@ result = (
 # SELECT * FROM orders WHERE (CASE WHEN priority = 'high' THEN 1 ELSE 0 END = 1)
 ```
 
+### String Operations
+
+Use the `.text` accessor for string operations:
+
+```python
+# Basic string operations
+result = (
+    vw.Source(name="users")
+    .select(
+        vw.col("name").text.upper().alias("upper_name"),
+        vw.col("email").text.trim().alias("clean_email"),
+        vw.col("name").text.length().alias("name_length")
+    )
+    .render()
+)
+# SELECT UPPER(name) AS upper_name, TRIM(email) AS clean_email, LENGTH(name) AS name_length FROM users
+
+# Substring and replace
+result = (
+    vw.Source(name="products")
+    .select(
+        vw.col("description").text.substring(1, 50).alias("short_desc"),
+        vw.col("content").text.replace("old", "new").alias("updated_content")
+    )
+    .render()
+)
+# SELECT SUBSTRING(description, 1, 50) AS short_desc, REPLACE(content, 'old', 'new') AS updated_content FROM products
+
+# Concatenation
+result = (
+    vw.Source(name="users")
+    .select(
+        vw.col("first_name").text.concat(vw.col("' '"), vw.col("last_name")).alias("full_name")
+    )
+    .render()
+)
+# SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM users
+```
+
+### DateTime Operations
+
+Use the `.dt` accessor for datetime operations:
+
+```python
+# Extract date/time parts
+result = (
+    vw.Source(name="orders")
+    .select(
+        vw.col("created_at").dt.year().alias("order_year"),
+        vw.col("created_at").dt.month().alias("order_month"),
+        vw.col("created_at").dt.day().alias("order_day")
+    )
+    .render()
+)
+# SELECT EXTRACT(YEAR FROM created_at) AS order_year, EXTRACT(MONTH FROM created_at) AS order_month, EXTRACT(DAY FROM created_at) AS order_day FROM orders
+
+# Date truncation
+result = (
+    vw.Source(name="logs")
+    .select(
+        vw.col("timestamp").dt.truncate("month").alias("month_start")
+    )
+    .render()
+)
+# SELECT DATE_TRUNC('month', timestamp) AS month_start FROM logs
+
+# Interval arithmetic
+result = (
+    vw.Source(name="events")
+    .select(
+        vw.col("start_time").dt.date_add(7, "days").alias("week_later"),
+        vw.col("end_time").dt.date_sub(1, "hours").alias("one_hour_before")
+    )
+    .render()
+)
+# SELECT DATE_ADD(start_time, INTERVAL '7 days') AS week_later, DATE_SUB(end_time, INTERVAL '1 hours') AS one_hour_before FROM events
+
+# Standalone datetime functions
+result = (
+    vw.Source(name="events")
+    .select(
+        vw.current_timestamp().alias("now"),
+        vw.interval(30, "minutes").alias("thirty_minutes")
+    )
+    .render()
+)
+# SELECT CURRENT_TIMESTAMP AS now, INTERVAL '30 minutes' AS thirty_minutes FROM events
+```
+
 ### Window Functions
 
 Use the `F` namespace for window functions and aggregates:
@@ -745,29 +842,7 @@ Use the `F` namespace for window functions and aggregates:
 ```python
 from vw.functions import F
 
-# ROW_NUMBER with ORDER BY
-result = (
-    vw.Source(name="orders")
-    .select(
-        vw.col("id"),
-        F.row_number().over(order_by=[vw.col("created_at").desc()]).alias("row_num")
-    )
-    .render()
-)
-# SELECT id, ROW_NUMBER() OVER (ORDER BY created_at DESC) AS row_num FROM orders
-
-# Window function with PARTITION BY
-result = (
-    vw.Source(name="orders")
-    .select(
-        vw.col("id"),
-        F.sum(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("customer_total")
-    )
-    .render()
-)
-# SELECT id, SUM(amount) OVER (PARTITION BY customer_id) AS customer_total FROM orders
-
-# Both PARTITION BY and ORDER BY
+# Window functions with PARTITION BY and ORDER BY
 result = (
     vw.Source(name="orders")
     .select(
@@ -775,11 +850,13 @@ result = (
         F.row_number().over(
             partition_by=[vw.col("customer_id")],
             order_by=[vw.col("order_date").asc()]
-        ).alias("order_num")
+        ).alias("order_num"),
+        F.sum(vw.col("amount")).over(partition_by=[vw.col("customer_id")]).alias("customer_total")
     )
     .render()
 )
-# SELECT id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS order_num FROM orders
+# SELECT id, ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date ASC) AS order_num, 
+#        SUM(amount) OVER (PARTITION BY customer_id) AS customer_total FROM orders
 
 # LAG/LEAD for accessing previous/next rows
 result = (
@@ -793,21 +870,14 @@ result = (
 )
 # SELECT date, price, LAG(price, 1) OVER (ORDER BY date ASC) AS prev_price FROM prices
 
-# Aggregate functions without OVER (regular aggregates)
-result = (
-    vw.Source(name="orders")
-    .select(F.count(), F.sum(vw.col("amount")).alias("total"))
-    .render()
-)
+# Regular aggregates (without OVER)
+result = vw.Source(name="orders").select(F.count(), F.sum(vw.col("amount")).alias("total")).render()
 # SELECT COUNT(*), SUM(amount) AS total FROM orders
 
 # Empty OVER() for window over entire result set
 result = (
     vw.Source(name="orders")
-    .select(
-        vw.col("id"),
-        F.sum(vw.col("amount")).over().alias("grand_total")
-    )
+    .select(vw.col("id"), F.sum(vw.col("amount")).over().alias("grand_total"))
     .render()
 )
 # SELECT id, SUM(amount) OVER () AS grand_total FROM orders

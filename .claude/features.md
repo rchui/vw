@@ -50,8 +50,11 @@
 - [x] Aggregate functions: COUNT, SUM, AVG, MIN, MAX (via `F.count`, `F.sum`, `F.avg`, `F.min`, `F.max`)
 - [x] Window functions (via `F` namespace with `.over()`)
 - [x] Window function frame clauses (ROWS/RANGE BETWEEN via `.rows_between()`, `.range_between()`)
-- [x] String operations (via `.str` accessor: upper, lower, trim, ltrim, rtrim, length, substring, replace, concat)
+- [x] Window frame boundaries (via `vw.frame` module: UNBOUNDED_PRECEDING, CURRENT_ROW, etc.)
+- [x] String operations (via `.text` accessor: upper, lower, trim, ltrim, rtrim, length, substring, replace, concat)
 - [x] Date/time operations (via `.dt` accessor: year, quarter, month, week, day, hour, minute, second, weekday, truncate, date, time; standalone: current_timestamp, current_date, current_time, now)
+- [x] Interval arithmetic via `.dt.date_add()`, `.dt.date_sub()`
+- [x] Standalone interval creation via `interval()` function
 - [x] Type casting (`.cast()` method with dialect-aware rendering)
 - [x] SQL type constructors (e.g., `vw.dtypes.varchar(255)`, `vw.dtypes.decimal(10, 2)`) to prevent typos
 - [x] NULL handling: `.is_null()` and `.is_not_null()` methods
@@ -75,6 +78,7 @@
 - [x] RenderContext for parameter collection
 - [x] RenderResult with SQL and params dict
 - [x] Configurable parameter styles
+- [x] Parameter style override via `RenderConfig.param_style`
 
 ## Escape Hatch
 - [x] Raw SQL strings in columns for unsupported features
@@ -86,8 +90,10 @@
 - [ ] Better error messages
 - [ ] SQL formatting/pretty-printing
 
-## Infrastructure
-- [ ] CI/CD configuration
-- [ ] Documentation site
-- [ ] Performance benchmarks
-- [ ] Database driver integration examples
+## Error Handling
+- [x] Custom exception hierarchy with base `VWError`
+- [x] `CTENameCollisionError` for duplicate CTE names
+- [x] `UnsupportedParamStyleError` for invalid parameter styles
+- [x] `UnsupportedDialectError` for dialect-specific limitations
+
+

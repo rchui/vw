@@ -129,6 +129,16 @@ Columns accept raw SQL strings for unsupported features.
 - Gradual feature adoption - can add proper support later
 - Example: `col("* REPLACE (foo AS bar)")`
 
+### 9. Accessor Pattern for Domain-Specific Operations
+String and datetime operations use accessors instead of direct methods:
+- `.text` accessor for string operations
+- `.dt` accessor for datetime operations
+
+**Rationale**:
+- Separates domain-specific operations from core expression logic
+- More discoverable API with clear namespacing
+- Easy to extend with new operations without cluttering Expression interface
+
 ## Module Organization
 
 ### vw/base.py
@@ -174,24 +184,52 @@ Query builder classes:
 - `Limit` - LIMIT/OFFSET for pagination
 - `Source` - Table/view sources (extends RowSet), overrides `.col()` to use table name as fallback
 - `Statement` - Complete SQL statements (extends Expression and RowSet)
-- `InnerJoin` - Join operations
-- `JoinAccessor` - Join accessor for method chaining, works with any RowSet
 - `CommonTableExpression` - CTE for WITH clauses (extends RowSet)
 - `cte()` - Helper function to create CTEs
+
+### vw/joins.py
+Join implementation classes:
+- `JoinAccessor` - Join accessor for method chaining, works with any RowSet
+- `InnerJoin` - INNER JOIN implementation
+- `LeftJoin` - LEFT JOIN implementation  
+- `RightJoin` - RIGHT JOIN implementation
+- `FullOuterJoin` - FULL OUTER JOIN implementation
+- `CrossJoin` - CROSS JOIN implementation
+- `SemiJoin` - SEMI JOIN implementation
+- `AntiJoin` - ANTI JOIN implementation
 
 ### vw/render.py
 Rendering infrastructure:
 - `Dialect` - Enum for SQL dialects (controls parameter style and cast syntax)
   - `POSTGRES` - $param, expr::type
   - `SQLSERVER` - @param, CAST(expr AS type)
-- `RenderConfig` - Rendering configuration (dialect selection)
+- `RenderConfig` - Rendering configuration (dialect selection, parameter style override)
 - `RenderContext` - Stateful rendering context with depth tracking, CTE collection
 - `RenderResult` - Final rendering result (SQL + params)
+- `ParamStyle` - Enum for parameter placeholder styles (:name, $name, @name, %(name)s)
+
+### vw/text.py
+String operations and accessors:
+- String function classes: `Upper`, `Lower`, `Trim`, `LTrim`, `RTrim`, `Length`, `Substring`, `Replace`, `Concat`
+- `TextAccessor` - Provides `.text` accessor on Expression for string operations
+
+### vw/datetime.py
+DateTime operations and standalone functions:
+- DateTime function classes: `Extract`, `DateTrunc`, `ToDate`, `ToTime`, `CurrentTimestamp`, `CurrentDate`, `CurrentTime`, `Now`, `Interval`, `AddInterval`, `SubtractInterval`
+- `DateTimeAccessor` - Provides `.dt` accessor on Expression for datetime operations
+- Standalone functions: `current_timestamp()`, `current_date()`, `current_time()`, `now()`, `interval()`
+
+### vw/frame.py
+Window frame boundaries:
+- `FrameBoundary` base class
+- Boundary classes: `_UnboundedPreceding`, `_UnboundedFollowing`, `_CurrentRow`, `preceding`, `following`
+- Constants: `UNBOUNDED_PRECEDING`, `UNBOUNDED_FOLLOWING`, `CURRENT_ROW`
 
 ### vw/exceptions.py
 Custom exceptions (import from `vw.exceptions`, not exported from main package):
 - `VWError` - Base exception for all vw errors
 - `CTENameCollisionError` - Raised when multiple CTEs with the same name are registered
+- `UnsupportedParamStyleError` - Raised when an unsupported parameter style is used
 - `UnsupportedDialectError` - Raised when a feature is not supported for the selected dialect
 
 ## Type Hierarchy
@@ -238,25 +276,4 @@ All RowSets share `.alias()`, `.join`, and `.select()` methods through inheritan
 
 The `.recurse()` method creates a child context with incremented depth.
 
-## Future Architectural Considerations
 
-### Additional Operators
-When adding operators like `LIKE`, `IN`:
-- Follow the same pattern as `Equals` and `NotEquals`
-- Create separate classes for each operator
-- Add operator overloading methods to `Column` class
-
-### CTEs (Common Table Expressions)
-CTEs are implemented as a `RowSet` subclass (`CommonTableExpression`):
-- Named query that can be referenced like a table
-- Registers in `RenderContext.ctes` during tree traversal (similar to Parameters)
-- Pre-renders body SQL during registration to discover dependencies
-- CTE body SQL is cached in context to avoid double rendering
-- Dependencies are automatically ordered (CTEs registered after their dependencies)
-- Name collision detection raises `CTENameCollisionError`
-- Could support recursive CTEs in future
-
-### Subqueries in WHERE
-For `IN (SELECT ...)` and `EXISTS (SELECT ...)`:
-- Statement is already an Expression
-- Need `In` and `Exists` operator classes that accept Statement
