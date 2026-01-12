@@ -46,10 +46,10 @@ query = (
 result = query.render()
 
 print(result.sql)
-# >>> SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = :user_id AND orders.status = :status
+>>> "SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = :user_id AND orders.status = :status"
 
 print(result.params)
-# >>> {"user_id": 123, "status": "active"}
+>>> {"user_id": 123, "status": "active"}
 
 # Execute with SQLAlchemy
 with engine.connect() as connection:
