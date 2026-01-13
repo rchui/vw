@@ -89,6 +89,8 @@ All SQL functions are accessed via the `F` class:
 - `CTENameCollisionError` - Raised when multiple CTEs with the same name are registered
 - `UnsupportedParamStyleError` - Raised when an unsupported parameter style is used
 - `UnsupportedDialectError` - Raised when a feature is not supported for the selected dialect
+- `JoinError` - Base exception for join-related errors
+- `JoinConditionError` - Raised when join conditions are invalid (e.g., both ON and USING specified)
 
 ### Accessors
 
@@ -201,6 +203,76 @@ result = (
     .render()
 )
 # result.sql: "SELECT * FROM users INNER JOIN orders ON users.id = orders.user_id"
+```
+
+### JOIN with USING Clause
+
+Use `using=` instead of `on=` when joining on columns with the same name in both tables:
+
+```python
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
+
+# Single column USING
+result = (
+    users.join.inner(orders, using=[vw.col("user_id")])
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users INNER JOIN orders USING (user_id)"
+
+# Multiple columns USING
+result = (
+    users.join.inner(orders, using=[vw.col("user_id"), vw.col("tenant_id")])
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users INNER JOIN orders USING (user_id, tenant_id)"
+
+# Works with all join types
+result = users.join.left(orders, using=[vw.col("user_id")]).select(vw.col("*")).render()
+# result.sql: "SELECT * FROM users LEFT JOIN orders USING (user_id)"
+```
+
+**Note**: `on` and `using` are mutually exclusive. Specifying both raises `JoinConditionError`.
+
+### LATERAL Joins
+
+LATERAL joins allow the right side of the join to reference columns from the left side. This is useful for correlated subqueries in the FROM clause:
+
+```python
+users = vw.Source(name="users")
+orders = vw.Source(name="orders")
+
+# LATERAL with subquery
+subquery = (
+    orders.select(vw.col("*"))
+    .where(orders.col("user_id") == users.col("id"))
+    .limit(3)
+    .alias("recent_orders")
+)
+result = (
+    users.join.left(subquery, on=[vw.col("1") == vw.col("1")], lateral=True)
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users LEFT JOIN LATERAL (SELECT * FROM orders WHERE ...) AS recent_orders ON ..."
+
+# CROSS JOIN LATERAL (common pattern for table-valued functions)
+result = (
+    users.join.cross(vw.Source(name="generate_series(1, 10)").alias("n"), lateral=True)
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users CROSS JOIN LATERAL generate_series(1, 10) AS n"
+
+# LATERAL with USING
+result = (
+    users.join.inner(orders, using=[vw.col("id")], lateral=True)
+    .select(vw.col("*"))
+    .render()
+)
+# result.sql: "SELECT * FROM users INNER JOIN LATERAL orders USING (id)"
 ```
 
 ### WHERE Clause

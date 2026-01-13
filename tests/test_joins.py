@@ -1,7 +1,10 @@
 """Tests for vw/joins.py module."""
 
+import pytest
+
 import vw
 from vw.build import Source
+from vw.exceptions import JoinConditionError
 from vw.joins import AntiJoin, CrossJoin, FullOuterJoin, InnerJoin, LeftJoin, RightJoin, SemiJoin
 
 
@@ -157,7 +160,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.inner(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [InnerJoin(right=orders, on=[condition])]
+        assert joined._joins == [InnerJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_creates_source_with_left_join() -> None:
         """Should create a new Source with left join."""
@@ -166,7 +169,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.left(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [LeftJoin(right=orders, on=[condition])]
+        assert joined._joins == [LeftJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_creates_source_with_right_join() -> None:
         """Should create a new Source with right join."""
@@ -175,7 +178,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.right(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [RightJoin(right=orders, on=[condition])]
+        assert joined._joins == [RightJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_creates_source_with_full_outer_join() -> None:
         """Should create a new Source with full outer join."""
@@ -184,7 +187,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.full_outer(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [FullOuterJoin(right=orders, on=[condition])]
+        assert joined._joins == [FullOuterJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_creates_source_with_cross_join() -> None:
         """Should create a new Source with cross join."""
@@ -192,7 +195,7 @@ def describe_join_accessor() -> None:
         sizes = Source(name="sizes")
         joined = colors.join.cross(sizes)
         assert isinstance(joined, Source)
-        assert joined._joins == [CrossJoin(right=sizes)]
+        assert joined._joins == [CrossJoin(right=sizes, lateral=False)]
 
     def it_creates_source_with_semi_join() -> None:
         """Should create a new Source with semi join."""
@@ -201,7 +204,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.semi(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [SemiJoin(right=orders, on=[condition])]
+        assert joined._joins == [SemiJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_creates_source_with_anti_join() -> None:
         """Should create a new Source with anti join."""
@@ -210,7 +213,7 @@ def describe_join_accessor() -> None:
         condition = users.col("id") == orders.col("user_id")
         joined = users.join.anti(orders, on=[condition])
         assert isinstance(joined, Source)
-        assert joined._joins == [AntiJoin(right=orders, on=[condition])]
+        assert joined._joins == [AntiJoin(right=orders, on=[condition], using=(), lateral=False)]
 
     def it_chains_multiple_inner_joins(render_context: vw.RenderContext) -> None:
         """Should support chaining multiple inner joins."""
@@ -301,3 +304,128 @@ def describe_source_with_joins() -> None:
             sql="SELECT users.id, users.name FROM users LEFT JOIN orders ON (users.id = orders.user_id) WHERE (orders.id = NULL)",
             params={},
         )
+
+
+def describe_using_clause() -> None:
+    """Tests for USING clause in joins."""
+
+    def it_renders_inner_join_with_using(render_context: vw.RenderContext) -> None:
+        """Should render INNER JOIN with USING clause."""
+        orders = Source(name="orders")
+        join = InnerJoin(right=orders, using=[vw.col("user_id")])
+        assert join.__vw_render__(render_context) == "INNER JOIN orders USING (user_id)"
+
+    def it_renders_inner_join_with_multiple_using_columns(render_context: vw.RenderContext) -> None:
+        """Should render INNER JOIN with multiple USING columns."""
+        orders = Source(name="orders")
+        join = InnerJoin(right=orders, using=[vw.col("user_id"), vw.col("tenant_id")])
+        assert join.__vw_render__(render_context) == "INNER JOIN orders USING (user_id, tenant_id)"
+
+    def it_renders_left_join_with_using(render_context: vw.RenderContext) -> None:
+        """Should render LEFT JOIN with USING clause."""
+        orders = Source(name="orders")
+        join = LeftJoin(right=orders, using=[vw.col("user_id")])
+        assert join.__vw_render__(render_context) == "LEFT JOIN orders USING (user_id)"
+
+    def it_renders_right_join_with_using(render_context: vw.RenderContext) -> None:
+        """Should render RIGHT JOIN with USING clause."""
+        orders = Source(name="orders")
+        join = RightJoin(right=orders, using=[vw.col("user_id")])
+        assert join.__vw_render__(render_context) == "RIGHT JOIN orders USING (user_id)"
+
+    def it_renders_full_outer_join_with_using(render_context: vw.RenderContext) -> None:
+        """Should render FULL OUTER JOIN with USING clause."""
+        orders = Source(name="orders")
+        join = FullOuterJoin(right=orders, using=[vw.col("user_id")])
+        assert join.__vw_render__(render_context) == "FULL OUTER JOIN orders USING (user_id)"
+
+    def it_raises_error_when_both_on_and_using_specified() -> None:
+        """Should raise JoinConditionError when both ON and USING are specified."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        with pytest.raises(JoinConditionError, match="Cannot specify both ON and USING"):
+            InnerJoin(
+                right=orders,
+                on=[users.col("id") == orders.col("user_id")],
+                using=[vw.col("user_id")],
+            )
+
+    def it_works_with_join_accessor_using(render_context: vw.RenderContext) -> None:
+        """Should work with join accessor using parameter."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        joined = users.join.inner(orders, using=[vw.col("user_id")])
+        assert joined.__vw_render__(render_context) == "users INNER JOIN orders USING (user_id)"
+
+    def it_works_with_left_join_accessor_using(render_context: vw.RenderContext) -> None:
+        """Should work with left join accessor using parameter."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        joined = users.join.left(orders, using=[vw.col("user_id"), vw.col("tenant_id")])
+        assert joined.__vw_render__(render_context) == "users LEFT JOIN orders USING (user_id, tenant_id)"
+
+
+def describe_lateral_joins() -> None:
+    """Tests for LATERAL joins."""
+
+    def it_renders_inner_join_lateral(render_context: vw.RenderContext) -> None:
+        """Should render INNER JOIN LATERAL."""
+        orders = Source(name="orders")
+        join = InnerJoin(right=orders, lateral=True)
+        assert join.__vw_render__(render_context) == "INNER JOIN LATERAL orders"
+
+    def it_renders_inner_join_lateral_with_on(render_context: vw.RenderContext) -> None:
+        """Should render INNER JOIN LATERAL with ON clause."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        join = InnerJoin(right=orders, on=[users.col("id") == orders.col("user_id")], lateral=True)
+        assert join.__vw_render__(render_context) == "INNER JOIN LATERAL orders ON (users.id = orders.user_id)"
+
+    def it_renders_left_join_lateral(render_context: vw.RenderContext) -> None:
+        """Should render LEFT JOIN LATERAL."""
+        orders = Source(name="orders")
+        join = LeftJoin(right=orders, lateral=True)
+        assert join.__vw_render__(render_context) == "LEFT JOIN LATERAL orders"
+
+    def it_renders_left_join_lateral_with_on(render_context: vw.RenderContext) -> None:
+        """Should render LEFT JOIN LATERAL with ON clause."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        join = LeftJoin(right=orders, on=[users.col("id") == orders.col("user_id")], lateral=True)
+        assert join.__vw_render__(render_context) == "LEFT JOIN LATERAL orders ON (users.id = orders.user_id)"
+
+    def it_renders_cross_join_lateral(render_context: vw.RenderContext) -> None:
+        """Should render CROSS JOIN LATERAL."""
+        series = Source(name="generate_series(1, 10)")
+        join = CrossJoin(right=series, lateral=True)
+        assert join.__vw_render__(render_context) == "CROSS JOIN LATERAL generate_series(1, 10)"
+
+    def it_renders_lateral_with_subquery(render_context: vw.RenderContext) -> None:
+        """Should render LATERAL with subquery."""
+        users = Source(name="users")
+        subquery = Source(name="orders").select(vw.col("*")).alias("o")
+        join = LeftJoin(right=subquery, on=[users.col("id") == vw.col("o.user_id")], lateral=True)
+        assert (
+            join.__vw_render__(render_context)
+            == "LEFT JOIN LATERAL (SELECT * FROM orders) AS o ON (users.id = o.user_id)"
+        )
+
+    def it_works_with_join_accessor_lateral(render_context: vw.RenderContext) -> None:
+        """Should work with join accessor lateral parameter."""
+        users = Source(name="users")
+        orders = Source(name="orders")
+        joined = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")], lateral=True)
+        assert joined.__vw_render__(render_context) == "users INNER JOIN LATERAL orders ON (users.id = orders.user_id)"
+
+    def it_works_with_cross_join_accessor_lateral(render_context: vw.RenderContext) -> None:
+        """Should work with cross join accessor lateral parameter."""
+        users = Source(name="users")
+        series = Source(name="generate_series(1, 10)")
+        joined = users.join.cross(series, lateral=True)
+        assert joined.__vw_render__(render_context) == "users CROSS JOIN LATERAL generate_series(1, 10)"
+
+    def it_renders_lateral_with_using(render_context: vw.RenderContext) -> None:
+        """Should render LATERAL with USING clause."""
+        orders = Source(name="orders")
+        join = InnerJoin(right=orders, using=[vw.col("user_id")], lateral=True)
+        assert join.__vw_render__(render_context) == "INNER JOIN LATERAL orders USING (user_id)"

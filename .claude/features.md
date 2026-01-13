@@ -97,4 +97,68 @@
 - [x] `UnsupportedParamStyleError` for invalid parameter styles
 - [x] `UnsupportedDialectError` for dialect-specific limitations
 
+---
+
+## Not Yet Implemented
+
+### DML Statements
+- [ ] INSERT statements
+- [ ] UPDATE statements
+- [ ] DELETE statements
+- [ ] MERGE / UPSERT statements
+- [ ] RETURNING clause
+
+### DDL Statements
+- [ ] CREATE TABLE
+- [ ] ALTER TABLE
+- [ ] DROP TABLE
+- [ ] CREATE INDEX / DROP INDEX
+
+### Joins
+- [ ] NATURAL JOIN
+- [x] USING clause (via `using=` parameter on join methods)
+- [x] LATERAL joins (via `lateral=True` parameter on join methods)
+
+### Subqueries
+- [ ] Correlated subqueries (partial - EXISTS works)
+
+### Set Operations
+- [ ] INTERSECT ALL
+- [ ] EXCEPT ALL
+
+### Expressions
+- [ ] ARRAY literals
+- [ ] JSON operators (e.g., `->`, `->>`, `@>`)
+- [ ] Regex operators (e.g., `~`, `~*`, `REGEXP`)
+
+### Aggregate Functions
+- [ ] STRING_AGG / LISTAGG
+- [ ] ARRAY_AGG
+- [ ] Percentile functions (PERCENTILE_CONT, PERCENTILE_DISC)
+- [ ] FILTER clause for aggregates
+
+### Window Functions
+- [ ] GROUPS frame type (only ROWS/RANGE implemented)
+- [ ] EXCLUDE clause in window frames
+- [ ] FILTER clause for window functions
+
+### Advanced Query Features
+- [ ] Recursive CTEs
+- [ ] PIVOT / UNPIVOT
+- [ ] GROUPING SETS
+- [ ] CUBE
+- [ ] ROLLUP
+
+### Locking
+- [ ] FOR UPDATE
+- [ ] FOR SHARE
+
+### Dialects
+- [ ] MySQL / MariaDB
+- [ ] SQLite
+- [ ] Oracle
+- [ ] DuckDB
+- [ ] Snowflake
+- [ ] BigQuery
+
 
