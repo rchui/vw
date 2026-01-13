@@ -5,7 +5,29 @@ Usage:
     >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
     ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
     ... )
+    >>> # With EXCLUDE clause
+    >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
+    ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
+    ... ).exclude(frame.FrameExclude.CURRENT_ROW)
 """
+
+from strenum import StrEnum
+
+
+class FrameExclude(StrEnum):
+    """Window frame EXCLUDE options."""
+
+    NO_OTHERS = "NO OTHERS"
+    "Default behavior - no rows are excluded from the frame"
+
+    CURRENT_ROW = "CURRENT ROW"
+    "Excludes the current row from the frame"
+
+    GROUP = "GROUP"
+    "Excludes the current row and all peers (rows equal in ORDER BY)"
+
+    TIES = "TIES"
+    "Excludes peers of the current row, but not the current row itself"
 
 
 class FrameBoundary:

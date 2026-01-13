@@ -567,3 +567,170 @@ def describe_frame_clauses():
         )
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_exclude_clause():
+    """Tests for window frame EXCLUDE clause."""
+
+    def it_generates_exclude_current_row(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW)
+            .exclude(vw.frame.FrameExclude.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_exclude_group(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, AVG(price) OVER (ORDER BY date ASC ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING EXCLUDE GROUP) FROM prices
+        """
+        stmt = vw.Source(name="prices").select(
+            vw.col("date"),
+            F.avg(vw.col("price"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.preceding(1), vw.frame.following(1))
+            .exclude(vw.frame.FrameExclude.GROUP),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_exclude_ties(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, COUNT(*) OVER (ORDER BY score DESC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE TIES) FROM students
+        """
+        stmt = vw.Source(name="students").select(
+            vw.col("id"),
+            F.count()
+            .over(order_by=[vw.col("score").desc()])
+            .range_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW)
+            .exclude(vw.frame.FrameExclude.TIES),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_exclude_no_others(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE NO OTHERS) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW)
+            .exclude(vw.frame.FrameExclude.NO_OTHERS),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_allows_exclude_before_rows_between(render_config: vw.RenderConfig) -> None:
+        """EXCLUDE can be set before frame boundaries are defined."""
+        expected_sql = """
+            SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) FROM sales
+        """
+        stmt = vw.Source(name="sales").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .over(order_by=[vw.col("date").asc()])
+            .exclude(vw.frame.FrameExclude.CURRENT_ROW)
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_exclude_with_partition(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, AVG(amount) OVER (PARTITION BY customer_id ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) FROM orders
+        """
+        stmt = vw.Source(name="orders").select(
+            vw.col("id"),
+            F.avg(vw.col("amount"))
+            .over(
+                partition_by=[vw.col("customer_id")],
+                order_by=[vw.col("date").asc()],
+            )
+            .rows_between(vw.frame.preceding(3), vw.frame.CURRENT_ROW)
+            .exclude(vw.frame.FrameExclude.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_filter_clause():
+    """Tests for aggregate FILTER clause."""
+
+    def it_generates_filter_on_count(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COUNT(*) FILTER (WHERE status = 'active') FROM users"
+        stmt = vw.Source(name="users").select(
+            F.count().filter(vw.col("status") == vw.col("'active'")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_filter_on_sum(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT SUM(amount) FILTER (WHERE type = 'sale') FROM transactions"
+        stmt = vw.Source(name="transactions").select(
+            F.sum(vw.col("amount")).filter(vw.col("type") == vw.col("'sale'")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_filter_with_param(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COUNT(*) FILTER (WHERE status = $status) FROM users"
+        stmt = vw.Source(name="users").select(
+            F.count().filter(vw.col("status") == vw.param("status", "active")),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"status": "active"})
+
+    def it_generates_filter_with_alias(render_config: vw.RenderConfig) -> None:
+        expected_sql = "SELECT COUNT(*) FILTER (WHERE status = 'active') AS active_count FROM users"
+        stmt = vw.Source(name="users").select(
+            F.count().filter(vw.col("status") == vw.col("'active'")).alias("active_count"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_filter_with_window(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT id, COUNT(*) FILTER (WHERE status = 'active') OVER (PARTITION BY department) FROM employees
+        """
+        stmt = vw.Source(name="employees").select(
+            vw.col("id"),
+            F.count().filter(vw.col("status") == vw.col("'active'")).over(partition_by=[vw.col("department")]),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_filter_with_window_and_frame(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT date, SUM(amount) FILTER (WHERE type = 'sale') OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) FROM transactions
+        """
+        stmt = vw.Source(name="transactions").select(
+            vw.col("date"),
+            F.sum(vw.col("amount"))
+            .filter(vw.col("type") == vw.col("'sale'"))
+            .over(order_by=[vw.col("date").asc()])
+            .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_multiple_filtered_aggregates(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            SELECT
+                COUNT(*) FILTER (WHERE status = 'active') AS active_count,
+                COUNT(*) FILTER (WHERE status = 'inactive') AS inactive_count
+            FROM users
+        """
+        stmt = vw.Source(name="users").select(
+            F.count().filter(vw.col("status") == vw.col("'active'")).alias("active_count"),
+            F.count().filter(vw.col("status") == vw.col("'inactive'")).alias("inactive_count"),
+        )
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})

@@ -23,3 +23,11 @@ class JoinError(VWError):
 
 class JoinConditionError(JoinError):
     """Raised when join conditions are invalid (e.g., both ON and USING specified)."""
+
+
+class WindowError(VWError):
+    """Base exception for window function errors."""
+
+
+class IncompleteFrameError(WindowError):
+    """Raised when a frame clause is incomplete (e.g., EXCLUDE without frame boundaries)."""

@@ -28,7 +28,8 @@ from dataclasses import dataclass, field, replace
 from strenum import StrEnum
 
 from vw.base import Expression
-from vw.frame import FrameBoundary
+from vw.exceptions import IncompleteFrameError
+from vw.frame import FrameBoundary, FrameExclude
 from vw.render import RenderContext
 
 
@@ -41,14 +42,26 @@ class FrameMode(StrEnum):
 
 @dataclass(kw_only=True, frozen=True)
 class FrameClause:
-    """Window frame clause specification."""
+    """Window frame clause specification.
 
-    mode: FrameMode
-    start: FrameBoundary
-    end: FrameBoundary
+    Fields can be set incrementally - exclude can be set before or after
+    mode/start/end. Validation occurs at render time.
+    """
 
-    def __str__(self) -> str:
-        return f"{self.mode} BETWEEN {self.start} AND {self.end}"
+    mode: FrameMode | None = None
+    start: FrameBoundary | None = None
+    end: FrameBoundary | None = None
+    exclude: FrameExclude | None = None
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        if self.mode is None or self.start is None or self.end is None:
+            raise IncompleteFrameError(
+                "Frame clause incomplete: EXCLUDE requires frame boundaries (use rows_between or range_between)"
+            )
+        sql = f"{self.mode} BETWEEN {self.start} AND {self.end}"
+        if self.exclude:
+            sql += f" EXCLUDE {self.exclude}"
+        return sql
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -79,7 +92,11 @@ class WindowFunction(Expression):
             ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
             ... )
         """
-        return replace(self, _frame=FrameClause(mode=FrameMode.ROWS, start=start, end=end))
+        existing_exclude = self._frame.exclude if self._frame else None
+        return replace(
+            self,
+            _frame=FrameClause(mode=FrameMode.ROWS, start=start, end=end, exclude=existing_exclude),
+        )
 
     def range_between(self, start: FrameBoundary, end: FrameBoundary) -> WindowFunction:
         """Add RANGE BETWEEN frame clause.
@@ -96,11 +113,40 @@ class WindowFunction(Expression):
             ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
             ... )
         """
-        return replace(self, _frame=FrameClause(mode=FrameMode.RANGE, start=start, end=end))
+        existing_exclude = self._frame.exclude if self._frame else None
+        return replace(
+            self,
+            _frame=FrameClause(mode=FrameMode.RANGE, start=start, end=end, exclude=existing_exclude),
+        )
+
+    def exclude(self, mode: FrameExclude) -> WindowFunction:
+        """Add EXCLUDE clause to the window frame.
+
+        Args:
+            mode: The exclusion mode (CURRENT_ROW, GROUP, TIES, or NO_OTHERS).
+
+        Returns:
+            A new WindowFunction with the EXCLUDE clause.
+
+        Example:
+            >>> # EXCLUDE after frame
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
+            ...     frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW
+            ... ).exclude(frame.FrameExclude.CURRENT_ROW)
+            >>>
+            >>> # EXCLUDE before frame
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).exclude(
+            ...     frame.FrameExclude.TIES
+            ... ).rows_between(frame.UNBOUNDED_PRECEDING, frame.CURRENT_ROW)
+        """
+        if self._frame:
+            return replace(self, _frame=replace(self._frame, exclude=mode))
+        else:
+            return replace(self, _frame=FrameClause(exclude=mode))
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Render the window function with OVER clause."""
-        func_sql = self.function._render_call(context)
+        func_sql = self.function.__vw_render__(context)
 
         over_parts: list[str] = []
         if self.partition_by:
@@ -110,7 +156,7 @@ class WindowFunction(Expression):
             cols = ", ".join(col.__vw_render__(context) for col in self.order_by)
             over_parts.append(f"ORDER BY {cols}")
         if self._frame:
-            over_parts.append(str(self._frame))
+            over_parts.append(self._frame.__vw_render__(context))
 
         over_clause = " ".join(over_parts)
         return f"{func_sql} OVER ({over_clause})"
@@ -130,6 +176,7 @@ class Function(Expression):
 
     name: str
     args: list[Expression] = field(default_factory=list)
+    _filter: Expression | None = None
 
     def over(
         self,
@@ -156,16 +203,39 @@ class Function(Expression):
             order_by=order_by or [],
         )
 
-    def _render_call(self, context: RenderContext) -> str:
-        """Render just the function call without alias."""
-        if self.args:
-            args_sql = ", ".join(arg.__vw_render__(context) for arg in self.args)
-            return f"{self.name}({args_sql})"
-        return f"{self.name}()"
+    def filter(self, condition: Expression) -> Function:
+        """Add FILTER (WHERE ...) clause to aggregate function.
+
+        FILTER restricts which rows are included in the aggregation.
+        This is part of the SQL standard and supported by PostgreSQL,
+        SQLite, and others.
+
+        Args:
+            condition: The condition to filter rows.
+
+        Returns:
+            A new Function with the FILTER clause.
+
+        Example:
+            >>> F.count().filter(col("status") == col("'active'"))
+            >>> F.sum(col("amount")).filter(col("type") == col("'sale'")).over(
+            ...     partition_by=[col("customer_id")]
+            ... )
+        """
+        return replace(self, _filter=condition)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Render the function call."""
-        return self._render_call(context)
+        if self.args:
+            args_sql = ", ".join(arg.__vw_render__(context) for arg in self.args)
+            sql = f"{self.name}({args_sql})"
+        else:
+            sql = f"{self.name}()"
+
+        if self._filter:
+            sql += f" FILTER (WHERE {self._filter.__vw_render__(context)})"
+
+        return sql
 
 
 class F:

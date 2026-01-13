@@ -26,6 +26,7 @@ Import as `import vw.frame`:
 - `frame.CURRENT_ROW` - Current row boundary
 - `frame.preceding(n)` - n rows preceding boundary
 - `frame.following(n)` - n rows following boundary
+- `frame.FrameExclude` - Enum for EXCLUDE clause options (NO_OTHERS, CURRENT_ROW, GROUP, TIES)
 
 ### Functions Namespace (`F` from `vw.functions` or `vw.F`)
 All SQL functions are accessed via the `F` class:
@@ -91,6 +92,8 @@ All SQL functions are accessed via the `F` class:
 - `UnsupportedDialectError` - Raised when a feature is not supported for the selected dialect
 - `JoinError` - Base exception for join-related errors
 - `JoinConditionError` - Raised when join conditions are invalid (e.g., both ON and USING specified)
+- `WindowError` - Base exception for window function errors
+- `IncompleteFrameError` - Raised when a frame clause is incomplete (e.g., EXCLUDE without frame boundaries)
 
 ### Accessors
 
@@ -971,6 +974,122 @@ result = (
     .render()
 )
 # SELECT id, SUM(amount) OVER () AS grand_total FROM orders
+```
+
+### Window Frame EXCLUDE Clause
+
+Use `.exclude()` with `vw.frame.FrameExclude` to exclude rows from the window frame:
+
+```python
+from vw.functions import F
+import vw.frame
+
+# EXCLUDE CURRENT ROW - excludes the current row from the frame
+result = (
+    vw.Source(name="prices")
+    .select(
+        vw.col("date"),
+        vw.col("price"),
+        F.avg(vw.col("price"))
+        .over(order_by=[vw.col("date").asc()])
+        .rows_between(vw.frame.preceding(3), vw.frame.CURRENT_ROW)
+        .exclude(vw.frame.FrameExclude.CURRENT_ROW)
+        .alias("avg_excluding_current")
+    )
+    .render()
+)
+# SELECT date, price, AVG(price) OVER (ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) AS avg_excluding_current FROM prices
+
+# EXCLUDE GROUP - excludes current row and all peers (rows equal in ORDER BY)
+F.sum(vw.col("amount")).over(...).rows_between(...).exclude(vw.frame.FrameExclude.GROUP)
+
+# EXCLUDE TIES - excludes peers of the current row, but not the current row itself
+F.sum(vw.col("amount")).over(...).rows_between(...).exclude(vw.frame.FrameExclude.TIES)
+
+# EXCLUDE NO OTHERS - default behavior, no rows excluded (explicit)
+F.sum(vw.col("amount")).over(...).rows_between(...).exclude(vw.frame.FrameExclude.NO_OTHERS)
+
+# .exclude() can be called before .rows_between()/.range_between() - order doesn't matter
+F.avg(vw.col("price"))
+    .over(order_by=[vw.col("date").asc()])
+    .exclude(vw.frame.FrameExclude.CURRENT_ROW)
+    .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW)
+```
+
+**FrameExclude options:**
+- `NO_OTHERS` - Default behavior, no rows are excluded from the frame
+- `CURRENT_ROW` - Excludes the current row from the frame
+- `GROUP` - Excludes the current row and all peers (rows equal in ORDER BY)
+- `TIES` - Excludes peers of the current row, but not the current row itself
+
+### Aggregate FILTER Clause
+
+Use `.filter()` to add a FILTER clause to aggregate and window functions:
+
+```python
+from vw.functions import F
+
+# FILTER on COUNT - only count rows matching the condition
+result = (
+    vw.Source(name="users")
+    .select(
+        F.count().filter(vw.col("status") == vw.col("'active'")).alias("active_count"),
+        F.count().filter(vw.col("status") == vw.col("'inactive'")).alias("inactive_count")
+    )
+    .render()
+)
+# SELECT COUNT(*) FILTER (WHERE status = 'active') AS active_count,
+#        COUNT(*) FILTER (WHERE status = 'inactive') AS inactive_count FROM users
+
+# FILTER on SUM
+result = (
+    vw.Source(name="transactions")
+    .select(
+        F.sum(vw.col("amount")).filter(vw.col("type") == vw.col("'sale'")).alias("total_sales")
+    )
+    .render()
+)
+# SELECT SUM(amount) FILTER (WHERE type = 'sale') AS total_sales FROM transactions
+
+# FILTER with parameters
+result = (
+    vw.Source(name="users")
+    .select(
+        F.count().filter(vw.col("status") == vw.param("status", "active")).alias("count")
+    )
+    .render()
+)
+# SELECT COUNT(*) FILTER (WHERE status = $status) AS count FROM users
+# params: {"status": "active"}
+
+# FILTER with window functions
+result = (
+    vw.Source(name="employees")
+    .select(
+        vw.col("id"),
+        F.count()
+        .filter(vw.col("status") == vw.col("'active'"))
+        .over(partition_by=[vw.col("department")])
+        .alias("active_in_dept")
+    )
+    .render()
+)
+# SELECT id, COUNT(*) FILTER (WHERE status = 'active') OVER (PARTITION BY department) AS active_in_dept FROM employees
+
+# FILTER with window and frame
+result = (
+    vw.Source(name="transactions")
+    .select(
+        vw.col("date"),
+        F.sum(vw.col("amount"))
+        .filter(vw.col("type") == vw.col("'sale'"))
+        .over(order_by=[vw.col("date").asc()])
+        .rows_between(vw.frame.UNBOUNDED_PRECEDING, vw.frame.CURRENT_ROW)
+        .alias("running_sales")
+    )
+    .render()
+)
+# SELECT date, SUM(amount) FILTER (WHERE type = 'sale') OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_sales FROM transactions
 ```
 
 ### Escape Hatch for Raw SQL

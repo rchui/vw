@@ -52,6 +52,8 @@
 - [x] Window functions (via `F` namespace with `.over()`)
 - [x] Window function frame clauses (ROWS/RANGE BETWEEN via `.rows_between()`, `.range_between()`)
 - [x] Window frame boundaries (via `vw.frame` module: UNBOUNDED_PRECEDING, CURRENT_ROW, etc.)
+- [x] Window frame EXCLUDE clause (via `.exclude()` with `vw.frame.FrameExclude`)
+- [x] Aggregate/window FILTER clause (via `.filter()` method)
 - [x] String operations (via `.text` accessor: upper, lower, trim, ltrim, rtrim, length, substring, replace, concat)
 - [x] Date/time operations (via `.dt` accessor: year, quarter, month, week, day, hour, minute, second, weekday, truncate, date, time; standalone: current_timestamp, current_date, current_time, now)
 - [x] Interval arithmetic via `.dt.date_add()`, `.dt.date_sub()`
@@ -135,12 +137,12 @@
 - [ ] STRING_AGG / LISTAGG
 - [ ] ARRAY_AGG
 - [ ] Percentile functions (PERCENTILE_CONT, PERCENTILE_DISC)
-- [ ] FILTER clause for aggregates
+- [x] FILTER clause for aggregates (via `.filter()` method)
 
 ### Window Functions
 - [ ] GROUPS frame type (only ROWS/RANGE implemented)
-- [ ] EXCLUDE clause in window frames
-- [ ] FILTER clause for window functions
+- [x] EXCLUDE clause in window frames (via `.exclude()` method with `vw.frame.FrameExclude`)
+- [x] FILTER clause for window functions (via `.filter()` method)
 
 ### Advanced Query Features
 - [ ] Recursive CTEs
