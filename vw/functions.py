@@ -64,7 +64,7 @@ class FrameClause:
         return sql
 
 
-@dataclass(kw_only=True, frozen=True)
+@dataclass(kw_only=True, frozen=True, eq=False)
 class WindowFunction(Expression):
     """A function with an OVER clause for window operations.
 
@@ -162,7 +162,7 @@ class WindowFunction(Expression):
         return f"{func_sql} OVER ({over_clause})"
 
 
-@dataclass(kw_only=True, frozen=True)
+@dataclass(kw_only=True, frozen=True, eq=False)
 class Function(Expression):
     """Base class for SQL functions.
 
@@ -527,6 +527,47 @@ class F:
             >>> F.least(col("a"), col("b"), col("c"))
         """
         return Function(name="LEAST", args=list(exprs))
+
+    # -------------------------------------------------------------------------
+    # Grouping functions (for use with GROUPING SETS, CUBE, ROLLUP)
+    # -------------------------------------------------------------------------
+
+    @staticmethod
+    def grouping(*exprs: Expression) -> Function:
+        """Create a GROUPING() function.
+
+        GROUPING() distinguishes super-aggregate NULL values from actual NULL data.
+        Returns 1 if the column is aggregated (not in the current grouping set),
+        returns 0 if the column is part of the current grouping set.
+
+        When called with multiple arguments, returns a bitmask where each bit
+        represents one column (rightmost argument = least significant bit).
+
+        Args:
+            *exprs: One or more expressions to check.
+
+        Returns:
+            A Function that returns 0 or 1 (single arg) or a bitmask (multiple args).
+
+        Example:
+            >>> # Single column - returns 0 or 1
+            >>> F.grouping(col("year"))
+            >>>
+            >>> # Multiple columns - returns bitmask
+            >>> F.grouping(col("year"), col("region"))
+            >>> # Returns 0 (00) = both grouped
+            >>> # Returns 1 (01) = region not grouped
+            >>> # Returns 2 (10) = year not grouped
+            >>> # Returns 3 (11) = neither grouped (grand total)
+            >>>
+            >>> # Use in SELECT to label super-aggregate rows
+            >>> Source(name="sales").select(
+            ...     when(F.grouping(col("year")) == col("1"), col("'All Years'"))
+            ...         .otherwise(col("year")).alias("year"),
+            ...     F.sum(col("amount"))
+            ... ).group_by(rollup(col("year")))
+        """
+        return Function(name="GROUPING", args=list(exprs))
 
 
 __all__ = [

@@ -5,6 +5,7 @@ from vw.build import Source, Statement, cte
 from vw.column import Column, col
 from vw.datetime import current_date, current_time, current_timestamp, date, interval, now
 from vw.functions import F
+from vw.grouping import cube, grouping_sets, rollup
 from vw.operators import exists, when
 from vw.parameter import Parameter, param
 from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
@@ -23,15 +24,18 @@ __all__: list[str] = [
     "Statement",
     "col",
     "cte",
+    "cube",
     "current_date",
     "current_time",
     "current_timestamp",
     "date",
     "exists",
     "frame",
+    "grouping_sets",
     "interval",
     "now",
     "param",
+    "rollup",
     "star",
     "when",
 ]

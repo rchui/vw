@@ -65,6 +65,7 @@
 - [x] NULLIF function (via `F.nullif`)
 - [x] GREATEST / LEAST functions (via `F.greatest`, `F.least`)
 - [x] CASE expressions (via `vw.when().then().otherwise()`)
+- [x] GROUPING function for detecting super-aggregate rows (via `F.grouping`)
 
 ## Advanced Query Features
 - [x] Subqueries in FROM/JOIN (via Statement as RowSet)
@@ -147,9 +148,9 @@
 ### Advanced Query Features
 - [ ] Recursive CTEs
 - [ ] PIVOT / UNPIVOT
-- [ ] GROUPING SETS
-- [ ] CUBE
-- [ ] ROLLUP
+- [x] GROUPING SETS (via `vw.grouping_sets()`)
+- [x] CUBE (via `vw.cube()`)
+- [x] ROLLUP (via `vw.rollup()`)
 
 ### Locking
 - [ ] FOR UPDATE
