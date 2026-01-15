@@ -90,7 +90,7 @@
 - [x] Complex expressions (CAST, ROUND, etc.)
 
 ## Developer Experience
-- [ ] Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
+- [x] Fluent API for star extensions: `col("*").replace(foo="bar").exclude("baz")`
 - [ ] Better error messages
 - [ ] SQL formatting/pretty-printing
 
@@ -112,7 +112,11 @@
 - [ ] RETURNING clause
 
 ### DDL Statements
-- [ ] CREATE TABLE
+- [x] CREATE TABLE (via `Source("name").create_table()`)
+- [x] CREATE TABLE AS SELECT (CTAS) (via `.create_table().as_select(query)`)
+- [x] CREATE TEMPORARY TABLE (via `.temporary()`)
+- [x] CREATE TABLE IF NOT EXISTS (via `.if_not_exists()`)
+- [x] CREATE OR REPLACE TABLE (via `.or_replace()`)
 - [ ] ALTER TABLE
 - [ ] DROP TABLE
 - [ ] CREATE INDEX / DROP INDEX

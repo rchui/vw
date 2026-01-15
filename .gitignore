@@ -1,15 +1,16 @@
+# Generic
+.*
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
 build/
 develop-eggs/
 dist/
 downloads/
 eggs/
-.eggs/
 lib/
 lib64/
 parts/
@@ -19,7 +20,6 @@ wheels/
 pip-wheel-metadata/
 share/python-wheels/
 *.egg-info/
-.installed.cfg
 *.egg
 MANIFEST
 
@@ -27,30 +27,16 @@ MANIFEST
 venv/
 env/
 ENV/
-.venv
 
 # IDEs
-.vscode/
-.idea/
 *.swp
 *.swo
 *~
 .DS_Store
 
 # Testing
-.pytest_cache/
-.coverage
 htmlcov/
-.tox/
 
-# Ruff
-.ruff_cache/
-
-# uv
-.uv/
 
 # Logs
 *.log
-
-# OpenCode
-opencode.json
