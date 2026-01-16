@@ -14,6 +14,8 @@ from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
 if TYPE_CHECKING:
     from vw.ddl import TableAccessor, ViewAccessor
+    from vw.dml import Insert
+    from vw.values import Values
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -160,6 +162,28 @@ class Source(RowSet):
         from vw.ddl import ViewAccessor
 
         return ViewAccessor(self)
+
+    def insert(self, source: Values | Statement) -> Insert:
+        """Create an INSERT statement for this table.
+
+        Args:
+            source: Either a Values object or a Statement (SELECT query).
+
+        Returns:
+            An Insert object that can be rendered.
+
+        Example:
+            >>> # INSERT with VALUES
+            >>> Source("users").insert(values({"name": "Alice", "age": 30}))
+            >>>
+            >>> # INSERT from SELECT
+            >>> Source("users_backup").insert(
+            ...     Source("users").select(col("*")).where(col("active") == col("true"))
+            ... )
+        """
+        from vw.dml import Insert
+
+        return Insert(table=self.name, source=source)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""

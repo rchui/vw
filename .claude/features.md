@@ -13,7 +13,7 @@
 - [x] LIMIT / OFFSET (with dialect-aware rendering for SQL Server)
 - [x] DISTINCT (via `.distinct()` method)
 - [x] DISTINCT ON (via `.distinct(on=[...])` - PostgreSQL only)
-- [x] VALUES clause as row source (via `values(alias, *rows)`)
+- [x] VALUES clause as row source (via `values(*rows).alias(name)`)
 
 ## Joins
 - [x] INNER JOIN support with accessor pattern (`Source.join.inner()`)
@@ -106,11 +106,13 @@
 ## Not Yet Implemented
 
 ### DML Statements
-- [ ] INSERT statements
+- [x] INSERT with VALUES (via `Source("name").insert(values(...))`)
+- [x] INSERT from SELECT (via `Source("name").insert(query)`)
+- [x] RETURNING clause (via `.returning()`)
 - [ ] UPDATE statements
 - [ ] DELETE statements
 - [ ] MERGE / UPSERT statements
-- [ ] RETURNING clause
+- [ ] ON CONFLICT / upsert
 
 ### DDL Statements
 - [x] CREATE TABLE (via `Source("name").table.create()`)

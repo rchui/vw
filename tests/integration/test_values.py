@@ -12,7 +12,8 @@ def describe_values_as_source():
             SELECT * FROM (VALUES ($_v0_0_id, $_v0_1_name), ($_v1_0_id, $_v1_1_name)) AS users(id, name)
         """
         result = (
-            vw.values("users", {"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"})
+            vw.values({"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"})
+            .alias("users")
             .select(vw.col("*"))
             .render(config=render_config)
         )
@@ -26,7 +27,8 @@ def describe_values_as_source():
             SELECT id, name FROM (VALUES ($_v0_0_id, $_v0_1_name)) AS users(id, name)
         """
         result = (
-            vw.values("users", {"id": 1, "name": "Alice"})
+            vw.values({"id": 1, "name": "Alice"})
+            .alias("users")
             .select(vw.col("id"), vw.col("name"))
             .render(config=render_config)
         )
@@ -42,7 +44,8 @@ def describe_values_as_source():
             WHERE (active = true)
         """
         result = (
-            vw.values("users", {"id": 1, "active": True}, {"id": 2, "active": False})
+            vw.values({"id": 1, "active": True}, {"id": 2, "active": False})
+            .alias("users")
             .select(vw.col("*"))
             .where(vw.col("active") == vw.col("true"))
             .render(config=render_config)
@@ -63,7 +66,7 @@ def describe_values_in_joins():
             INNER JOIN (VALUES ($_v0_0_id), ($_v1_0_id)) AS ids(id) ON (users.id = ids.id)
         """
         users = vw.Source(name="users")
-        ids = vw.values("ids", {"id": 1}, {"id": 2})
+        ids = vw.values({"id": 1}, {"id": 2}).alias("ids")
         result = (
             users.join.inner(ids, on=[vw.col("users.id") == vw.col("ids.id")])
             .select(vw.col("users.name"), vw.col("ids.id"))
@@ -82,7 +85,7 @@ def describe_values_in_joins():
                 ON (users.id = overrides.user_id)
         """
         users = vw.Source(name="users")
-        overrides = vw.values("overrides", {"user_id": 1, "value": 100})
+        overrides = vw.values({"user_id": 1, "value": 100}).alias("overrides")
         result = (
             users.join.left(overrides, on=[vw.col("users.id") == vw.col("overrides.user_id")])
             .select(vw.col("users.name"), vw.col("overrides.value"))
@@ -102,7 +105,8 @@ def describe_values_with_expressions():
             SELECT * FROM (VALUES ($_v0_0_id, NOW())) AS records(id, created_at)
         """
         result = (
-            vw.values("records", {"id": 1, "created_at": vw.col("NOW()")})
+            vw.values({"id": 1, "created_at": vw.col("NOW()")})
+            .alias("records")
             .select(vw.col("*"))
             .render(config=render_config)
         )
@@ -117,7 +121,8 @@ def describe_values_with_expressions():
             FROM (VALUES ($_v0_0_id, $_v0_1_name, CURRENT_DATE)) AS users(id, name, created)
         """
         result = (
-            vw.values("users", {"id": 1, "name": "Alice", "created": vw.col("CURRENT_DATE")})
+            vw.values({"id": 1, "name": "Alice", "created": vw.col("CURRENT_DATE")})
+            .alias("users")
             .select(vw.col("*"))
             .render(config=render_config)
         )
@@ -137,7 +142,7 @@ def describe_values_in_cte():
             FROM users
             INNER JOIN ids ON (users.id = ids.id)
         """
-        ids_values = vw.values("t", {"id": 1}, {"id": 2}, {"id": 3})
+        ids_values = vw.values({"id": 1}, {"id": 2}, {"id": 3}).alias("t")
         ids_cte = vw.cte("ids", ids_values.select(vw.col("*")))
         users = vw.Source(name="users")
         result = (
@@ -158,7 +163,12 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_id, $_v0_1_name)) AS users(id, name)
         """
-        result = vw.values("users", {"id": 1, "name": None}).select(vw.col("*")).render(config=render_config)
+        result = (
+            vw.values({"id": 1, "name": None})
+            .alias("users")
+            .select(vw.col("*"))
+            .render(config=render_config)
+        )
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_id": 1, "_v0_1_name": None},
@@ -170,7 +180,8 @@ def describe_values_with_various_types():
             FROM (VALUES ($_v0_0_int, $_v0_1_float, $_v0_2_neg)) AS nums(int, float, neg)
         """
         result = (
-            vw.values("nums", {"int": 42, "float": 3.14159, "neg": -100})
+            vw.values({"int": 42, "float": 3.14159, "neg": -100})
+            .alias("nums")
             .select(vw.col("*"))
             .render(config=render_config)
         )
@@ -183,7 +194,12 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_a, $_v0_1_b)) AS flags(a, b)
         """
-        result = vw.values("flags", {"a": True, "b": False}).select(vw.col("*")).render(config=render_config)
+        result = (
+            vw.values({"a": True, "b": False})
+            .alias("flags")
+            .select(vw.col("*"))
+            .render(config=render_config)
+        )
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_a": True, "_v0_1_b": False},
@@ -193,7 +209,12 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_msg)) AS texts(msg)
         """
-        result = vw.values("texts", {"msg": "Hello, World!"}).select(vw.col("*")).render(config=render_config)
+        result = (
+            vw.values({"msg": "Hello, World!"})
+            .alias("texts")
+            .select(vw.col("*"))
+            .render(config=render_config)
+        )
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_msg": "Hello, World!"},
