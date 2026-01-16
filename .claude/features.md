@@ -13,6 +13,7 @@
 - [x] LIMIT / OFFSET (with dialect-aware rendering for SQL Server)
 - [x] DISTINCT (via `.distinct()` method)
 - [x] DISTINCT ON (via `.distinct(on=[...])` - PostgreSQL only)
+- [x] VALUES clause as row source (via `values(alias, *rows)`)
 
 ## Joins
 - [x] INNER JOIN support with accessor pattern (`Source.join.inner()`)

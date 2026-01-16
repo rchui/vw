@@ -10,6 +10,7 @@ from vw.operators import exists, when
 from vw.parameter import Parameter, param
 from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 from vw.star import StarExpression, star
+from vw.values import Values, values
 
 __version__ = "0.0.1"
 
@@ -37,5 +38,6 @@ __all__: list[str] = [
     "param",
     "rollup",
     "star",
+    "values",
     "when",
 ]
