@@ -13,7 +13,7 @@ from vw.exceptions import UnsupportedDialectError
 from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
 if TYPE_CHECKING:
-    from vw.ddl import CreateTable
+    from vw.ddl import TableAccessor, ViewAccessor
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -127,28 +127,19 @@ class Source(RowSet):
         prefix = self._alias or self.name
         return Column(name=f"{prefix}.{column_name}")
 
-    def create_table(self, schema: dict[str, str] | None = None) -> CreateTable:
-        """Create a CREATE TABLE statement for this source.
+    @property
+    def table(self) -> TableAccessor:
+        """Access table DDL operations."""
+        from vw.ddl import TableAccessor
 
-        Args:
-            schema: Optional dict mapping column names to SQL types.
+        return TableAccessor(self)
 
-        Returns:
-            A CreateTable object for method chaining.
+    @property
+    def view(self) -> ViewAccessor:
+        """Access view DDL operations."""
+        from vw.ddl import ViewAccessor
 
-        Example:
-            >>> # CREATE TABLE AS SELECT
-            >>> Source("backup").create_table().as_select(query)
-            >>>
-            >>> # CREATE TABLE with schema
-            >>> Source("users").create_table({
-            ...     "id": dtypes.integer(),
-            ...     "name": dtypes.varchar(100),
-            ... })
-        """
-        from vw.ddl import CreateTable
-
-        return CreateTable(name=self.name, schema=schema or {})
+        return ViewAccessor(self)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""

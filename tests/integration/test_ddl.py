@@ -1,4 +1,4 @@
-"""Integration tests for CREATE TABLE DDL."""
+"""Integration tests for DDL statements."""
 
 import pytest
 
@@ -15,7 +15,7 @@ def describe_create_table_with_schema():
         expected_sql = """
             CREATE TABLE users (id INTEGER, name VARCHAR(100), email VARCHAR(255))
         """
-        stmt = vw.Source(name="users").create_table(
+        stmt = vw.Source(name="users").table.create(
             {
                 "id": dtypes.integer(),
                 "name": dtypes.varchar(100),
@@ -34,7 +34,7 @@ def describe_create_table_with_schema():
                 discount FLOAT
             )
         """
-        stmt = vw.Source(name="products").create_table(
+        stmt = vw.Source(name="products").table.create(
             {
                 "id": dtypes.bigint(),
                 "price": dtypes.decimal(10, 2),
@@ -54,7 +54,7 @@ def describe_create_table_with_schema():
                 created_at TIMESTAMP
             )
         """
-        stmt = vw.Source(name="events").create_table(
+        stmt = vw.Source(name="events").table.create(
             {
                 "id": dtypes.integer(),
                 "event_date": dtypes.date(),
@@ -74,7 +74,7 @@ def describe_create_table_with_schema():
                 data BYTEA
             )
         """
-        stmt = vw.Source(name="documents").create_table(
+        stmt = vw.Source(name="documents").table.create(
             {
                 "id": dtypes.uuid(),
                 "title": dtypes.text(),
@@ -89,7 +89,7 @@ def describe_create_table_with_schema():
         expected_sql = """
             CREATE TABLE configs (id INTEGER, settings JSON, metadata JSONB)
         """
-        stmt = vw.Source(name="configs").create_table(
+        stmt = vw.Source(name="configs").table.create(
             {
                 "id": dtypes.integer(),
                 "settings": dtypes.json(),
@@ -109,7 +109,7 @@ def describe_create_table_modifiers():
         """
         stmt = (
             vw.Source(name="temp_results")
-            .create_table(
+            .table.create(
                 {
                     "id": dtypes.integer(),
                     "value": dtypes.float(),
@@ -126,7 +126,7 @@ def describe_create_table_modifiers():
         """
         stmt = (
             vw.Source(name="cache")
-            .create_table(
+            .table.create(
                 {
                     "key": dtypes.varchar(255),
                     "value": dtypes.text(),
@@ -143,7 +143,7 @@ def describe_create_table_modifiers():
         """
         stmt = (
             vw.Source(name="snapshots")
-            .create_table(
+            .table.create(
                 {
                     "id": dtypes.integer(),
                     "data": dtypes.jsonb(),
@@ -160,7 +160,7 @@ def describe_create_table_modifiers():
         """
         stmt = (
             vw.Source(name="temp_data")
-            .create_table({"value": dtypes.integer()})
+            .table.create({"value": dtypes.integer()})
             .or_replace()
             .temporary()
             .if_not_exists()
@@ -177,7 +177,7 @@ def describe_create_table_as_select():
             CREATE TABLE backup AS SELECT * FROM orders
         """
         query = vw.Source(name="orders").select(vw.col("*"))
-        stmt = vw.Source(name="backup").create_table().as_select(query)
+        stmt = vw.Source(name="backup").table.create().as_select(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -191,7 +191,7 @@ def describe_create_table_as_select():
             .select(vw.col("id"), vw.col("name"), vw.col("email"))
             .where(vw.col("status") == vw.col("'active'"))
         )
-        stmt = vw.Source(name="active_users").create_table().as_select(query)
+        stmt = vw.Source(name="active_users").table.create().as_select(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -211,7 +211,7 @@ def describe_create_table_as_select():
             )
             .group_by(vw.col("customer_id"))
         )
-        stmt = vw.Source(name="customer_totals").create_table().as_select(query)
+        stmt = vw.Source(name="customer_totals").table.create().as_select(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -227,7 +227,7 @@ def describe_create_table_as_select():
         query = orders.join.inner(customers, on=[vw.col("o.customer_id") == vw.col("c.id")]).select(
             vw.col("o.id"), vw.col("o.total"), vw.col("c.name").alias("customer_name")
         )
-        stmt = vw.Source(name="order_details").create_table().as_select(query)
+        stmt = vw.Source(name="order_details").table.create().as_select(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -237,7 +237,7 @@ def describe_create_table_as_select():
             SELECT * FROM results WHERE (score > 90)
         """
         query = vw.Source(name="results").select(vw.col("*")).where(vw.col("score") > vw.col("90"))
-        stmt = vw.Source(name="temp_results").create_table().as_select(query).temporary()
+        stmt = vw.Source(name="temp_results").table.create().as_select(query).temporary()
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -252,9 +252,134 @@ def describe_create_table_as_select():
             .where(vw.col("year") == vw.param("year", 2024))
             .where(vw.col("status") == vw.param("status", "completed"))
         )
-        stmt = vw.Source(name="year_orders").create_table().as_select(query)
+        stmt = vw.Source(name="year_orders").table.create().as_select(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={"year": 2024, "status": "completed"})
+
+
+def describe_drop_table():
+    """Tests for DROP TABLE."""
+
+    def it_drops_table(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP TABLE users"
+        stmt = vw.Source(name="users").table.drop()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_table_if_exists(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP TABLE IF EXISTS users"
+        stmt = vw.Source(name="users").table.drop().if_exists()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_table_cascade(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP TABLE users CASCADE"
+        stmt = vw.Source(name="users").table.drop().cascade()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_table_if_exists_cascade(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP TABLE IF EXISTS users CASCADE"
+        stmt = vw.Source(name="users").table.drop().if_exists().cascade()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+
+def describe_create_view():
+    """Tests for CREATE VIEW."""
+
+    def it_creates_view_from_simple_select(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            CREATE VIEW active_users AS SELECT * FROM users WHERE (status = 'active')
+        """
+        query = vw.Source(name="users").select(vw.col("*")).where(vw.col("status") == vw.col("'active'"))
+        stmt = vw.Source(name="active_users").view.create(query)
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_creates_or_replace_view(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            CREATE OR REPLACE VIEW user_summary AS
+            SELECT id, name, email FROM users
+        """
+        query = vw.Source(name="users").select(vw.col("id"), vw.col("name"), vw.col("email"))
+        stmt = vw.Source(name="user_summary").view.create(query).or_replace()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_creates_view_with_aggregation(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            CREATE VIEW customer_totals AS
+            SELECT customer_id, SUM(amount) AS total, COUNT(*) AS order_count
+            FROM orders
+            GROUP BY customer_id
+        """
+        query = (
+            vw.Source(name="orders")
+            .select(
+                vw.col("customer_id"),
+                F.sum(vw.col("amount")).alias("total"),
+                F.count().alias("order_count"),
+            )
+            .group_by(vw.col("customer_id"))
+        )
+        stmt = vw.Source(name="customer_totals").view.create(query)
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_creates_view_with_joins(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            CREATE VIEW order_details AS
+            SELECT o.id, o.total, c.name AS customer_name
+            FROM orders AS o
+            INNER JOIN customers AS c ON (o.customer_id = c.id)
+        """
+        orders = vw.Source(name="orders").alias("o")
+        customers = vw.Source(name="customers").alias("c")
+        query = orders.join.inner(customers, on=[vw.col("o.customer_id") == vw.col("c.id")]).select(
+            vw.col("o.id"), vw.col("o.total"), vw.col("c.name").alias("customer_name")
+        )
+        stmt = vw.Source(name="order_details").view.create(query)
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_creates_view_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            CREATE VIEW filtered_orders AS
+            SELECT * FROM orders WHERE (year = $year)
+        """
+        query = vw.Source(name="orders").select(vw.col("*")).where(vw.col("year") == vw.param("year", 2024))
+        stmt = vw.Source(name="filtered_orders").view.create(query)
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"year": 2024})
+
+
+def describe_drop_view():
+    """Tests for DROP VIEW."""
+
+    def it_drops_view(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP VIEW active_users"
+        stmt = vw.Source(name="active_users").view.drop()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_view_if_exists(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP VIEW IF EXISTS active_users"
+        stmt = vw.Source(name="active_users").view.drop().if_exists()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_view_cascade(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP VIEW active_users CASCADE"
+        stmt = vw.Source(name="active_users").view.drop().cascade()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
+
+    def it_drops_view_if_exists_cascade(render_config: vw.RenderConfig) -> None:
+        expected_sql = "DROP VIEW IF EXISTS active_users CASCADE"
+        stmt = vw.Source(name="active_users").view.drop().if_exists().cascade()
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=expected_sql, params={})
 
 
 def describe_create_table_with_cte():
@@ -270,7 +395,25 @@ def describe_create_table_with_cte():
             vw.Source(name="users").select(vw.col("*")).where(vw.col("status") == vw.col("'active'")),
         )
         query = active_cte.select(vw.col("*"))
-        stmt = vw.Source(name="active_users_backup").create_table().as_select(query)
+        stmt = vw.Source(name="active_users_backup").table.create().as_select(query)
+        result = stmt.render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_create_view_with_cte():
+    """Tests for CREATE VIEW with CTEs."""
+
+    def it_creates_view_from_cte(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH active AS (SELECT * FROM users WHERE (status = 'active'))
+            CREATE VIEW active_users_view AS SELECT * FROM active
+        """
+        active_cte = vw.cte(
+            "active",
+            vw.Source(name="users").select(vw.col("*")).where(vw.col("status") == vw.col("'active'")),
+        )
+        query = active_cte.select(vw.col("*"))
+        stmt = vw.Source(name="active_users_view").view.create(query)
         result = stmt.render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
 
@@ -280,7 +423,7 @@ def describe_sqlserver_ctas():
 
     def it_raises_not_implemented_for_ctas() -> None:
         query = vw.Source(name="orders").select(vw.col("*"))
-        stmt = vw.Source(name="backup").create_table().as_select(query)
+        stmt = vw.Source(name="backup").table.create().as_select(query)
         config = vw.RenderConfig(dialect=vw.Dialect.SQLSERVER)
 
         with pytest.raises(NotImplementedError) as exc_info:
@@ -290,7 +433,7 @@ def describe_sqlserver_ctas():
         assert "SELECT INTO" in str(exc_info.value)
 
     def it_allows_schema_based_create_for_sqlserver() -> None:
-        stmt = vw.Source(name="users").create_table(
+        stmt = vw.Source(name="users").table.create(
             {
                 "id": dtypes.integer(),
                 "name": dtypes.varchar(100),

@@ -70,6 +70,7 @@ These coding principles are mandatory:
 - Work should be continuously tested at the end of each piece of work.
 - New work should add unit tests (mandatory), and integration tests (if appropriate).
 - Ensure that all tests, linters, and type checks are successful before moving on to the next piece of work.
+- When asserting containers or class instances the test should assert the entire container or instance if possible instead of asserting the parts.
 
 ```bash
 uv run pytest          # Run tests
@@ -82,3 +83,7 @@ uv run ty check        # Type check
 - When making a change, consider how that change fits in with the rest of the codebase.
 - Look for opportunities to refactor related code when making any changes.
 - Remove or simplify code whenever possible.
+
+13. Planning
+- Before starting work, the plan for the work should be written to a markdown file in a `.plans` directory in the root of the repo.
+- Plans should be cleaned up after the work for the plan is completed.

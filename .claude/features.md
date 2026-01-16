@@ -112,13 +112,20 @@
 - [ ] RETURNING clause
 
 ### DDL Statements
-- [x] CREATE TABLE (via `Source("name").create_table()`)
-- [x] CREATE TABLE AS SELECT (CTAS) (via `.create_table().as_select(query)`)
+- [x] CREATE TABLE (via `Source("name").table.create()`)
+- [x] CREATE TABLE AS SELECT (CTAS) (via `.table.create().as_select(query)`)
 - [x] CREATE TEMPORARY TABLE (via `.temporary()`)
 - [x] CREATE TABLE IF NOT EXISTS (via `.if_not_exists()`)
 - [x] CREATE OR REPLACE TABLE (via `.or_replace()`)
+- [x] DROP TABLE (via `Source("name").table.drop()`)
+- [x] DROP TABLE IF EXISTS (via `.table.drop().if_exists()`)
+- [x] DROP TABLE CASCADE (via `.table.drop().cascade()`)
+- [x] CREATE VIEW (via `Source("name").view.create(query)`)
+- [x] CREATE OR REPLACE VIEW (via `.view.create(query).or_replace()`)
+- [x] DROP VIEW (via `Source("name").view.drop()`)
+- [x] DROP VIEW IF EXISTS (via `.view.drop().if_exists()`)
+- [x] DROP VIEW CASCADE (via `.view.drop().cascade()`)
 - [ ] ALTER TABLE
-- [ ] DROP TABLE
 - [ ] CREATE INDEX / DROP INDEX
 
 ### Joins
