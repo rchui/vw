@@ -120,9 +120,9 @@ class CreateTable:
         sql = self.__vw_render__(context)
 
         # Prepend WITH clause if CTEs were registered
-        if context.ctes:
-            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
-            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+        with_clause = context.render_ctes()
+        if with_clause:
+            sql = f"{with_clause} {sql}"
 
         return RenderResult(sql=sql, params=context.params)
 
@@ -273,9 +273,9 @@ class CreateView:
         sql = self.__vw_render__(context)
 
         # Prepend WITH clause if CTEs were registered
-        if context.ctes:
-            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
-            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+        with_clause = context.render_ctes()
+        if with_clause:
+            sql = f"{with_clause} {sql}"
 
         return RenderResult(sql=sql, params=context.params)
 

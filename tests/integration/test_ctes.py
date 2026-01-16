@@ -174,3 +174,140 @@ def describe_cte_with_clauses():
         )
         result = active_users.select(vw.col("*")).order_by(vw.col("id").asc()).limit(10).render(config=render_config)
         assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+
+def describe_recursive_ctes():
+    """Tests for recursive CTEs."""
+
+    def it_generates_recursive_cte_for_hierarchy(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH RECURSIVE org_hierarchy AS (
+                (SELECT id, name, manager_id, 1 AS level
+                FROM employees
+                WHERE (manager_id IS NULL))
+                UNION ALL
+                (SELECT e.id, e.name, e.manager_id, h.level + 1
+                FROM employees AS e
+                INNER JOIN org_hierarchy AS h ON (e.manager_id = h.id))
+            )
+            SELECT * FROM org_hierarchy
+        """
+        # Anchor: top-level employees (no manager)
+        anchor = (
+            vw.Source(name="employees")
+            .select(vw.col("id"), vw.col("name"), vw.col("manager_id"), vw.col("1").alias("level"))
+            .where(vw.col("manager_id").is_null())
+        )
+        # Recursive: join employees to the CTE
+        e = vw.Source(name="employees").alias("e")
+        h = vw.Source(name="org_hierarchy").alias("h")
+        recursive = e.join.inner(h, on=[vw.col("e.manager_id") == vw.col("h.id")]).select(
+            vw.col("e.id"), vw.col("e.name"), vw.col("e.manager_id"), (vw.col("h.level") + vw.col("1"))
+        )
+        org = vw.cte("org_hierarchy", anchor + recursive, recursive=True)
+        result = org.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_recursive_cte_for_graph_traversal(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH RECURSIVE paths AS (
+                (SELECT source, target, 1 AS hops
+                FROM edges
+                WHERE (source = 'A'))
+                UNION ALL
+                (SELECT p.source, e.target, p.hops + 1
+                FROM paths AS p
+                INNER JOIN edges AS e ON (p.target = e.source))
+            )
+            SELECT * FROM paths
+        """
+        # Anchor: start from node 'A'
+        anchor = (
+            vw.Source(name="edges")
+            .select(vw.col("source"), vw.col("target"), vw.col("1").alias("hops"))
+            .where(vw.col("source") == vw.col("'A'"))
+        )
+        # Recursive: follow edges
+        p = vw.Source(name="paths").alias("p")
+        e = vw.Source(name="edges").alias("e")
+        recursive = p.join.inner(e, on=[vw.col("p.target") == vw.col("e.source")]).select(
+            vw.col("p.source"), vw.col("e.target"), vw.col("p.hops") + vw.col("1")
+        )
+        paths = vw.cte("paths", anchor + recursive, recursive=True)
+        result = paths.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_recursive_cte_with_parameters(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH RECURSIVE descendants AS (
+                (SELECT id, name, parent_id
+                FROM categories
+                WHERE (id = $root_id))
+                UNION ALL
+                (SELECT c.id, c.name, c.parent_id
+                FROM categories AS c
+                INNER JOIN descendants AS d ON (c.parent_id = d.id))
+            )
+            SELECT * FROM descendants
+        """
+        root_id = vw.param("root_id", 1)
+        anchor = (
+            vw.Source(name="categories")
+            .select(vw.col("id"), vw.col("name"), vw.col("parent_id"))
+            .where(vw.col("id") == root_id)
+        )
+        c = vw.Source(name="categories").alias("c")
+        d = vw.Source(name="descendants").alias("d")
+        recursive = c.join.inner(d, on=[vw.col("c.parent_id") == vw.col("d.id")]).select(
+            vw.col("c.id"), vw.col("c.name"), vw.col("c.parent_id")
+        )
+        descendants = vw.cte("descendants", anchor + recursive, recursive=True)
+        result = descendants.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={"root_id": 1})
+
+    def it_generates_recursive_cte_with_union_instead_of_union_all(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH RECURSIVE unique_paths AS (
+                (SELECT node FROM nodes WHERE (node = 'start'))
+                UNION
+                (SELECT e.target FROM unique_paths AS p INNER JOIN edges AS e ON (p.node = e.source))
+            )
+            SELECT * FROM unique_paths
+        """
+        anchor = vw.Source(name="nodes").select(vw.col("node")).where(vw.col("node") == vw.col("'start'"))
+        p = vw.Source(name="unique_paths").alias("p")
+        e = vw.Source(name="edges").alias("e")
+        recursive = p.join.inner(e, on=[vw.col("p.node") == vw.col("e.source")]).select(vw.col("e.target"))
+        # Use | for UNION (deduplicates) instead of + for UNION ALL
+        paths = vw.cte("unique_paths", anchor | recursive, recursive=True)
+        result = paths.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})
+
+    def it_generates_mixed_recursive_and_non_recursive_ctes(render_config: vw.RenderConfig) -> None:
+        expected_sql = """
+            WITH RECURSIVE
+                active_employees AS (SELECT * FROM employees WHERE (active = true)),
+                org_hierarchy AS (
+                    (SELECT id, manager_id FROM active_employees WHERE (manager_id IS NULL))
+                    UNION ALL
+                    (SELECT e.id, e.manager_id
+                    FROM active_employees AS e
+                    INNER JOIN org_hierarchy AS h ON (e.manager_id = h.id))
+                )
+            SELECT * FROM org_hierarchy
+        """
+        # Non-recursive CTE: filter active employees
+        active_employees = vw.cte(
+            "active_employees",
+            vw.Source(name="employees").select(vw.col("*")).where(vw.col("active") == vw.col("true")),
+        )
+        # Recursive CTE: build hierarchy from active employees
+        anchor = active_employees.select(vw.col("id"), vw.col("manager_id")).where(vw.col("manager_id").is_null())
+        e = vw.Source(name="active_employees").alias("e")
+        h = vw.Source(name="org_hierarchy").alias("h")
+        recursive = e.join.inner(h, on=[vw.col("e.manager_id") == vw.col("h.id")]).select(
+            vw.col("e.id"), vw.col("e.manager_id")
+        )
+        org = vw.cte("org_hierarchy", anchor + recursive, recursive=True)
+        result = org.select(vw.col("*")).render(config=render_config)
+        assert result == vw.RenderResult(sql=sql(expected_sql), params={})

@@ -157,7 +157,7 @@
 - [x] FILTER clause for window functions (via `.filter()` method)
 
 ### Advanced Query Features
-- [ ] Recursive CTEs
+- [x] Recursive CTEs (via `cte(name, anchor + recursive, recursive=True)`)
 - [ ] PIVOT / UNPIVOT
 - [x] GROUPING SETS (via `vw.grouping_sets()`)
 - [x] CUBE (via `vw.cube()`)

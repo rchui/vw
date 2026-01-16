@@ -50,10 +50,19 @@ class CommonTableExpression(RowSet):
         ... )
         >>> result = active_users.select(col("*")).render()
         # WITH active_users AS (SELECT * FROM users WHERE ...) SELECT * FROM active_users
+
+    For recursive CTEs, use the recursive parameter:
+        >>> anchor = Source("employees").select(col("*")).where(col("manager_id").is_null())
+        >>> recursive = Source("employees").alias("e").join.inner(
+        ...     Source("org"), on=[col("e.manager_id") == col("org.id")]
+        ... ).select(col("*"))
+        >>> org = cte("org", anchor + recursive, recursive=True)
+        # WITH RECURSIVE org AS (... UNION ALL ...) SELECT * FROM org
     """
 
     name: str
-    query: Statement
+    query: Combinable
+    _recursive: bool = False
 
     def col(self, column_name: str, /) -> Column:
         """Create a column qualified with the CTE name or alias.
@@ -87,21 +96,32 @@ class CommonTableExpression(RowSet):
         return sql
 
 
-def cte(name: str, query: Statement, /) -> CommonTableExpression:
+def cte(name: str, query: Combinable, /, *, recursive: bool = False) -> CommonTableExpression:
     """Create a Common Table Expression (CTE).
 
     Args:
         name: The name for the CTE.
-        query: The Statement that defines the CTE.
+        query: The Statement or SetOperation that defines the CTE.
+        recursive: If True, generates WITH RECURSIVE for self-referencing CTEs.
 
     Returns:
         A CommonTableExpression that can be used like a table.
 
     Example:
+        >>> # Non-recursive CTE
         >>> active_users = cte("active_users", Source(name="users").select(col("*")).where(...))
         >>> result = active_users.select(col("*")).render()
+
+        >>> # Recursive CTE (e.g., org hierarchy)
+        >>> anchor = Source("employees").select(col("*")).where(col("manager_id").is_null())
+        >>> recursive_part = Source("employees").alias("e").join.inner(
+        ...     Source("org_hierarchy"), on=[col("e.manager_id") == col("org_hierarchy.id")]
+        ... ).select(col("*"))
+        >>> org = cte("org_hierarchy", anchor + recursive_part, recursive=True)
+        >>> result = org.select(col("*")).render()
+        # WITH RECURSIVE org_hierarchy AS (... UNION ALL ...) SELECT * FROM org_hierarchy
     """
-    return CommonTableExpression(name=name, query=query)
+    return CommonTableExpression(name=name, query=query, _recursive=recursive)
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -289,9 +309,9 @@ class Statement(RowSet, Expression):
         sql = self.__vw_render__(context)
 
         # Prepend WITH clause if CTEs were registered
-        if context.ctes:
-            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
-            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+        with_clause = context.render_ctes()
+        if with_clause:
+            sql = f"{with_clause} {sql}"
 
         return RenderResult(sql=sql, params=context.params)
 
@@ -445,9 +465,9 @@ class SetOperation(RowSet, Expression):
         sql = self.__vw_render__(context)
 
         # Prepend WITH clause if CTEs were registered
-        if context.ctes:
-            cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in context.ctes]
-            sql = f"WITH {', '.join(cte_definitions)} {sql}"
+        with_clause = context.render_ctes()
+        if with_clause:
+            sql = f"{with_clause} {sql}"
 
         return RenderResult(sql=sql, params=context.params)
 

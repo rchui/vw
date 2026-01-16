@@ -74,6 +74,19 @@ class RenderContext:
         """Create a child context for nested rendering."""
         return RenderContext(config=self.config, params=self.params, ctes=self.ctes, depth=self.depth + 1)
 
+    def render_ctes(self) -> str | None:
+        """Render the WITH clause if CTEs were registered.
+
+        Returns:
+            The WITH [RECURSIVE] clause string, or None if no CTEs.
+        """
+        if not self.ctes:
+            return None
+        cte_definitions = [f"{cte.name} AS {body_sql}" for cte, body_sql in self.ctes]
+        has_recursive = any(cte._recursive for cte, _ in self.ctes)
+        with_keyword = "WITH RECURSIVE" if has_recursive else "WITH"
+        return f"{with_keyword} {', '.join(cte_definitions)}"
+
     def add_param(self, name: str, value: Any) -> str:
         """
         Add a parameter to the context and return its placeholder.
