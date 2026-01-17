@@ -163,12 +163,7 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_id, $_v0_1_name)) AS users(id, name)
         """
-        result = (
-            vw.values({"id": 1, "name": None})
-            .alias("users")
-            .select(vw.col("*"))
-            .render(config=render_config)
-        )
+        result = vw.values({"id": 1, "name": None}).alias("users").select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_id": 1, "_v0_1_name": None},
@@ -194,12 +189,7 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_a, $_v0_1_b)) AS flags(a, b)
         """
-        result = (
-            vw.values({"a": True, "b": False})
-            .alias("flags")
-            .select(vw.col("*"))
-            .render(config=render_config)
-        )
+        result = vw.values({"a": True, "b": False}).alias("flags").select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_a": True, "_v0_1_b": False},
@@ -209,12 +199,7 @@ def describe_values_with_various_types():
         expected_sql = """
             SELECT * FROM (VALUES ($_v0_0_msg)) AS texts(msg)
         """
-        result = (
-            vw.values({"msg": "Hello, World!"})
-            .alias("texts")
-            .select(vw.col("*"))
-            .render(config=render_config)
-        )
+        result = vw.values({"msg": "Hello, World!"}).alias("texts").select(vw.col("*")).render(config=render_config)
         assert result == vw.RenderResult(
             sql=sql(expected_sql),
             params={"_v0_0_msg": "Hello, World!"},

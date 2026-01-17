@@ -61,19 +61,14 @@ class Values(RowSet):
     def __vw_render__(self, context: RenderContext) -> str:
         """Render the VALUES clause for use as a row source."""
         if not self._alias:
-            raise ValueError(
-                "VALUES requires an alias when used as a row source. "
-                "Use .alias('name') to set one."
-            )
+            raise ValueError("VALUES requires an alias when used as a row source. Use .alias('name') to set one.")
 
         columns, values_sql = render_values_rows(self, context)
         col_list = ", ".join(columns)
         return f"({values_sql}) AS {self._alias}({col_list})"
 
 
-def render_values_rows(
-    vals: Values, context: RenderContext
-) -> tuple[list[str], str]:
+def render_values_rows(vals: Values, context: RenderContext) -> tuple[list[str], str]:
     """Render Values as a VALUES clause.
 
     Args:

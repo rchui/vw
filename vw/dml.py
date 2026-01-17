@@ -205,7 +205,137 @@ class Delete:
         return sql
 
 
+@dataclass(kw_only=True, frozen=True)
+class Update:
+    """Represents an UPDATE statement.
+
+    Created via Source("name").update() or Source("name").update(using=...).
+
+    Example:
+        >>> # Basic UPDATE
+        >>> Source("users").update().set({"name": param("name", "Alice")}).where(
+        ...     col("id") == param("id", 1)
+        ... )
+        >>>
+        >>> # UPDATE with USING (renders as FROM in SQL)
+        >>> Source("users").update(using=Source("orders").alias("o")).set({
+        ...     "total": col("o.amount")
+        ... }).where(col("users.id") == col("o.user_id"))
+        >>>
+        >>> # UPDATE with RETURNING
+        >>> Source("users").update().set({"active": col("false")}).where(...).returning(col("*"))
+    """
+
+    table: str
+    _using: RowSet | None = None
+    _set: tuple[tuple[str, Expression], ...] = field(default_factory=tuple)
+    _where: tuple[Expression, ...] = field(default_factory=tuple)
+    _returning: tuple[Expression, ...] = field(default_factory=tuple)
+
+    def set(self, assignments: dict[str, Expression]) -> Update:
+        """Add SET assignments to the UPDATE statement.
+
+        Args:
+            assignments: Dictionary mapping column names to expressions.
+
+        Returns:
+            A new Update with SET assignments.
+
+        Example:
+            >>> Source("users").update().set({"name": param("name", "Alice")})
+            >>> Source("users").update().set({
+            ...     "name": param("name", "Alice"),
+            ...     "updated_at": col("NOW()")
+            ... })
+        """
+        new_assignments = tuple(assignments.items())
+        return replace(self, _set=self._set + new_assignments)
+
+    def where(self, *exprs: Expression) -> Update:
+        """Add WHERE conditions to the UPDATE statement.
+
+        Args:
+            *exprs: Expressions for WHERE clause. Multiple are combined with AND.
+
+        Returns:
+            A new Update with WHERE conditions.
+
+        Example:
+            >>> Source("users").update().set({...}).where(col("id") == param("id", 1))
+            >>> Source("users").update().set({...}).where(
+            ...     col("active") == col("true"),
+            ...     col("age") >= col("18")
+            ... )
+        """
+        return replace(self, _where=self._where + exprs)
+
+    def returning(self, *exprs: Expression) -> Update:
+        """Add RETURNING clause (PostgreSQL/SQLite 3.35+).
+
+        Args:
+            *exprs: Expressions to return from the updated rows.
+
+        Returns:
+            A new Update with RETURNING clause.
+
+        Example:
+            >>> Source("users").update().set({...}).where(...).returning(col("id"))
+            >>> Source("users").update().set({...}).where(...).returning(col("*"))
+        """
+        return replace(self, _returning=self._returning + exprs)
+
+    def render(self, config: RenderConfig | None = None) -> RenderResult:
+        """Render the UPDATE statement.
+
+        Args:
+            config: Rendering configuration.
+
+        Returns:
+            RenderResult containing the SQL string and parameter dictionary.
+        """
+        if config is None:
+            config = RenderConfig()
+        context = RenderContext(config=config)
+        sql = self.__vw_render__(context)
+
+        # Prepend WITH clause if CTEs were registered
+        with_clause = context.render_ctes()
+        if with_clause:
+            sql = f"{with_clause} {sql}"
+
+        return RenderResult(sql=sql, params=context.params)
+
+    def __vw_render__(self, context: RenderContext) -> str:
+        """Render the UPDATE statement."""
+        if not self._set:
+            raise ValueError("UPDATE statement requires at least one SET assignment")
+
+        sql = f"UPDATE {self.table}"
+
+        # SET clause
+        assignments = [f"{col} = {expr.__vw_render__(context)}" for col, expr in self._set]
+        sql += f" SET {', '.join(assignments)}"
+
+        # FROM clause (via _using, PostgreSQL-style joins)
+        if self._using is not None:
+            using_sql = self._using.__vw_render__(context.recurse())
+            sql += f" FROM {using_sql}"
+
+        # WHERE clause
+        if self._where:
+            conditions = [f"({expr.__vw_render__(context)})" for expr in self._where]
+            sql += f" WHERE {' AND '.join(conditions)}"
+
+        # RETURNING clause
+        if self._returning:
+            returning_cols = ", ".join(expr.__vw_render__(context) for expr in self._returning)
+            sql += f" RETURNING {returning_cols}"
+
+        return sql
+
+
 __all__ = [
     "Delete",
     "Insert",
+    "Update",
 ]

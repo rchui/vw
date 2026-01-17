@@ -91,11 +91,7 @@ def describe_delete():
         assert result == "DELETE FROM users"
 
     def it_renders_delete_with_where(render_context: vw.RenderContext) -> None:
-        result = (
-            Delete(table="users")
-            .where(vw.col("id") == vw.param("id", 1))
-            .__vw_render__(render_context)
-        )
+        result = Delete(table="users").where(vw.col("id") == vw.param("id", 1)).__vw_render__(render_context)
         assert result == "DELETE FROM users WHERE (id = $id)"
         assert render_context.params == {"id": 1}
 
@@ -145,7 +141,10 @@ def describe_delete():
             .where(vw.col("users.id") == vw.col("o.user_id"))
             .__vw_render__(render_context)
         )
-        assert result == "DELETE FROM users USING (SELECT user_id FROM orders WHERE (status = 'cancelled')) AS o WHERE (users.id = o.user_id)"
+        assert (
+            result
+            == "DELETE FROM users USING (SELECT user_id FROM orders WHERE (status = 'cancelled')) AS o WHERE (users.id = o.user_id)"
+        )
 
     def it_renders_delete_with_using_values(render_context: vw.RenderContext) -> None:
         result = (

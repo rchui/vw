@@ -15,10 +15,14 @@ def describe_values():
         assert render_context.params == {"_v0_0_id": 1, "_v0_1_name": "Alice"}
 
     def it_renders_multiple_rows(render_context: vw.RenderContext) -> None:
-        result = vw.values(
-            {"id": 1, "name": "Alice"},
-            {"id": 2, "name": "Bob"},
-        ).alias("t").__vw_render__(render_context)
+        result = (
+            vw.values(
+                {"id": 1, "name": "Alice"},
+                {"id": 2, "name": "Bob"},
+            )
+            .alias("t")
+            .__vw_render__(render_context)
+        )
         assert result == "(VALUES ($_v0_0_id, $_v0_1_name), ($_v1_0_id, $_v1_1_name)) AS t(id, name)"
         assert render_context.params == {
             "_v0_0_id": 1,
@@ -28,9 +32,13 @@ def describe_values():
         }
 
     def it_renders_with_expression_values(render_context: vw.RenderContext) -> None:
-        result = vw.values(
-            {"id": 1, "created": vw.col("NOW()")},
-        ).alias("t").__vw_render__(render_context)
+        result = (
+            vw.values(
+                {"id": 1, "created": vw.col("NOW()")},
+            )
+            .alias("t")
+            .__vw_render__(render_context)
+        )
         assert result == "(VALUES ($_v0_0_id, NOW())) AS t(id, created)"
         assert render_context.params == {"_v0_0_id": 1}
 
@@ -40,9 +48,13 @@ def describe_values():
         assert render_context.params == {"_v0_0_id": 1, "_v0_1_name": None}
 
     def it_renders_various_types(render_context: vw.RenderContext) -> None:
-        result = vw.values(
-            {"int": 42, "float": 3.14, "str": "hello", "bool": True},
-        ).alias("t").__vw_render__(render_context)
+        result = (
+            vw.values(
+                {"int": 42, "float": 3.14, "str": "hello", "bool": True},
+            )
+            .alias("t")
+            .__vw_render__(render_context)
+        )
         assert result == "(VALUES ($_v0_0_int, $_v0_1_float, $_v0_2_str, $_v0_3_bool)) AS t(int, float, str, bool)"
         assert render_context.params == {
             "_v0_0_int": 42,

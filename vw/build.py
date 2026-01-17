@@ -14,7 +14,7 @@ from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
 if TYPE_CHECKING:
     from vw.ddl import TableAccessor, ViewAccessor
-    from vw.dml import Delete, Insert
+    from vw.dml import Delete, Insert, Update
     from vw.values import Values
 
 
@@ -211,6 +211,30 @@ class Source(RowSet):
         from vw.dml import Delete
 
         return Delete(table=self.name, _using=using)
+
+    def update(self, using: RowSet | None = None) -> Update:
+        """Create an UPDATE statement for this table.
+
+        Args:
+            using: Optional RowSet (table, subquery, CTE) for FROM clause.
+
+        Returns:
+            An Update object that can be rendered.
+
+        Example:
+            >>> # Basic UPDATE
+            >>> Source("users").update().set({"name": param("name", "Alice")}).where(
+            ...     col("id") == param("id", 1)
+            ... )
+            >>>
+            >>> # UPDATE with USING (renders as FROM)
+            >>> Source("users").update(using=Source("orders").alias("o")).set({
+            ...     "total": col("o.amount")
+            ... }).where(col("users.id") == col("o.user_id"))
+        """
+        from vw.dml import Update
+
+        return Update(table=self.name, _using=using)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""
