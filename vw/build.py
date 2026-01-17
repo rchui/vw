@@ -14,7 +14,7 @@ from vw.render import Dialect, RenderConfig, RenderContext, RenderResult
 
 if TYPE_CHECKING:
     from vw.ddl import TableAccessor, ViewAccessor
-    from vw.dml import Insert
+    from vw.dml import Delete, Insert
     from vw.values import Values
 
 
@@ -184,6 +184,33 @@ class Source(RowSet):
         from vw.dml import Insert
 
         return Insert(table=self.name, source=source)
+
+    def delete(self, using: RowSet | None = None) -> Delete:
+        """Create a DELETE statement for this table.
+
+        Args:
+            using: Optional RowSet (table, subquery, VALUES) for USING clause.
+
+        Returns:
+            A Delete object that can be rendered.
+
+        Example:
+            >>> # Basic DELETE
+            >>> Source("users").delete().where(col("id") == param("id", 1))
+            >>>
+            >>> # DELETE with USING
+            >>> Source("users").delete(Source("orders").alias("o")).where(
+            ...     col("users.id") == col("o.user_id")
+            ... )
+            >>>
+            >>> # DELETE with USING VALUES
+            >>> Source("users").delete(values({"id": 1}, {"id": 2}).alias("v")).where(
+            ...     col("users.id") == col("v.id")
+            ... )
+        """
+        from vw.dml import Delete
+
+        return Delete(table=self.name, _using=using)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""

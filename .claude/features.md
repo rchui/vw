@@ -108,9 +108,10 @@
 ### DML Statements
 - [x] INSERT with VALUES (via `Source("name").insert(values(...))`)
 - [x] INSERT from SELECT (via `Source("name").insert(query)`)
-- [x] RETURNING clause (via `.returning()`)
+- [x] DELETE statements (via `Source("name").delete()`)
+- [x] DELETE with USING (via `Source("name").delete(using)`)
+- [x] RETURNING clause for INSERT/DELETE (via `.returning()`)
 - [ ] UPDATE statements
-- [ ] DELETE statements
 - [ ] MERGE / UPSERT statements
 - [ ] ON CONFLICT / upsert
 
