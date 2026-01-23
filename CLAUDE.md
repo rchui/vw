@@ -87,3 +87,10 @@ uv run ty check        # Type check
 13. Planning
 - Before starting work, the plan for the work should be written to a markdown file in a `.plans` directory in the root of the repo.
 - Plans should be cleaned up after the work for the plan is completed.
+
+14. Python
+- Favor `from <module> import <ref> as <name>` over `__all__`.
+- When importing modules, use the following hierarchy
+  1. TYPE_CHECKING imports if the import is only used for type checking
+  2. module level imports
+  3. inline function level imports if there is a circular dependency
