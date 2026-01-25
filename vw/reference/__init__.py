@@ -12,7 +12,7 @@ from vw.reference.render import Dialect, RenderConfig, RenderContext, RenderResu
 from vw.reference.star import StarExpression, star
 from vw.reference.values import Values, values
 
-__version__ = "0.0.1"
+__version__ = "0.0.2"
 
 __all__: list[str] = [
     "Column",
