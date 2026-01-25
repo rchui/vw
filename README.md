@@ -17,7 +17,7 @@ Stop fearing the complexity of large queries. vw lets you fully embrace SQL by t
 Here's a simple example using vw with SQLAlchemy:
 
 ```python
-import vw
+import vw.reference as vw
 from sqlalchemy import create_engine, text
 
 # Create your database connection

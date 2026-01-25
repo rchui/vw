@@ -1,6 +1,6 @@
 """Integration tests for VALUES clause."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

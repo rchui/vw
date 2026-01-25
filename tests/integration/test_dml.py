@@ -1,6 +1,6 @@
 """Integration tests for DML (INSERT, UPDATE, DELETE)."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

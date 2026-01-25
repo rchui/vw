@@ -2,7 +2,7 @@
 
 import pytest
 
-import vw
+import vw.reference as vw
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 """Integration tests for string functions."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

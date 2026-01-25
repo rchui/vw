@@ -1,6 +1,6 @@
 """Integration tests for JOIN operations and subqueries."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

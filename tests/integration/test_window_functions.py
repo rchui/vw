@@ -1,8 +1,8 @@
 """Integration tests for window functions."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
-from vw.functions import F
+from vw.reference.functions import F
 
 
 def describe_window_only_functions():

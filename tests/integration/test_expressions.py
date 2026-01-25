@@ -1,8 +1,8 @@
 """Integration tests for expressions: cast, alias, parameters, null handling."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
-from vw import dtypes
+from vw.reference import dtypes
 
 
 def describe_cast():

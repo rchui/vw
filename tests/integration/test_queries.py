@@ -1,6 +1,6 @@
 """Integration tests for SQL query clauses: SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

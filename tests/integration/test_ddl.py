@@ -2,10 +2,10 @@
 
 import pytest
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
-from vw import dtypes
-from vw.functions import F
+from vw.reference import dtypes
+from vw.reference.functions import F
 
 
 def describe_create_table_with_schema():

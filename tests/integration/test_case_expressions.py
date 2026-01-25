@@ -1,6 +1,6 @@
 """Integration tests for CASE/WHEN expressions."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 

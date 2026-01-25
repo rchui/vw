@@ -1,6 +1,6 @@
 """Integration tests for set operations: UNION, UNION ALL, INTERSECT, EXCEPT."""
 
-import vw
+import vw.reference as vw
 from tests.utils import sql
 
 
