@@ -1,5 +1,6 @@
 """Tests for source() function and Source rendering."""
 
+from vw.core.states import Source
 from vw.postgres import col, render, source
 
 
@@ -7,6 +8,7 @@ def describe_source() -> None:
     def it_creates_source() -> None:
         """source() should create a RowSet with Source state."""
         s = source("users")
+        assert isinstance(s.state, Source)
         assert s.state.name == "users"
         assert s.state.alias is None
 

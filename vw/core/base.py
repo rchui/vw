@@ -22,7 +22,7 @@ class Factories(FactoryT):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Expression(Stateful):
+class Expression(Stateful, FactoryT):
     state: Any  # Column or other expression types
     factories: Factories[ExprT, RowSetT, SetOpT]
 
