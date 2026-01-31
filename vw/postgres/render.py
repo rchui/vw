@@ -59,21 +59,52 @@ def render_statement(stmt: Statement) -> str:
     Returns:
         The SQL string.
     """
-    # Render source (can be Source or Statement for subqueries)
+    parts = []
+
+    # SELECT clause (with optional DISTINCT)
+    if stmt.columns:
+        select_clause = "SELECT"
+        if stmt.distinct:
+            select_clause = "SELECT DISTINCT"
+        cols = ", ".join(render_state(col.state) for col in stmt.columns)
+        parts.append(f"{select_clause} {cols}")
+
+    # FROM clause (source can be Source or Statement for subqueries)
     if isinstance(stmt.source, Source):
         source_sql = render_source(stmt.source)
     else:  # Statement (subquery)
         source_sql = f"({render_statement(stmt.source)})"
         if stmt.source.alias:
             source_sql += f" AS {stmt.source.alias}"
+    parts.append(f"FROM {source_sql}")
 
-    query = f"FROM {source_sql}"
+    # WHERE clause
+    if stmt.where_conditions:
+        conditions = " AND ".join(render_state(cond.state) for cond in stmt.where_conditions)
+        parts.append(f"WHERE {conditions}")
 
-    if stmt.columns:
-        cols = ", ".join(render_state(col.state) for col in stmt.columns)
-        query = f"SELECT {cols} {query}"
+    # GROUP BY clause
+    if stmt.group_by_columns:
+        cols = ", ".join(render_state(col.state) for col in stmt.group_by_columns)
+        parts.append(f"GROUP BY {cols}")
 
-    return query
+    # HAVING clause
+    if stmt.having_conditions:
+        conditions = " AND ".join(render_state(cond.state) for cond in stmt.having_conditions)
+        parts.append(f"HAVING {conditions}")
+
+    # ORDER BY clause
+    if stmt.order_by_columns:
+        cols = ", ".join(render_state(col.state) for col in stmt.order_by_columns)
+        parts.append(f"ORDER BY {cols}")
+
+    # LIMIT/OFFSET clause
+    if stmt.limit:
+        parts.append(f"LIMIT {stmt.limit.count}")
+        if stmt.limit.offset:
+            parts.append(f"OFFSET {stmt.limit.offset}")
+
+    return " ".join(parts)
 
 
 def render_source(source: Source) -> str:
