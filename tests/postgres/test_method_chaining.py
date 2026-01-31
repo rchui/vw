@@ -21,7 +21,9 @@ def describe_method_chaining() -> None:
             "WHERE o.status GROUP BY o.user_id HAVING count "
             "ORDER BY o.total LIMIT 10 OFFSET 5"
         )
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_chains_select_where_order_limit() -> None:
         """Common query pattern should chain correctly."""
@@ -33,13 +35,17 @@ def describe_method_chaining() -> None:
             .limit(20)
         )
         expected = "SELECT id, name, email FROM users WHERE active AND verified ORDER BY name LIMIT 20"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_chains_distinct_with_where_order() -> None:
         """DISTINCT should chain with WHERE and ORDER BY."""
         q = source("products").select(col("category")).distinct().where(col("in_stock")).order_by(col("category"))
         expected = "SELECT DISTINCT category FROM products WHERE in_stock ORDER BY category"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_chains_group_by_with_having_order_limit() -> None:
         """GROUP BY with HAVING, ORDER BY, and LIMIT should chain."""
@@ -54,27 +60,35 @@ def describe_method_chaining() -> None:
         expected = (
             "SELECT product_id, total FROM sales GROUP BY product_id HAVING total AND count ORDER BY total LIMIT 5"
         )
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_allows_reordering_method_calls() -> None:
         """Methods can be called in any order (transforms Source once)."""
         q = source("users").where(col("active")).limit(10).select(col("id")).order_by(col("id"))
         expected = "SELECT id FROM users WHERE active ORDER BY id LIMIT 10"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_uses_rowset_col_for_qualified_columns() -> None:
         """Using RowSet.col() should create qualified columns."""
         s = source("users").alias("u")
         q = s.select(s.col("id"), s.col("name")).where(s.col("active")).order_by(s.col("name"))
         expected = "SELECT u.id, u.name FROM users AS u WHERE u.active ORDER BY u.name"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_uses_rowset_star_in_select() -> None:
         """Using RowSet.star should select all columns."""
         s = source("users").alias("u")
         q = s.select(s.star).where(s.col("active")).limit(10)
         expected = "SELECT u.* FROM users AS u WHERE u.active LIMIT 10"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_builds_aggregation_query() -> None:
         """Complex aggregation query should build correctly."""
@@ -93,16 +107,22 @@ def describe_method_chaining() -> None:
             "GROUP BY o.user_id HAVING o.count "
             "ORDER BY o.total LIMIT 100"
         )
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_allows_multiple_where_calls() -> None:
         """Multiple where() calls should accumulate."""
         q = source("users").select(col("id")).where(col("active")).where(col("verified")).where(col("premium"))
         expected = "SELECT id FROM users WHERE active AND verified AND premium"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}
 
     def it_replaces_on_repeated_select() -> None:
         """Second select() should replace columns."""
         q = source("users").select(col("id"), col("name")).where(col("active")).select(col("email"))
         expected = "SELECT email FROM users WHERE active"
-        assert render(q) == expected
+        result = render(q)
+        assert result.query == expected
+        assert result.params == {}

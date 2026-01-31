@@ -11,12 +11,14 @@ def describe_basic_queries() -> None:
         FROM users
         """
         q = source("users").select(col("id"), col("name"), col("email"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT id, name, email
             FROM users
             """
         )
+        assert result.params == {}
 
     def it_builds_select_with_where() -> None:
         """
@@ -25,13 +27,15 @@ def describe_basic_queries() -> None:
         WHERE active
         """
         q = source("users").select(col("id"), col("name")).where(col("active"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT id, name
             FROM users
             WHERE active
             """
         )
+        assert result.params == {}
 
     def it_builds_select_with_pagination() -> None:
         """
@@ -41,7 +45,8 @@ def describe_basic_queries() -> None:
         LIMIT 10 OFFSET 20
         """
         q = source("users").select(col("id"), col("name")).order_by(col("id")).limit(10, offset=20)
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT id, name
             FROM users
@@ -49,6 +54,7 @@ def describe_basic_queries() -> None:
             LIMIT 10 OFFSET 20
             """
         )
+        assert result.params == {}
 
 
 def describe_filtered_queries() -> None:
@@ -59,13 +65,15 @@ def describe_filtered_queries() -> None:
         WHERE active AND verified AND premium
         """
         q = source("users").select(col("id"), col("name")).where(col("active"), col("verified"), col("premium"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT id, name
             FROM users
             WHERE active AND verified AND premium
             """
         )
+        assert result.params == {}
 
     def it_builds_filtered_ordered_limited() -> None:
         """
@@ -82,7 +90,8 @@ def describe_filtered_queries() -> None:
             .order_by(col("price"), col("name"))
             .limit(50)
         )
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT id, name, price
             FROM products
@@ -91,6 +100,7 @@ def describe_filtered_queries() -> None:
             LIMIT 50
             """
         )
+        assert result.params == {}
 
 
 def describe_aggregation_queries() -> None:
@@ -101,13 +111,15 @@ def describe_aggregation_queries() -> None:
         GROUP BY user_id
         """
         q = source("orders").select(col("user_id"), col("total")).group_by(col("user_id"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT user_id, total
             FROM orders
             GROUP BY user_id
             """
         )
+        assert result.params == {}
 
     def it_builds_group_by_with_having() -> None:
         """
@@ -117,7 +129,8 @@ def describe_aggregation_queries() -> None:
         HAVING total
         """
         q = source("orders").select(col("user_id"), col("total")).group_by(col("user_id")).having(col("total"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT user_id, total
             FROM orders
@@ -125,6 +138,7 @@ def describe_aggregation_queries() -> None:
             HAVING total
             """
         )
+        assert result.params == {}
 
     def it_builds_complex_aggregation() -> None:
         """
@@ -145,7 +159,8 @@ def describe_aggregation_queries() -> None:
             .order_by(col("revenue"))
             .limit(10)
         )
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT product_id, category, revenue
             FROM sales
@@ -156,6 +171,7 @@ def describe_aggregation_queries() -> None:
             LIMIT 10
             """
         )
+        assert result.params == {}
 
 
 def describe_distinct_queries() -> None:
@@ -165,12 +181,14 @@ def describe_distinct_queries() -> None:
         FROM orders
         """
         q = source("orders").select(col("user_id")).distinct()
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT DISTINCT user_id
             FROM orders
             """
         )
+        assert result.params == {}
 
     def it_builds_distinct_with_filters() -> None:
         """
@@ -180,7 +198,8 @@ def describe_distinct_queries() -> None:
         ORDER BY event_type
         """
         q = source("events").select(col("event_type")).distinct().where(col("active")).order_by(col("event_type"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT DISTINCT event_type
             FROM events
@@ -188,6 +207,7 @@ def describe_distinct_queries() -> None:
             ORDER BY event_type
             """
         )
+        assert result.params == {}
 
 
 def describe_aliased_queries() -> None:
@@ -198,12 +218,14 @@ def describe_aliased_queries() -> None:
         """
         s = source("users").alias("u")
         q = s.select(s.col("id"), s.col("name"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT u.id, u.name
             FROM users AS u
             """
         )
+        assert result.params == {}
 
     def it_builds_query_with_qualified_columns() -> None:
         """
@@ -220,7 +242,8 @@ def describe_aliased_queries() -> None:
             .order_by(s.col("created_at"))
             .limit(100)
         )
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT o.id, o.user_id, o.total
             FROM orders AS o
@@ -229,6 +252,7 @@ def describe_aliased_queries() -> None:
             LIMIT 100
             """
         )
+        assert result.params == {}
 
     def it_builds_query_with_star() -> None:
         """
@@ -239,7 +263,8 @@ def describe_aliased_queries() -> None:
         """
         s = source("products").alias("p")
         q = s.select(s.star).where(s.col("active")).limit(10)
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT p.*
             FROM products AS p
@@ -247,6 +272,7 @@ def describe_aliased_queries() -> None:
             LIMIT 10
             """
         )
+        assert result.params == {}
 
 
 def describe_real_world_patterns() -> None:
@@ -265,7 +291,8 @@ def describe_real_world_patterns() -> None:
             .order_by(s.col("created_at"))
             .limit(25)
         )
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT u.id, u.email, u.name, u.created_at
             FROM users AS u
@@ -274,6 +301,7 @@ def describe_real_world_patterns() -> None:
             LIMIT 25
             """
         )
+        assert result.params == {}
 
     def it_builds_top_sellers_report() -> None:
         """
@@ -294,7 +322,8 @@ def describe_real_world_patterns() -> None:
             .order_by(s.col("revenue"))
             .limit(20)
         )
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT oi.product_id, oi.quantity_sold, oi.revenue
             FROM order_items AS oi
@@ -305,6 +334,7 @@ def describe_real_world_patterns() -> None:
             LIMIT 20
             """
         )
+        assert result.params == {}
 
     def it_builds_distinct_categories_query() -> None:
         """
@@ -315,7 +345,8 @@ def describe_real_world_patterns() -> None:
         """
         s = source("products").alias("p")
         q = s.select(s.col("category")).distinct().where(s.col("published")).order_by(s.col("category"))
-        assert render(q) == sql(
+        result = render(q)
+        assert result.query == sql(
             """
             SELECT DISTINCT p.category
             FROM products AS p
@@ -323,3 +354,4 @@ def describe_real_world_patterns() -> None:
             ORDER BY p.category
             """
         )
+        assert result.params == {}

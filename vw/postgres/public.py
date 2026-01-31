@@ -1,5 +1,5 @@
 from vw.core.base import Factories
-from vw.core.states import Column, Source
+from vw.core.states import Column, Parameter, Source
 from vw.postgres.base import Expression, RowSet, SetOperation
 
 
@@ -35,3 +35,23 @@ def col(name: str, /) -> Expression:
         >>> col("users.id")
     """
     return Expression(state=Column(name=name), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
+
+
+def param(name: str, value: object, /) -> Expression:
+    """Create a parameter expression.
+
+    Args:
+        name: The parameter name (for documentation/debugging).
+        value: The parameter value.
+
+    Returns:
+        An Expression wrapping a Parameter.
+
+    Example:
+        >>> param("min_age", 18)
+        >>> param("status", "active")
+        >>> param("enabled", True)
+    """
+    return Expression(
+        state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
+    )

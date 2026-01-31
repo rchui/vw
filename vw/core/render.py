@@ -1,11 +1,13 @@
-"""Rendering infrastructure for SQL generation."""
+"""Shared rendering infrastructure for SQL generation."""
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 from strenum import StrEnum
+
+# --- Parameter Styles ------------------------------------------------------ #
 
 
 class ParamStyle(StrEnum):
@@ -17,22 +19,14 @@ class ParamStyle(StrEnum):
     PYFORMAT = "pyformat"  # %(param_name)s
 
 
-class Dialect(StrEnum):
-    """Supported SQL dialects for rendering."""
-
-    POSTGRES = "postgres"
-    """PostgreSQL style: $param, expr::type"""
-
-    SQLSERVER = "sqlserver"
-    """SQL Server style: @param, CAST(expr AS type)"""
+# --- Rendering Configuration ----------------------------------------------- #
 
 
 @dataclass(kw_only=True, frozen=True)
 class RenderConfig:
     """Configuration for SQL rendering."""
 
-    dialect: Dialect = Dialect.POSTGRES
-    param_style: ParamStyle | None = None
+    param_style: ParamStyle
 
 
 @dataclass(kw_only=True)
@@ -40,11 +34,40 @@ class RenderContext:
     """Context for rendering SQL with parameter tracking."""
 
     config: RenderConfig
+    params: dict[str, Any] = field(default_factory=dict)
+
+    def add_param(self, name: str, value: Any) -> str:
+        """Add a parameter to the context and return its placeholder.
+
+        Args:
+            name: Parameter name.
+            value: Parameter value.
+
+        Returns:
+            The SQL placeholder string for this parameter.
+        """
+        self.params[name] = value
+
+        param_style = self.config.param_style
+
+        if param_style == ParamStyle.DOLLAR:
+            return f"${name}"
+        elif param_style == ParamStyle.AT:
+            return f"@{name}"
+        elif param_style == ParamStyle.COLON:
+            return f":{name}"
+        elif param_style == ParamStyle.PYFORMAT:
+            return f"%({name})s"
+        else:
+            raise ValueError(f"Unsupported parameter style: {param_style}")
+
+
+# --- Rendering Result ------------------------------------------------------ #
 
 
 @dataclass(kw_only=True, frozen=True)
-class RenderResult:
+class SQL:
     """Result of rendering a SQL statement."""
 
-    sql: str
+    query: str
     params: dict[str, Any]
