@@ -27,9 +27,7 @@ def describe_filter_clause():
                 F.count(col("id")).filter(col("status") == param("status", "pending")).alias("pending_orders")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT COUNT(id) FILTER (WHERE status = $status) AS pending_orders FROM orders"
-            )
+            assert result.query == sql("SELECT COUNT(id) FILTER (WHERE status = $status) AS pending_orders FROM orders")
             assert result.params == {"status": "pending"}
 
         def test_sum_with_filter():
@@ -85,9 +83,7 @@ def describe_filter_clause():
             """FILTER with AND condition."""
             q = source("orders").select(
                 F.count()
-                .filter(
-                    (col("status") == param("status", "completed")) & (col("amount") > param("min_amount", 100))
-                )
+                .filter((col("status") == param("status", "completed")) & (col("amount") > param("min_amount", 100)))
                 .alias("large_completed_orders")
             )
             result = render(q)
@@ -100,7 +96,9 @@ def describe_filter_clause():
             """FILTER with OR condition."""
             q = source("orders").select(
                 F.sum(col("amount"))
-                .filter((col("status") == param("status1", "completed")) | (col("status") == param("status2", "shipped")))
+                .filter(
+                    (col("status") == param("status1", "completed")) | (col("status") == param("status2", "shipped"))
+                )
                 .alias("completed_or_shipped_revenue")
             )
             result = render(q)

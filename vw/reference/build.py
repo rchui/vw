@@ -3,17 +3,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
-from typing import TYPE_CHECKING, TypeAlias
+from typing import TypeAlias
 
 from vw.reference.base import Expression, RowSet
 from vw.reference.column import Column
 from vw.reference.exceptions import UnsupportedDialectError
 from vw.reference.render import Dialect, RenderConfig, RenderContext, RenderResult
-
-if TYPE_CHECKING:
-    from vw.reference.ddl import TableAccessor, ViewAccessor
-    from vw.reference.dml import Delete, Insert, Update
-    from vw.reference.values import Values
 
 
 @dataclass(kw_only=True, frozen=True)
@@ -146,93 +141,6 @@ class Source(RowSet):
         """
         prefix = self._alias or self.name
         return Column(name=f"{prefix}.{column_name}")
-
-    @property
-    def table(self) -> TableAccessor:
-        """Access table DDL operations."""
-        from vw.reference.ddl import TableAccessor
-
-        return TableAccessor(self)
-
-    @property
-    def view(self) -> ViewAccessor:
-        """Access view DDL operations."""
-        from vw.reference.ddl import ViewAccessor
-
-        return ViewAccessor(self)
-
-    def insert(self, source: Values | Statement) -> Insert:
-        """Create an INSERT statement for this table.
-
-        Args:
-            source: Either a Values object or a Statement (SELECT query).
-
-        Returns:
-            An Insert object that can be rendered.
-
-        Example:
-            >>> # INSERT with VALUES
-            >>> Source("users").insert(values({"name": "Alice", "age": 30}))
-            >>>
-            >>> # INSERT from SELECT
-            >>> Source("users_backup").insert(
-            ...     Source("users").select(col("*")).where(col("active") == col("true"))
-            ... )
-        """
-        from vw.reference.dml import Insert
-
-        return Insert(table=self.name, source=source)
-
-    def delete(self, using: RowSet | None = None) -> Delete:
-        """Create a DELETE statement for this table.
-
-        Args:
-            using: Optional RowSet (table, subquery, VALUES) for USING clause.
-
-        Returns:
-            A Delete object that can be rendered.
-
-        Example:
-            >>> # Basic DELETE
-            >>> Source("users").delete().where(col("id") == param("id", 1))
-            >>>
-            >>> # DELETE with USING
-            >>> Source("users").delete(Source("orders").alias("o")).where(
-            ...     col("users.id") == col("o.user_id")
-            ... )
-            >>>
-            >>> # DELETE with USING VALUES
-            >>> Source("users").delete(values({"id": 1}, {"id": 2}).alias("v")).where(
-            ...     col("users.id") == col("v.id")
-            ... )
-        """
-        from vw.reference.dml import Delete
-
-        return Delete(table=self.name, _using=using)
-
-    def update(self, using: RowSet | None = None) -> Update:
-        """Create an UPDATE statement for this table.
-
-        Args:
-            using: Optional RowSet (table, subquery, CTE) for FROM clause.
-
-        Returns:
-            An Update object that can be rendered.
-
-        Example:
-            >>> # Basic UPDATE
-            >>> Source("users").update().set({"name": param("name", "Alice")}).where(
-            ...     col("id") == param("id", 1)
-            ... )
-            >>>
-            >>> # UPDATE with USING (renders as FROM)
-            >>> Source("users").update(using=Source("orders").alias("o")).set({
-            ...     "total": col("o.amount")
-            ... }).where(col("users.id") == col("o.user_id"))
-        """
-        from vw.reference.dml import Update
-
-        return Update(table=self.name, _using=using)
 
     def __vw_render__(self, context: RenderContext) -> str:
         """Return the SQL representation of the source."""
