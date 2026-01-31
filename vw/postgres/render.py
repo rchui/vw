@@ -11,9 +11,13 @@ from vw.core.states import (
     Between,
     Cast,
     Column,
+    CurrentRow,
     Desc,
     Divide,
     Equals,
+    Following,
+    FrameClause,
+    Function,
     GreaterThan,
     GreaterThanOrEqual,
     IsIn,
@@ -31,9 +35,13 @@ from vw.core.states import (
     NotLike,
     Or,
     Parameter,
+    Preceding,
     Source,
     Statement,
     Subtract,
+    UnboundedFollowing,
+    UnboundedPreceding,
+    WindowFunction,
 )
 from vw.postgres.base import Expression, RowSet
 
@@ -81,85 +89,106 @@ def render_state(state: object, ctx: RenderContext) -> str:
     Raises:
         TypeError: If the state type is unknown.
     """
-    # --- Core Query States --------------------------------------------- #
-    if isinstance(state, Statement):
-        return render_statement(state, ctx)
-    elif isinstance(state, Source):
-        return render_source(state, ctx)
-    elif isinstance(state, Column):
-        return render_column(state)
-    elif isinstance(state, Parameter):
-        return render_parameter(state, ctx)
+    match state:
+        # --- Core Query States ----------------------------------------- #
+        case Statement():
+            return render_statement(state, ctx)
+        case Source():
+            return render_source(state, ctx)
+        case Column():
+            return render_column(state)
+        case Parameter():
+            return render_parameter(state, ctx)
 
-    # --- Comparison Operators ------------------------------------------ #
-    elif isinstance(state, Equals):
-        return f"{render_state(state.left, ctx)} = {render_state(state.right, ctx)}"
-    elif isinstance(state, NotEquals):
-        return f"{render_state(state.left, ctx)} <> {render_state(state.right, ctx)}"
-    elif isinstance(state, LessThan):
-        return f"{render_state(state.left, ctx)} < {render_state(state.right, ctx)}"
-    elif isinstance(state, LessThanOrEqual):
-        return f"{render_state(state.left, ctx)} <= {render_state(state.right, ctx)}"
-    elif isinstance(state, GreaterThan):
-        return f"{render_state(state.left, ctx)} > {render_state(state.right, ctx)}"
-    elif isinstance(state, GreaterThanOrEqual):
-        return f"{render_state(state.left, ctx)} >= {render_state(state.right, ctx)}"
+        # --- Comparison Operators -------------------------------------- #
+        case Equals():
+            return f"{render_state(state.left, ctx)} = {render_state(state.right, ctx)}"
+        case NotEquals():
+            return f"{render_state(state.left, ctx)} <> {render_state(state.right, ctx)}"
+        case LessThan():
+            return f"{render_state(state.left, ctx)} < {render_state(state.right, ctx)}"
+        case LessThanOrEqual():
+            return f"{render_state(state.left, ctx)} <= {render_state(state.right, ctx)}"
+        case GreaterThan():
+            return f"{render_state(state.left, ctx)} > {render_state(state.right, ctx)}"
+        case GreaterThanOrEqual():
+            return f"{render_state(state.left, ctx)} >= {render_state(state.right, ctx)}"
 
-    # --- Arithmetic Operators ------------------------------------------ #
-    elif isinstance(state, Add):
-        return f"{render_state(state.left, ctx)} + {render_state(state.right, ctx)}"
-    elif isinstance(state, Subtract):
-        return f"{render_state(state.left, ctx)} - {render_state(state.right, ctx)}"
-    elif isinstance(state, Multiply):
-        return f"{render_state(state.left, ctx)} * {render_state(state.right, ctx)}"
-    elif isinstance(state, Divide):
-        return f"{render_state(state.left, ctx)} / {render_state(state.right, ctx)}"
-    elif isinstance(state, Modulo):
-        return f"{render_state(state.left, ctx)} % {render_state(state.right, ctx)}"
+        # --- Arithmetic Operators -------------------------------------- #
+        case Add():
+            return f"{render_state(state.left, ctx)} + {render_state(state.right, ctx)}"
+        case Subtract():
+            return f"{render_state(state.left, ctx)} - {render_state(state.right, ctx)}"
+        case Multiply():
+            return f"{render_state(state.left, ctx)} * {render_state(state.right, ctx)}"
+        case Divide():
+            return f"{render_state(state.left, ctx)} / {render_state(state.right, ctx)}"
+        case Modulo():
+            return f"{render_state(state.left, ctx)} % {render_state(state.right, ctx)}"
 
-    # --- Logical Operators --------------------------------------------- #
-    elif isinstance(state, And):
-        return f"({render_state(state.left, ctx)}) AND ({render_state(state.right, ctx)})"
-    elif isinstance(state, Or):
-        return f"({render_state(state.left, ctx)}) OR ({render_state(state.right, ctx)})"
-    elif isinstance(state, Not):
-        return f"NOT ({render_state(state.operand, ctx)})"
+        # --- Logical Operators ----------------------------------------- #
+        case And():
+            return f"({render_state(state.left, ctx)}) AND ({render_state(state.right, ctx)})"
+        case Or():
+            return f"({render_state(state.left, ctx)}) OR ({render_state(state.right, ctx)})"
+        case Not():
+            return f"NOT ({render_state(state.operand, ctx)})"
 
-    # --- Pattern Matching ---------------------------------------------- #
-    elif isinstance(state, Like):
-        return f"{render_state(state.left, ctx)} LIKE {render_state(state.right, ctx)}"
-    elif isinstance(state, NotLike):
-        return f"{render_state(state.left, ctx)} NOT LIKE {render_state(state.right, ctx)}"
-    elif isinstance(state, IsIn):
-        values = ", ".join(render_state(v, ctx) for v in state.values)
-        return f"{render_state(state.expr, ctx)} IN ({values})"
-    elif isinstance(state, IsNotIn):
-        values = ", ".join(render_state(v, ctx) for v in state.values)
-        return f"{render_state(state.expr, ctx)} NOT IN ({values})"
-    elif isinstance(state, Between):
-        return f"{render_state(state.expr, ctx)} BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
-    elif isinstance(state, NotBetween):
-        return f"{render_state(state.expr, ctx)} NOT BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
+        # --- Pattern Matching ------------------------------------------ #
+        case Like():
+            return f"{render_state(state.left, ctx)} LIKE {render_state(state.right, ctx)}"
+        case NotLike():
+            return f"{render_state(state.left, ctx)} NOT LIKE {render_state(state.right, ctx)}"
+        case IsIn():
+            values = ", ".join(render_state(v, ctx) for v in state.values)
+            return f"{render_state(state.expr, ctx)} IN ({values})"
+        case IsNotIn():
+            values = ", ".join(render_state(v, ctx) for v in state.values)
+            return f"{render_state(state.expr, ctx)} NOT IN ({values})"
+        case Between():
+            return f"{render_state(state.expr, ctx)} BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
+        case NotBetween():
+            return f"{render_state(state.expr, ctx)} NOT BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
 
-    # --- NULL Checks --------------------------------------------------- #
-    elif isinstance(state, IsNull):
-        return f"{render_state(state.expr, ctx)} IS NULL"
-    elif isinstance(state, IsNotNull):
-        return f"{render_state(state.expr, ctx)} IS NOT NULL"
+        # --- NULL Checks ----------------------------------------------- #
+        case IsNull():
+            return f"{render_state(state.expr, ctx)} IS NULL"
+        case IsNotNull():
+            return f"{render_state(state.expr, ctx)} IS NOT NULL"
 
-    # --- Expression Modifiers ------------------------------------------ #
-    elif isinstance(state, Alias):
-        return f"{render_state(state.expr, ctx)} AS {state.name}"
-    elif isinstance(state, Cast):
-        # PostgreSQL uses :: syntax for casting
-        return f"{render_state(state.expr, ctx)}::{state.data_type}"
-    elif isinstance(state, Asc):
-        return f"{render_state(state.expr, ctx)} ASC"
-    elif isinstance(state, Desc):
-        return f"{render_state(state.expr, ctx)} DESC"
+        # --- Expression Modifiers -------------------------------------- #
+        case Alias():
+            return f"{render_state(state.expr, ctx)} AS {state.name}"
+        case Cast():
+            # PostgreSQL uses :: syntax for casting
+            return f"{render_state(state.expr, ctx)}::{state.data_type}"
+        case Asc():
+            return f"{render_state(state.expr, ctx)} ASC"
+        case Desc():
+            return f"{render_state(state.expr, ctx)} DESC"
 
-    else:
-        raise TypeError(f"Unknown state type: {type(state)}")
+        # --- Functions ------------------------------------------------- #
+        case Function():
+            return render_function(state, ctx)
+        case WindowFunction():
+            return render_window_function(state, ctx)
+
+        # --- Frame Clauses --------------------------------------------- #
+        case FrameClause():
+            return render_frame_clause(state, ctx)
+        case UnboundedPreceding():
+            return "UNBOUNDED PRECEDING"
+        case UnboundedFollowing():
+            return "UNBOUNDED FOLLOWING"
+        case CurrentRow():
+            return "CURRENT ROW"
+        case Preceding():
+            return f"{state.count} PRECEDING"
+        case Following():
+            return f"{state.count} FOLLOWING"
+
+        case _:
+            raise TypeError(f"Unknown state type: {type(state)}")
 
 
 def render_statement(stmt: Statement, ctx: RenderContext) -> str:
@@ -261,3 +290,103 @@ def render_parameter(param: Parameter, ctx: RenderContext) -> str:
     """
     # Add parameter to context and get placeholder
     return ctx.add_param(param.name, param.value)
+
+
+def render_function(func: Function, ctx: RenderContext) -> str:
+    """Render a Function to SQL.
+
+    Args:
+        func: A Function to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string.
+    """
+    # Render function arguments
+    if func.args:
+        # Handle special cases for COUNT(DISTINCT ...)
+        if func.name == "COUNT(DISTINCT":
+            # COUNT(DISTINCT expr) - close the DISTINCT paren
+            args_sql = ", ".join(render_state(arg, ctx) for arg in func.args)
+            sql = f"COUNT(DISTINCT {args_sql})"
+        else:
+            # Normal function with args
+            # Handle integer literals (for NTILE, LAG offset, etc.)
+            rendered_args = []
+            for arg in func.args:
+                if isinstance(arg, int):
+                    rendered_args.append(str(arg))
+                else:
+                    rendered_args.append(render_state(arg, ctx))
+            args_sql = ", ".join(rendered_args)
+            sql = f"{func.name}({args_sql})"
+    else:
+        # Function with no args
+        # Handle special case for COUNT(*)
+        if func.name == "COUNT(*)":
+            sql = "COUNT(*)"
+        elif func.name == "COUNT(DISTINCT *)":
+            sql = "COUNT(DISTINCT *)"
+        else:
+            sql = f"{func.name}()"
+
+    # Add FILTER clause if present
+    if func.filter:
+        filter_sql = render_state(func.filter, ctx)
+        sql += f" FILTER (WHERE {filter_sql})"
+
+    return sql
+
+
+def render_window_function(wf: WindowFunction, ctx: RenderContext) -> str:
+    """Render a WindowFunction to SQL.
+
+    Args:
+        wf: A WindowFunction to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string.
+    """
+    # Render the base function
+    func_sql = render_state(wf.function, ctx)
+
+    # Build OVER clause parts
+    over_parts = []
+
+    if wf.partition_by:
+        cols = ", ".join(render_state(col, ctx) for col in wf.partition_by)
+        over_parts.append(f"PARTITION BY {cols}")
+
+    if wf.order_by:
+        cols = ", ".join(render_state(col, ctx) for col in wf.order_by)
+        over_parts.append(f"ORDER BY {cols}")
+
+    if wf.frame:
+        over_parts.append(render_state(wf.frame, ctx))
+
+    over_clause = " ".join(over_parts)
+    return f"{func_sql} OVER ({over_clause})"
+
+
+def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
+    """Render a FrameClause to SQL.
+
+    Args:
+        frame: A FrameClause to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string.
+    """
+    # Render frame boundaries
+    start_sql = render_state(frame.start, ctx)
+    end_sql = render_state(frame.end, ctx)
+
+    sql = f"{frame.mode} BETWEEN {start_sql} AND {end_sql}"
+
+    # Add EXCLUDE clause if present
+    if frame.exclude:
+        sql += f" EXCLUDE {frame.exclude}"
+
+    return sql

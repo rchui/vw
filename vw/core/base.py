@@ -206,6 +206,147 @@ class Expression(Stateful, FactoryT):
 
         return self.factories.expr(state=Desc(expr=self.state), factories=self.factories)
 
+    # --- Function Methods -------------------------------------------------- #
+
+    def over(
+        self,
+        *,
+        partition_by: list[ExprT] | None = None,
+        order_by: list[ExprT] | None = None,
+    ) -> ExprT:
+        """Convert function to window function with OVER clause.
+
+        Args:
+            partition_by: Expressions to partition by (optional).
+            order_by: Expressions to order by (optional).
+
+        Returns:
+            An Expression wrapping a WindowFunction state.
+
+        Example:
+            >>> F.sum(col("amount")).over(partition_by=[col("customer_id")])
+            >>> F.row_number().over(order_by=[col("created_at").desc()])
+        """
+        from vw.core.states import WindowFunction
+
+        state = WindowFunction(
+            function=self.state,
+            partition_by=tuple(e.state for e in partition_by) if partition_by else (),
+            order_by=tuple(e.state for e in order_by) if order_by else (),
+        )
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def filter(self, condition: ExprT, /) -> ExprT:
+        """Add FILTER (WHERE ...) clause to aggregate function.
+
+        Args:
+            condition: Filter condition expression.
+
+        Returns:
+            An Expression wrapping a Function state with filter.
+
+        Example:
+            >>> F.count().filter(col("status") == param("status", "active"))
+        """
+        from dataclasses import replace
+
+        state = replace(self.state, filter=condition.state)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def rows_between(self, start: object, end: object, /) -> ExprT:
+        """Add ROWS BETWEEN frame clause to window function.
+
+        Args:
+            start: Start frame boundary.
+            end: End frame boundary.
+
+        Returns:
+            An Expression wrapping a WindowFunction state with frame.
+
+        Example:
+            >>> from vw.core.frame import UNBOUNDED_PRECEDING, CURRENT_ROW
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
+            ...     UNBOUNDED_PRECEDING, CURRENT_ROW
+            ... )
+        """
+        from dataclasses import replace
+
+        from vw.core.states import FrameClause, WindowFunction
+
+        # Preserve existing exclude if there is one
+        existing_exclude = None
+        if isinstance(self.state, WindowFunction):
+            existing_frame = self.state.frame
+            if isinstance(existing_frame, FrameClause):
+                existing_exclude = existing_frame.exclude
+
+        frame = FrameClause(mode="ROWS", start=start, end=end, exclude=existing_exclude)
+        state = replace(self.state, frame=frame)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def range_between(self, start: object, end: object, /) -> ExprT:
+        """Add RANGE BETWEEN frame clause to window function.
+
+        Args:
+            start: Start frame boundary.
+            end: End frame boundary.
+
+        Returns:
+            An Expression wrapping a WindowFunction state with frame.
+
+        Example:
+            >>> from vw.core.frame import UNBOUNDED_PRECEDING, CURRENT_ROW
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).range_between(
+            ...     UNBOUNDED_PRECEDING, CURRENT_ROW
+            ... )
+        """
+        from dataclasses import replace
+
+        from vw.core.states import FrameClause, WindowFunction
+
+        # Preserve existing exclude if there is one
+        existing_exclude = None
+        if isinstance(self.state, WindowFunction):
+            existing_frame = self.state.frame
+            if isinstance(existing_frame, FrameClause):
+                existing_exclude = existing_frame.exclude
+
+        frame = FrameClause(mode="RANGE", start=start, end=end, exclude=existing_exclude)
+        state = replace(self.state, frame=frame)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def exclude(self, mode: str, /) -> ExprT:
+        """Add EXCLUDE clause to window frame.
+
+        Args:
+            mode: Exclude mode ("CURRENT ROW", "GROUP", "TIES", "NO OTHERS").
+
+        Returns:
+            An Expression wrapping a WindowFunction state with exclude.
+
+        Example:
+            >>> F.sum(col("amount")).over(order_by=[col("date")]).rows_between(
+            ...     UNBOUNDED_PRECEDING, CURRENT_ROW
+            ... ).exclude("CURRENT ROW")
+        """
+        from dataclasses import replace
+
+        from vw.core.states import FrameClause, WindowFunction
+
+        # Preserve existing frame or create new one with just exclude
+        frame: FrameClause
+        if isinstance(self.state, WindowFunction):
+            existing_frame = self.state.frame
+            if isinstance(existing_frame, FrameClause):
+                frame = replace(existing_frame, exclude=mode)
+            else:
+                frame = FrameClause(mode="ROWS", start=None, end=None, exclude=mode)
+        else:
+            frame = FrameClause(mode="ROWS", start=None, end=None, exclude=mode)
+
+        state = replace(self.state, frame=frame)
+        return self.factories.expr(state=state, factories=self.factories)
+
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(Stateful, FactoryT):

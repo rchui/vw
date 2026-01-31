@@ -286,3 +286,70 @@ class Desc(ExpressionState):
     """Represents descending sort order (DESC)."""
 
     expr: ExpressionState
+
+
+# --- Functions ------------------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Function(ExpressionState):
+    """Represents a SQL function (aggregate, window-only, or scalar)."""
+
+    name: str
+    args: tuple[object, ...] = field(default_factory=tuple)
+    filter: object | None = None
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class WindowFunction(ExpressionState):
+    """Represents a window function with OVER clause."""
+
+    function: object
+    partition_by: tuple[object, ...] = field(default_factory=tuple)
+    order_by: tuple[object, ...] = field(default_factory=tuple)
+    frame: object | None = None
+
+
+# --- Window Frame Clauses -------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class FrameClause:
+    """Represents a window frame clause (ROWS/RANGE BETWEEN)."""
+
+    mode: str  # "ROWS" or "RANGE"
+    start: object
+    end: object
+    exclude: str | None = None  # "CURRENT ROW", "GROUP", "TIES", "NO OTHERS"
+
+
+# --- Frame Boundaries ------------------------------------------------------ #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class UnboundedPreceding:
+    """Represents UNBOUNDED PRECEDING frame boundary."""
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class UnboundedFollowing:
+    """Represents UNBOUNDED FOLLOWING frame boundary."""
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class CurrentRow:
+    """Represents CURRENT ROW frame boundary."""
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Preceding:
+    """Represents n PRECEDING frame boundary."""
+
+    count: int
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Following:
+    """Represents n FOLLOWING frame boundary."""
+
+    count: int

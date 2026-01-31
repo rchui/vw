@@ -1,6 +1,36 @@
 from vw.core.base import Factories
+from vw.core.frame import (
+    CURRENT_ROW as CURRENT_ROW,
+)
+from vw.core.frame import (
+    UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING,
+)
+from vw.core.frame import (
+    UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING,
+)
+from vw.core.frame import (
+    following as following,
+)
+from vw.core.frame import (
+    preceding as preceding,
+)
+from vw.core.functions import Functions as CoreFunctions
 from vw.core.states import Column, Parameter, Source
 from vw.postgres.base import Expression, RowSet, SetOperation
+
+
+class Functions(CoreFunctions):
+    """PostgreSQL function namespace.
+
+    Inherits all ANSI SQL standard functions from CoreFunctions.
+    PostgreSQL-specific functions can be added here in the future.
+    """
+
+    pass
+
+
+# Instantiate with PostgreSQL factories
+F = Functions(factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
 
 
 def source(name: str, /) -> RowSet:
