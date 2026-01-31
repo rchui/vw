@@ -85,7 +85,10 @@ uv run ty check        # Type check
 - Remove or simplify code whenever possible.
 
 13. Planning
-- Before starting work, the plan for the work should be written to a markdown file in a `.plans` directory in the root of the repo.
+- Before starting work, the plan for the work should be written to a named plan directory under a `.plans` directory in the root of the repo.
+- Within each plan directory should contain:
+  - `plan.md`: contains the contents of the plan.
+  - `todo.md`: contains the list of tasks to be done to accomplish the plan.
 - Plans should be cleaned up after the work for the plan is completed.
 
 14. Python
