@@ -15,6 +15,7 @@ from vw.core.states import (
     Desc,
     Divide,
     Equals,
+    Exists,
     Following,
     FrameClause,
     Function,
@@ -141,11 +142,27 @@ def render_state(state: object, ctx: RenderContext) -> str:
         case NotLike():
             return f"{render_state(state.left, ctx)} NOT LIKE {render_state(state.right, ctx)}"
         case IsIn():
-            values = ", ".join(render_state(v, ctx) for v in state.values)
-            return f"{render_state(state.expr, ctx)} IN ({values})"
+            expr_sql = render_state(state.expr, ctx)
+            # Check if subquery (Statement) in values
+            if state.values and isinstance(state.values[0], Statement):
+                # Subquery IN (should be only value)
+                subquery_sql = render_statement(state.values[0], ctx)
+                return f"{expr_sql} IN ({subquery_sql})"
+            else:
+                # Value list IN
+                values = ", ".join(render_state(v, ctx) for v in state.values)
+                return f"{expr_sql} IN ({values})"
         case IsNotIn():
-            values = ", ".join(render_state(v, ctx) for v in state.values)
-            return f"{render_state(state.expr, ctx)} NOT IN ({values})"
+            expr_sql = render_state(state.expr, ctx)
+            # Check if subquery (Statement) in values
+            if state.values and isinstance(state.values[0], Statement):
+                # Subquery NOT IN (should be only value)
+                subquery_sql = render_statement(state.values[0], ctx)
+                return f"{expr_sql} NOT IN ({subquery_sql})"
+            else:
+                # Value list NOT IN
+                values = ", ".join(render_state(v, ctx) for v in state.values)
+                return f"{expr_sql} NOT IN ({values})"
         case Between():
             return f"{render_state(state.expr, ctx)} BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
         case NotBetween():
@@ -191,6 +208,10 @@ def render_state(state: object, ctx: RenderContext) -> str:
         # --- Joins ----------------------------------------------------- #
         case Join():
             return render_join(state, ctx)
+
+        # --- Subquery Operators ---------------------------------------- #
+        case Exists():
+            return render_exists(state, ctx)
 
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")
@@ -436,3 +457,22 @@ def render_join(join: Join, ctx: RenderContext) -> str:
         parts.append(f"USING ({using_sql})")
 
     return " ".join(parts)
+
+
+def render_exists(exists: Exists, ctx: RenderContext) -> str:
+    """Render EXISTS subquery check to SQL.
+
+    Args:
+        exists: An Exists state to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string (e.g., "EXISTS (SELECT ...)").
+    """
+    # Render subquery (can be Source or Statement)
+    if isinstance(exists.subquery, Source):
+        # Source without SELECT - need to wrap as subquery
+        subquery_sql = f"SELECT * FROM {render_source(exists.subquery, ctx)}"
+    else:  # Statement
+        subquery_sql = render_statement(exists.subquery, ctx)
+    return f"EXISTS ({subquery_sql})"

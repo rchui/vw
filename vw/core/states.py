@@ -281,6 +281,16 @@ class IsNotNull(ExpressionState):
     expr: ExpressionState
 
 
+# --- Subquery Operators ---------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Exists(ExpressionState, Generic[ExprT]):
+    """Represents EXISTS subquery check."""
+
+    subquery: Source | Statement[ExprT]
+
+
 # --- Expression Modifiers -------------------------------------------------- #
 
 

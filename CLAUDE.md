@@ -93,6 +93,7 @@ uv run ty check        # Type check
     - If you don't understand a concept or know a concept, search the internet for it.
   - `plan.md`: the contents of the plan.
   - `todo.md`: a list of tasks to be done to accomplish the plan.
+- For any complex or large pieces of work, you may choose to break them up into logical self contained subplans.
 
 14. Python
 - Favor `from <module> import <ref> as <name>` over `__all__`.

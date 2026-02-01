@@ -15,7 +15,7 @@ from vw.core.frame import (
     preceding as preceding,
 )
 from vw.core.functions import Functions as CoreFunctions
-from vw.core.states import Column, Parameter, Source
+from vw.core.states import Column, Exists, Parameter, Source
 from vw.postgres.base import Expression, RowSet, SetOperation
 
 
@@ -84,4 +84,23 @@ def param(name: str, value: object, /) -> Expression:
     """
     return Expression(
         state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
+    )
+
+
+def exists(subquery: RowSet, /) -> Expression:
+    """Create an EXISTS subquery check.
+
+    Args:
+        subquery: The subquery to check for existence.
+
+    Returns:
+        An Expression wrapping an Exists state.
+
+    Example:
+        >>> users = source("users")
+        >>> orders = source("orders")
+        >>> users.where(exists(orders.where(orders.col("user_id") == users.col("id"))))
+    """
+    return Expression(
+        state=Exists(subquery=subquery.state), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
     )
