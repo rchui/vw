@@ -1,0 +1,382 @@
+# PostgreSQL API Reference
+
+The `vw.postgres` module provides PostgreSQL-specific implementations and rendering.
+
+## Module Import
+
+```python
+from vw.postgres import source, col, param, render, F
+```
+
+## Factory Functions
+
+### `source(name)`
+
+Create a PostgreSQL table or view source.
+
+```python
+users = source("users")
+# Represents: users table
+
+orders = source("orders").alias("o")
+# Represents: orders table with alias 'o'
+```
+
+**Parameters:**
+- `name` (str) - Table or view name
+
+**Returns:** RowSet wrapping Source state
+
+**Example:**
+```python
+from vw.postgres import source, col, render
+
+users = source("users")
+query = users.select(col("*"))
+result = render(query)
+
+print(result.query)
+# SELECT * FROM users
+```
+
+### `col(name)`
+
+Create a PostgreSQL column reference.
+
+```python
+# Unqualified column
+age = col("age")
+
+# Use in query
+query = users.select(col("id"), col("name"))
+```
+
+**Parameters:**
+- `name` (str) - Column name (unqualified)
+
+**Returns:** Expression wrapping Column state
+
+**Note:** For qualified columns, use `rowset.col(name)` instead:
+```python
+users = source("users").alias("u")
+users.col("id")  # u.id
+```
+
+### `param(name, value)`
+
+Create a PostgreSQL query parameter.
+
+```python
+min_age = param("min_age", 18)
+status = param("status", "active")
+
+query = users.where(col("age") >= min_age)
+```
+
+**Parameters:**
+- `name` (str) - Parameter name
+- `value` (Any) - Parameter value (str, int, float, bool, None)
+
+**Returns:** Expression wrapping Parameter state
+
+**Example:**
+```python
+from vw.postgres import source, col, param, render
+
+users = source("users")
+query = users.where(col("age") >= param("min_age", 18))
+result = render(query)
+
+print(result.query)
+# SELECT * FROM users WHERE age >= $min_age
+
+print(result.params)
+# {'min_age': 18}
+```
+
+**Supported Types:**
+- `str` - String values
+- `int` - Integer values
+- `float` - Float values
+- `bool` - Boolean values (True/False)
+- `None` - NULL values
+
+### `render(rowset)`
+
+Render a RowSet to PostgreSQL SQL.
+
+```python
+result = render(query)
+print(result.query)   # SQL string
+print(result.params)  # Parameters dict
+```
+
+**Parameters:**
+- `rowset` (RowSet) - Query to render
+
+**Returns:** SQL dataclass with `query` (str) and `params` (dict)
+
+**Example:**
+```python
+from vw.postgres import source, col, param, render, F
+
+users = source("users")
+query = (
+    users
+    .select(
+        col("id"),
+        col("name"),
+        col("email")
+    )
+    .where(col("age") >= param("min_age", 18))
+    .where(col("status") == param("status", "active"))
+    .order_by(col("name").asc())
+    .limit(10)
+)
+
+result = render(query)
+
+print(result.query)
+# SELECT id, name, email FROM users
+# WHERE age >= $min_age AND status = $status
+# ORDER BY name ASC
+# LIMIT 10
+
+print(result.params)
+# {'min_age': 18, 'status': 'active'}
+```
+
+## Functions
+
+Import the Functions instance as `F`:
+
+```python
+from vw.postgres import F
+```
+
+All functions from `vw.core.functions` are available. See [Core API - Functions](core.md#functions) for full reference.
+
+**Quick Reference:**
+
+```python
+# Aggregates
+F.count()                    # COUNT(*)
+F.count(col("id"))           # COUNT(id)
+F.sum(col("amount"))         # SUM(amount)
+F.avg(col("price"))          # AVG(price)
+F.min(col("price"))          # MIN(price)
+F.max(col("price"))          # MAX(price)
+
+# Window functions
+F.row_number().over(...)     # ROW_NUMBER() OVER (...)
+F.rank().over(...)           # RANK() OVER (...)
+F.dense_rank().over(...)     # DENSE_RANK() OVER (...)
+F.ntile(4).over(...)         # NTILE(4) OVER (...)
+F.lag(col("x")).over(...)    # LAG(x) OVER (...)
+F.lead(col("x")).over(...)   # LEAD(x) OVER (...)
+```
+
+## Parameter Style
+
+PostgreSQL rendering uses **dollar-style** parameters by default:
+
+```python
+param("user_id", 123)
+# Renders as: $user_id
+# Params: {'user_id': 123}
+```
+
+This is compatible with:
+- SQLAlchemy's `text()` with PostgreSQL dialect
+- asyncpg
+- psycopg3 (with dollar parameter support)
+
+For psycopg2, you may need to convert parameter style or use SQLAlchemy.
+
+## Complete Examples
+
+### Basic Query
+
+```python
+from vw.postgres import source, col, param, render
+
+users = source("users")
+query = (
+    users
+    .select(col("id"), col("name"), col("email"))
+    .where(col("active") == param("active", True))
+    .order_by(col("name").asc())
+    .limit(10)
+)
+
+result = render(query)
+```
+
+### Aggregation
+
+```python
+from vw.postgres import source, col, param, render, F
+
+orders = source("orders")
+query = (
+    orders
+    .select(
+        col("customer_id"),
+        F.count().alias("order_count"),
+        F.sum(col("amount")).alias("total_spent"),
+        F.avg(col("amount")).alias("avg_order")
+    )
+    .where(col("created_at") >= param("start_date", "2024-01-01"))
+    .group_by(col("customer_id"))
+    .having(F.sum(col("amount")) > param("min_total", 1000))
+    .order_by(F.sum(col("amount")).desc())
+)
+
+result = render(query)
+```
+
+### Window Functions
+
+```python
+from vw.postgres import source, col, render, F
+
+sales = source("sales")
+query = sales.select(
+    col("product_id"),
+    col("sale_date"),
+    col("amount"),
+    F.row_number().over(
+        partition_by=[col("product_id")],
+        order_by=[col("sale_date").desc()]
+    ).alias("sale_rank"),
+    F.sum(col("amount")).over(
+        partition_by=[col("product_id")],
+        order_by=[col("sale_date").asc()]
+    ).alias("running_total")
+)
+
+result = render(query)
+```
+
+### Subquery
+
+```python
+from vw.postgres import source, col, param, render, F
+
+users = source("users")
+active_users = (
+    users
+    .select(col("id"), col("name"))
+    .where(col("status") == param("status", "active"))
+    .alias("active_users")
+)
+
+query = active_users.select(
+    col("id"),
+    col("name")
+).limit(10)
+
+result = render(query)
+# SELECT id, name FROM (
+#   SELECT id, name FROM users WHERE status = $status
+# ) AS active_users
+# LIMIT 10
+```
+
+### Complex Expressions
+
+```python
+from vw.postgres import source, col, param, render, F
+
+orders = source("orders")
+query = orders.select(
+    col("id"),
+    col("subtotal"),
+    col("tax"),
+    (col("subtotal") + col("tax")).alias("total"),
+    ((col("discount") / col("subtotal")) * 100).alias("discount_pct"),
+    F.count().filter(col("status") == "completed").alias("completed_count")
+)
+
+result = render(query)
+```
+
+## Using with SQLAlchemy
+
+```python
+from sqlalchemy import create_engine, text
+from vw.postgres import source, col, param, render, F
+
+# Setup
+engine = create_engine("postgresql://user:pass@localhost/mydb")
+
+# Build query
+users = source("users")
+query = users.select(col("id"), col("name")).where(
+    col("age") >= param("min_age", 18)
+)
+
+# Render
+result = render(query)
+
+# Execute
+with engine.connect() as conn:
+    rows = conn.execute(text(result.query), result.params)
+    for row in rows:
+        print(row)
+```
+
+## Using with asyncpg
+
+```python
+import asyncpg
+from vw.postgres import source, col, param, render
+
+async def fetch_users():
+    # Connect
+    conn = await asyncpg.connect('postgresql://user:pass@localhost/mydb')
+
+    # Build query
+    users = source("users")
+    query = users.select(col("id"), col("name")).where(
+        col("age") >= param("min_age", 18)
+    )
+    result = render(query)
+
+    # Execute (asyncpg uses $1, $2 style - may need adjustment)
+    rows = await conn.fetch(result.query, *result.params.values())
+
+    await conn.close()
+    return rows
+```
+
+## Feature Status
+
+See [PostgreSQL Parity](../development/postgres-parity.md) for detailed feature roadmap.
+
+**Completed (✅):**
+- Core query building (SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET, DISTINCT)
+- Column references (qualified/unqualified, star, aliasing)
+- Operators (comparison, arithmetic, logical, pattern matching, NULL checks)
+- Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- Window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE)
+- Window frames (ROWS/RANGE BETWEEN, frame exclusion)
+- FILTER clause
+- Parameters and rendering
+
+**In Progress (🚧):**
+- Joins (INNER, LEFT, RIGHT, FULL, CROSS)
+- Subqueries and CTEs
+- Set operations (UNION, INTERSECT, EXCEPT)
+
+**Planned (📋):**
+- Scalar functions (string, datetime, null handling)
+- DML statements (INSERT, UPDATE, DELETE)
+- DDL statements (CREATE TABLE, CREATE VIEW)
+- PostgreSQL-specific features (DISTINCT ON, JSONB, arrays)
+
+## Next Steps
+
+- **[Core API](core.md)** - Detailed core API reference
+- **[PostgreSQL Parity](../development/postgres-parity.md)** - Feature roadmap
+- **[Quickstart](../quickstart.md)** - More examples
