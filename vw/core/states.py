@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Generic
 
+from strenum import StrEnum
+
 from vw.core.base import ExprT
 
 # --- Base Classes ---------------------------------------------------------- #
@@ -50,6 +52,29 @@ class Distinct:
     """Represents DISTINCT clause in a SQL statement."""
 
 
+# --- Joins ----------------------------------------------------------------- #
+
+
+class JoinType(StrEnum):
+    """Represents the type of SQL join."""
+
+    INNER = "INNER"
+    LEFT = "LEFT"
+    RIGHT = "RIGHT"
+    FULL = "FULL"
+    CROSS = "CROSS"
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Join(Generic[ExprT]):
+    """Represents a SQL join clause."""
+
+    jtype: JoinType
+    right: Source | Statement[ExprT]
+    on: tuple[ExprT, ...] = field(default_factory=tuple)
+    using: tuple[ExprT, ...] = field(default_factory=tuple)
+
+
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Statement(Generic[ExprT]):
     """Represents a SELECT query."""
@@ -63,6 +88,7 @@ class Statement(Generic[ExprT]):
     order_by_columns: tuple[ExprT, ...] = field(default_factory=tuple)
     limit: Limit | None = None
     distinct: Distinct | None = None
+    joins: tuple[Join[ExprT], ...] = field(default_factory=tuple)
 
 
 # --- Comparison Operators -------------------------------------------------- #

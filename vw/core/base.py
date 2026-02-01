@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
+    from vw.core.joins import JoinAccessor
     from vw.core.states import ExpressionState, Source, Statement
 
 ExprT = TypeVar("ExprT", bound="Expression")
@@ -552,6 +553,20 @@ class RowSet(Stateful, FactoryT):
             star_name = "*"
 
         return self.factories.expr(state=Column(name=star_name), factories=self.factories)
+
+    @property
+    def join(self) -> JoinAccessor[ExprT, RowSetT, SetOpT]:
+        """Access join operations.
+
+        Returns:
+            A JoinAccessor for building joins.
+
+        Example:
+            >>> users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+        """
+        from vw.core.joins import JoinAccessor
+
+        return JoinAccessor(_rowset=self)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

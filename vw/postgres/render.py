@@ -24,6 +24,7 @@ from vw.core.states import (
     IsNotIn,
     IsNotNull,
     IsNull,
+    Join,
     LessThan,
     LessThanOrEqual,
     Like,
@@ -187,6 +188,10 @@ def render_state(state: object, ctx: RenderContext) -> str:
         case Following():
             return f"{state.count} FOLLOWING"
 
+        # --- Joins ----------------------------------------------------- #
+        case Join():
+            return render_join(state, ctx)
+
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")
 
@@ -219,6 +224,10 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
         if stmt.source.alias:
             source_sql += f" AS {stmt.source.alias}"
     parts.append(f"FROM {source_sql}")
+
+    # JOIN clauses
+    for join in stmt.joins:
+        parts.append(render_state(join, ctx))
 
     # WHERE clause
     if stmt.where_conditions:
@@ -390,3 +399,40 @@ def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
         sql += f" EXCLUDE {frame.exclude}"
 
     return sql
+
+
+def render_join(join: Join, ctx: RenderContext) -> str:
+    """Render a Join to SQL.
+
+    Args:
+        join: A Join to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string (e.g., "INNER JOIN orders AS o ON (u.id = o.user_id)").
+    """
+
+    # Render right side (can be Source or Statement)
+    if isinstance(join.right, Source):
+        right_sql = render_source(join.right, ctx)
+    else:  # Statement (subquery)
+        right_sql = f"({render_statement(join.right, ctx)})"
+        if join.right.alias:
+            right_sql += f" AS {join.right.alias}"
+
+    # Build join clause
+    parts = [f"{join.jtype.value} JOIN {right_sql}"]
+
+    # Add ON clause if present
+    if join.on:
+        on_conditions = [render_state(cond.state, ctx) for cond in join.on]
+        on_sql = " AND ".join(on_conditions)
+        parts.append(f"ON ({on_sql})")
+
+    # Add USING clause if present
+    if join.using:
+        using_columns = [render_state(col.state, ctx) for col in join.using]
+        using_sql = ", ".join(using_columns)
+        parts.append(f"USING ({using_sql})")
+
+    return " ".join(parts)
