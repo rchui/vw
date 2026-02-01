@@ -3,7 +3,7 @@
 Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 **Status:** 🚧 In Progress
-**Current Phase:** Phase 3 - Aggregate & Window Functions
+**Current Phase:** Phase 5 - Advanced Query Features
 
 ---
 
@@ -147,34 +147,38 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 ---
 
-## 📋 Phase 4: Joins
+## ✅ Phase 4: Joins
 
 ### Join Types
-- [ ] INNER JOIN via `rowset.join.inner(right, on=[...])`
-- [ ] LEFT JOIN via `rowset.join.left(right, on=[...])`
-- [ ] RIGHT JOIN via `rowset.join.right(right, on=[...])`
-- [ ] FULL OUTER JOIN via `rowset.join.full_outer(right, on=[...])`
-- [ ] CROSS JOIN via `rowset.join.cross(right)`
-- [ ] SEMI JOIN (LEFT SEMI) via `rowset.join.semi(right, on=[...])`
-- [ ] ANTI JOIN (LEFT ANTI) via `rowset.join.anti(right, on=[...])`
+- ✅ INNER JOIN via `rowset.join.inner(right, on=[], using=[])`
+- ✅ LEFT JOIN via `rowset.join.left(right, on=[], using=[])`
+- ✅ RIGHT JOIN via `rowset.join.right(right, on=[], using=[])`
+- ✅ FULL OUTER JOIN via `rowset.join.full_outer(right, on=[], using=[])`
+- ✅ CROSS JOIN via `rowset.join.cross(right)`
+- ❌ SEMI JOIN - Not standard PostgreSQL (excluded)
+- ❌ ANTI JOIN - Not standard PostgreSQL (excluded)
 
 ### Join Conditions
-- [ ] ON clause with multiple conditions (AND-combined)
-- [ ] USING clause via `using=[col1, col2]`
-- [ ] Mixed ON and USING (error or preference)
+- ✅ ON clause with multiple conditions (AND-combined)
+- ✅ USING clause via `using=[col("name")]`
+- ✅ Both ON and USING allowed (no validation, PostgreSQL handles errors)
 
 ### PostgreSQL-Specific Joins
-- [ ] LATERAL joins via `lateral=True` parameter
+- [ ] LATERAL joins via `lateral=True` parameter (deferred to Phase 5)
 - [ ] NATURAL JOIN (low priority)
 
 ### Join Chaining
-- [ ] Multiple joins in sequence
-- [ ] Mixed join types (INNER then LEFT, etc.)
+- ✅ Multiple joins in sequence
+- ✅ Mixed join types (INNER then LEFT, etc.)
 
-### Data Structures Needed
-- [ ] Join dataclass (left, right, type, on, using, lateral)
-- [ ] JoinAccessor class for .join property
-- [ ] JoinType enum
+### Data Structures
+- ✅ Join dataclass (jtype, right, on, using)
+- ✅ JoinAccessor class for .join property
+- ✅ JoinType enum (INNER, LEFT, RIGHT, FULL, CROSS)
+
+### Testing
+- ✅ 15 unit tests in test_joins.py
+- ✅ 18 integration tests in integration/test_joins.py
 
 ---
 
@@ -421,17 +425,17 @@ Each phase should include:
 - Phase 1: Core Query Building ✅
 - Phase 2: Operators & Expressions ✅
 - Phase 3: Aggregate & Window Functions ✅
+- Phase 4: Joins ✅
 - Phase 6: Parameters & Rendering ✅
 
 **In Progress:**
 - None
 
 **Remaining:**
-- Phase 4: Joins
 - Phase 5: Advanced Query Features
 - Phase 7: Scalar Functions
 - Phase 8: DML Statements
 - Phase 9: DDL Statements
 - Phase 10: PostgreSQL-Specific Features
 
-**Total Progress:** ~40% complete (4/10 phases)
+**Total Progress:** ~50% complete (5/10 phases)

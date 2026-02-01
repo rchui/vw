@@ -283,6 +283,74 @@ result = render(query)
 # LIMIT 10
 ```
 
+### Joins
+
+```python
+from vw.postgres import source, col, param, render, F
+
+# Basic INNER JOIN
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = (
+    users
+    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+    .select(
+        users.col("id"),
+        users.col("name"),
+        F.count().alias("order_count")
+    )
+    .group_by(users.col("id"), users.col("name"))
+)
+
+result = render(query)
+# SELECT u.id, u.name, COUNT(*) AS order_count
+# FROM users AS u
+# INNER JOIN orders AS o ON (u.id = o.user_id)
+# GROUP BY u.id, u.name
+
+# Multiple joins
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+products = source("products").alias("p")
+
+query = (
+    users
+    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+    .join.left(products, on=[orders.col("product_id") == products.col("id")])
+    .select(
+        users.col("name"),
+        orders.col("total"),
+        products.col("name").alias("product_name")
+    )
+    .where(orders.col("status") == param("status", "completed"))
+)
+
+result = render(query)
+# SELECT u.name, o.total, p.name AS product_name
+# FROM users AS u
+# INNER JOIN orders AS o ON (u.id = o.user_id)
+# LEFT JOIN products AS p ON (o.product_id = p.id)
+# WHERE o.status = $status
+
+# JOIN with USING clause
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = (
+    users
+    .join.inner(orders, using=[col("user_id")])
+    .select(col("user_id"), users.col("name"), F.count().alias("order_count"))
+    .group_by(col("user_id"), users.col("name"))
+)
+
+result = render(query)
+# SELECT user_id, u.name, COUNT(*) AS order_count
+# FROM users AS u
+# INNER JOIN orders AS o USING (user_id)
+# GROUP BY user_id, u.name
+```
+
 ### Complex Expressions
 
 ```python
@@ -362,14 +430,15 @@ See [PostgreSQL Parity](../development/postgres-parity.md) for detailed feature 
 - Window functions (ROW_NUMBER, RANK, DENSE_RANK, NTILE, LAG, LEAD, FIRST_VALUE, LAST_VALUE)
 - Window frames (ROWS/RANGE BETWEEN, frame exclusion)
 - FILTER clause
+- Joins (INNER, LEFT, RIGHT, FULL OUTER, CROSS)
 - Parameters and rendering
 
 **In Progress (🚧):**
-- Joins (INNER, LEFT, RIGHT, FULL, CROSS)
-- Subqueries and CTEs
-- Set operations (UNION, INTERSECT, EXCEPT)
+- None
 
 **Planned (📋):**
+- Subqueries and CTEs
+- Set operations (UNION, INTERSECT, EXCEPT)
 - Scalar functions (string, datetime, null handling)
 - DML statements (INSERT, UPDATE, DELETE)
 - DDL statements (CREATE TABLE, CREATE VIEW)

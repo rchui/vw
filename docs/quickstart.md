@@ -293,6 +293,107 @@ result = render(query)
 # SELECT name FROM (SELECT id, name FROM users WHERE status = 'active') AS active_users
 ```
 
+## Joins
+
+```python
+from vw.postgres import source, col, param, render, F
+
+# Basic INNER JOIN
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = (
+    users
+    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+    .select(users.col("name"), orders.col("total"))
+)
+
+result = render(query)
+# SELECT u.name, o.total
+# FROM users AS u
+# INNER JOIN orders AS o ON (u.id = o.user_id)
+
+# LEFT JOIN
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = (
+    users
+    .join.left(orders, on=[users.col("id") == orders.col("user_id")])
+    .select(
+        users.col("name"),
+        F.count(orders.col("id")).alias("order_count")
+    )
+    .group_by(users.col("id"), users.col("name"))
+)
+
+result = render(query)
+# SELECT u.name, COUNT(o.id) AS order_count
+# FROM users AS u
+# LEFT JOIN orders AS o ON (u.id = o.user_id)
+# GROUP BY u.id, u.name
+
+# Multiple joins
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+products = source("products").alias("p")
+
+query = (
+    users
+    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+    .join.inner(products, on=[orders.col("product_id") == products.col("id")])
+    .select(
+        users.col("name"),
+        products.col("name").alias("product"),
+        orders.col("quantity")
+    )
+    .where(orders.col("status") == param("status", "completed"))
+)
+
+result = render(query)
+# SELECT u.name, p.name AS product, o.quantity
+# FROM users AS u
+# INNER JOIN orders AS o ON (u.id = o.user_id)
+# INNER JOIN products AS p ON (o.product_id = p.id)
+# WHERE o.status = $status
+
+# JOIN with multiple conditions (AND-combined)
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = (
+    users
+    .join.inner(
+        orders,
+        on=[
+            users.col("id") == orders.col("user_id"),
+            orders.col("status") == param("status", "active")
+        ]
+    )
+    .select(users.col("name"), orders.col("total"))
+)
+
+result = render(query)
+# SELECT u.name, o.total
+# FROM users AS u
+# INNER JOIN orders AS o ON (u.id = o.user_id AND o.status = $status)
+
+# CROSS JOIN
+users = source("users").alias("u")
+tags = source("tags").alias("t")
+
+query = (
+    users
+    .join.cross(tags)
+    .select(users.col("name"), tags.col("tag"))
+)
+
+result = render(query)
+# SELECT u.name, t.tag
+# FROM users AS u
+# CROSS JOIN tags AS t
+```
+
 ## FILTER Clause
 
 ```python

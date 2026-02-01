@@ -148,6 +148,7 @@ uv run ty check        # Type check
 - DISTINCT → `docs/quickstart.md` (Distinct)
 - Aliasing (columns, tables, expressions) → `docs/quickstart.md` (Aliasing)
 - Subqueries → `docs/quickstart.md` (Subqueries)
+- Joins (INNER, LEFT, RIGHT, FULL, CROSS) → `docs/quickstart.md` (Joins)
 - FILTER clause → `docs/quickstart.md` (FILTER Clause)
 - Complete example → `docs/quickstart.md` (Complete Example with SQLAlchemy)
 
@@ -179,6 +180,15 @@ uv run ty check        # Type check
 - .alias() → `docs/api/core.md` (RowSet > .alias)
 - .col() (qualified columns) → `docs/api/core.md` (RowSet > .col)
 - .star (qualified star) → `docs/api/core.md` (RowSet > .star)
+
+### API Reference - Joins
+- .join property → `docs/api/core.md` (RowSet > .join)
+- .join.inner() → `docs/api/core.md` (RowSet > .join.inner)
+- .join.left() → `docs/api/core.md` (RowSet > .join.left)
+- .join.right() → `docs/api/core.md` (RowSet > .join.right)
+- .join.full_outer() → `docs/api/core.md` (RowSet > .join.full_outer)
+- .join.cross() → `docs/api/core.md` (RowSet > .join.cross)
+- Join examples → `docs/api/postgres.md` (Complete Examples > Joins), `docs/quickstart.md` (Joins)
 
 ### API Reference - Functions
 - F.count() → `docs/api/core.md` (Functions > Aggregate Functions > F.count)

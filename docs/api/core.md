@@ -400,6 +400,126 @@ users.star
 
 **Returns:** Expression with qualified star
 
+### `.join` (property)
+Access join methods through the JoinAccessor.
+
+```python
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+# SQL: SELECT * FROM users AS u INNER JOIN orders AS o ON (u.id = o.user_id)
+```
+
+**Returns:** JoinAccessor instance
+
+### `.join.inner(right, *, on=None, using=None)`
+Create an INNER JOIN.
+
+```python
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+# Single condition
+query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+# SQL: INNER JOIN orders AS o ON (u.id = o.user_id)
+
+# Multiple conditions (AND-combined)
+query = users.join.inner(
+    orders,
+    on=[
+        users.col("id") == orders.col("user_id"),
+        orders.col("status") == "active"
+    ]
+)
+# SQL: INNER JOIN orders AS o ON (u.id = o.user_id AND o.status = 'active')
+
+# USING clause
+query = users.join.inner(orders, using=[col("user_id")])
+# SQL: INNER JOIN orders AS o USING (user_id)
+```
+
+**Parameters:**
+- `right` (RowSet) - Right side of the join
+- `on` (list[Expression] | None) - ON clause conditions (optional)
+- `using` (list[Expression] | None) - USING clause columns (optional)
+
+**Returns:** New RowSet with join added
+
+**Note:** Multiple calls accumulate joins in order.
+
+### `.join.left(right, *, on=None, using=None)`
+Create a LEFT JOIN (LEFT OUTER JOIN).
+
+```python
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = users.join.left(orders, on=[users.col("id") == orders.col("user_id")])
+# SQL: LEFT JOIN orders AS o ON (u.id = o.user_id)
+```
+
+**Parameters:**
+- `right` (RowSet) - Right side of the join
+- `on` (list[Expression] | None) - ON clause conditions (optional)
+- `using` (list[Expression] | None) - USING clause columns (optional)
+
+**Returns:** New RowSet with join added
+
+### `.join.right(right, *, on=None, using=None)`
+Create a RIGHT JOIN (RIGHT OUTER JOIN).
+
+```python
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = orders.join.right(users, on=[orders.col("user_id") == users.col("id")])
+# SQL: RIGHT JOIN users AS u ON (o.user_id = u.id)
+```
+
+**Parameters:**
+- `right` (RowSet) - Right side of the join
+- `on` (list[Expression] | None) - ON clause conditions (optional)
+- `using` (list[Expression] | None) - USING clause columns (optional)
+
+**Returns:** New RowSet with join added
+
+### `.join.full_outer(right, *, on=None, using=None)`
+Create a FULL OUTER JOIN.
+
+```python
+users = source("users").alias("u")
+orders = source("orders").alias("o")
+
+query = users.join.full_outer(orders, on=[users.col("id") == orders.col("user_id")])
+# SQL: FULL JOIN orders AS o ON (u.id = o.user_id)
+```
+
+**Parameters:**
+- `right` (RowSet) - Right side of the join
+- `on` (list[Expression] | None) - ON clause conditions (optional)
+- `using` (list[Expression] | None) - USING clause columns (optional)
+
+**Returns:** New RowSet with join added
+
+### `.join.cross(right)`
+Create a CROSS JOIN (Cartesian product).
+
+```python
+users = source("users").alias("u")
+tags = source("tags").alias("t")
+
+query = users.join.cross(tags)
+# SQL: CROSS JOIN tags AS t
+```
+
+**Parameters:**
+- `right` (RowSet) - Right side of the join
+
+**Returns:** New RowSet with join added
+
+**Note:** CROSS JOIN does not support ON or USING clauses.
+
 ---
 
 ## Functions
