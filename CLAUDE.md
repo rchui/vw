@@ -85,11 +85,11 @@ uv run ty check        # Type check
 - Remove or simplify code whenever possible.
 
 13. Planning
-- Before starting work, the plan for the work should be written to a named plan directory under a `.plans` directory in the root of the repo.
+- Before starting work, the plan for the work should be written to a numbered and named plan directory under a `.plans` directory in the root of the repo.
 - Within each plan directory should contain:
-  - `plan.md`: contains the contents of the plan.
-  - `todo.md`: contains the list of tasks to be done to accomplish the plan.
-- Plans should be cleaned up after the work for the plan is completed.
+  - `research.md`: requirements gathered from the user and context discovered to accomplish the task.
+  - `plan.md`: the contents of the plan.
+  - `todo.md`: a list of tasks to be done to accomplish the plan.
 
 14. Python
 - Favor `from <module> import <ref> as <name>` over `__all__`.
