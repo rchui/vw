@@ -293,6 +293,66 @@ result = render(query)
 # SELECT name FROM (SELECT id, name FROM users WHERE status = 'active') AS active_users
 ```
 
+## Set Operations
+
+Combine multiple queries using set operations with intuitive operators.
+
+### UNION (deduplicates)
+
+```python
+from vw.postgres import source, col, render
+
+# Combine user IDs from two tables, removing duplicates
+users = source("users").select(col("id"))
+admins = source("admins").select(col("id"))
+
+result = render(users | admins)
+# (SELECT id FROM users) UNION (SELECT id FROM admins)
+```
+
+### UNION ALL (keeps duplicates)
+
+```python
+# Keep all rows including duplicates
+result = render(users + admins)
+# (SELECT id FROM users) UNION ALL (SELECT id FROM admins)
+```
+
+### INTERSECT
+
+```python
+# Find users who are also in banned list
+users = source("users").select(col("id"))
+banned = source("banned").select(col("user_id"))
+
+result = render(users & banned)
+# (SELECT id FROM users) INTERSECT (SELECT user_id FROM banned)
+```
+
+### EXCEPT
+
+```python
+# Find users who are NOT in banned list
+result = render(users - banned)
+# (SELECT id FROM users) EXCEPT (SELECT user_id FROM banned)
+```
+
+### Chaining
+
+```python
+# Combine users, admins, and guests
+users = source("users").select(col("id"))
+admins = source("admins").select(col("id"))
+guests = source("guests").select(col("id"))
+
+result = render((users | admins) | guests)
+# ((SELECT id FROM users) UNION (SELECT id FROM admins)) UNION (SELECT id FROM guests)
+
+# Mix different operations
+result = render((users | admins) - banned)
+# ((SELECT id FROM users) UNION (SELECT id FROM admins)) EXCEPT (SELECT user_id FROM banned)
+```
+
 ## Joins
 
 ```python

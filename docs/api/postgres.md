@@ -176,6 +176,111 @@ F.lag(col("x")).over(...)    # LAG(x) OVER (...)
 F.lead(col("x")).over(...)   # LEAD(x) OVER (...)
 ```
 
+## Set Operations
+
+PostgreSQL supports set operations for combining multiple queries. vw provides operator overloading for intuitive composition.
+
+### Operators
+
+#### `|` - UNION (deduplicates)
+
+Combines results from two queries and removes duplicates.
+
+```python
+from vw.postgres import source, col, render
+
+users = source("users").select(col("id"))
+admins = source("admins").select(col("id"))
+
+result = render(users | admins)
+print(result.query)
+# (SELECT id FROM users) UNION (SELECT id FROM admins)
+```
+
+#### `+` - UNION ALL (keeps duplicates)
+
+Combines results from two queries and keeps all rows including duplicates.
+
+```python
+users = source("users").select(col("id"))
+admins = source("admins").select(col("id"))
+
+result = render(users + admins)
+print(result.query)
+# (SELECT id FROM users) UNION ALL (SELECT id FROM admins)
+```
+
+#### `&` - INTERSECT
+
+Returns only rows that appear in both queries.
+
+```python
+users = source("users").select(col("id"))
+banned = source("banned").select(col("user_id"))
+
+result = render(users & banned)
+print(result.query)
+# (SELECT id FROM users) INTERSECT (SELECT user_id FROM banned)
+```
+
+#### `-` - EXCEPT
+
+Returns rows from the left query that don't appear in the right query.
+
+```python
+users = source("users").select(col("id"))
+banned = source("banned").select(col("user_id"))
+
+result = render(users - banned)
+print(result.query)
+# (SELECT id FROM users) EXCEPT (SELECT user_id FROM banned)
+```
+
+### Chaining
+
+Set operations can be chained. Parentheses control precedence.
+
+```python
+users = source("users").select(col("id"))
+admins = source("admins").select(col("id"))
+banned = source("banned").select(col("user_id"))
+
+# (users UNION admins) EXCEPT banned
+result = render((users | admins) - banned)
+print(result.query)
+# ((SELECT id FROM users) UNION (SELECT id FROM admins)) EXCEPT (SELECT user_id FROM banned)
+
+# users UNION (admins EXCEPT banned)
+result = render(users | (admins - banned))
+print(result.query)
+# (SELECT id FROM users) UNION ((SELECT id FROM admins) EXCEPT (SELECT user_id FROM banned))
+```
+
+### Parameter Preservation
+
+Parameters are collected from all queries in a set operation.
+
+```python
+from vw.postgres import param
+
+active_users = source("users").select(col("id")).where(col("active") == param("active", True))
+admin_users = source("admins").select(col("id")).where(col("role") == param("role", "admin"))
+
+result = render(active_users | admin_users)
+print(result.query)
+# (SELECT id FROM users WHERE active = $active) UNION (SELECT id FROM admins WHERE role = $role)
+
+print(result.params)
+# {'active': True, 'role': 'admin'}
+```
+
+### Notes
+
+- Both sides of a set operation must have the same number of columns
+- Column names come from the left query
+- Set operations can be used anywhere a query is expected (as subquery, with ORDER BY/LIMIT, etc.)
+- Bare table references (Source) are automatically wrapped as `SELECT * FROM table`
+
 ## Parameter Style
 
 PostgreSQL rendering uses **dollar-style** parameters by default:
