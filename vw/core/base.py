@@ -7,7 +7,7 @@ from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
     from vw.core.joins import JoinAccessor
-    from vw.core.states import ExpressionState, Source, Statement
+    from vw.core.states import ExpressionState, SetOperationState, Source, Statement
 
 ExprT = TypeVar("ExprT", bound="Expression")
 RowSetT = TypeVar("RowSetT", bound="RowSet")
@@ -568,6 +568,89 @@ class RowSet(Stateful, FactoryT):
 
         return JoinAccessor(_rowset=self)
 
+    def __or__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+        """UNION operator (deduplicates rows).
+
+        Args:
+            other: The right side of the UNION operation.
+
+        Returns:
+            A SetOperation with UNION operator.
+
+        Example:
+            >>> users.select(col("id")) | admins.select(col("id"))
+        """
+        from vw.core.states import SetOperationState
+
+        return self.factories.setop(
+            state=SetOperationState(left=self.state, operator="UNION", right=other.state),
+            factories=self.factories,
+        )
+
+    def __add__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+        """UNION ALL operator (keeps duplicates).
+
+        Args:
+            other: The right side of the UNION ALL operation.
+
+        Returns:
+            A SetOperation with UNION ALL operator.
+
+        Example:
+            >>> users.select(col("id")) + admins.select(col("id"))
+        """
+        from vw.core.states import SetOperationState
+
+        return self.factories.setop(
+            state=SetOperationState(left=self.state, operator="UNION ALL", right=other.state),
+            factories=self.factories,
+        )
+
+    def __and__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+        """INTERSECT operator.
+
+        Args:
+            other: The right side of the INTERSECT operation.
+
+        Returns:
+            A SetOperation with INTERSECT operator.
+
+        Example:
+            >>> users.select(col("id")) & banned.select(col("user_id"))
+        """
+        from vw.core.states import SetOperationState
+
+        return self.factories.setop(
+            state=SetOperationState(left=self.state, operator="INTERSECT", right=other.state),
+            factories=self.factories,
+        )
+
+    def __sub__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+        """EXCEPT operator.
+
+        Args:
+            other: The right side of the EXCEPT operation.
+
+        Returns:
+            A SetOperation with EXCEPT operator.
+
+        Example:
+            >>> users.select(col("id")) - banned.select(col("user_id"))
+        """
+        from vw.core.states import SetOperationState
+
+        return self.factories.setop(
+            state=SetOperationState(left=self.state, operator="EXCEPT", right=other.state),
+            factories=self.factories,
+        )
+
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class SetOperation(RowSet): ...
+class SetOperation(RowSet[ExprT, RowSetT, SetOpT]):
+    """Wrapper for set operation states (UNION, INTERSECT, EXCEPT).
+
+    Extends RowSet, so can be used anywhere a RowSet is expected
+    (as subquery, with alias, etc.).
+    """
+
+    state: SetOperationState[ExprT]

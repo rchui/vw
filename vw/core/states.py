@@ -291,6 +291,18 @@ class Exists(ExpressionState, Generic[ExprT]):
     subquery: Source | Statement[ExprT]
 
 
+# --- Set Operations -------------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class SetOperationState(Generic[ExprT]):
+    """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
+
+    left: Source | Statement[ExprT] | SetOperationState[ExprT]
+    operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
+    right: Source | Statement[ExprT] | SetOperationState[ExprT]
+
+
 # --- Expression Modifiers -------------------------------------------------- #
 
 
