@@ -6,10 +6,11 @@ from vw.postgres import F, col, exists, param, render, source
 
 def describe_exists():
     def it_builds_basic_exists():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -18,17 +19,15 @@ def describe_exists():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}
 
     def it_builds_not_exists():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE NOT (EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id))
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -37,17 +36,15 @@ def describe_exists():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE NOT (EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id))
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}
 
     def it_builds_exists_with_parameters():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id AND o.status = $status)
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -60,22 +57,20 @@ def describe_exists():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id AND o.status = $status)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"status": "active"}
 
     def it_builds_exists_with_complex_subquery():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (
-            SELECT * FROM orders AS o
-            WHERE o.user_id = u.id AND o.total > $min_total
-            GROUP BY o.user_id
-            HAVING COUNT(*) > $min_orders
+        SELECT * FROM orders AS o
+        WHERE o.user_id = u.id AND o.total > $min_total
+        GROUP BY o.user_id
+        HAVING COUNT(*) > $min_orders
         )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -90,24 +85,17 @@ def describe_exists():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (
-                SELECT * FROM orders AS o
-                WHERE o.user_id = u.id AND o.total > $min_total
-                GROUP BY o.user_id
-                HAVING COUNT(*) > $min_orders
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"min_total": 100, "min_orders": 5}
 
 
 def describe_in_subquery():
     def it_builds_in_with_subquery():
-        """
+        expected_sql = """
         SELECT * FROM users
         WHERE id IN (SELECT user_id FROM orders WHERE status = $status)
         """
+
         users = source("users")
         orders = source("orders")
 
@@ -116,17 +104,15 @@ def describe_in_subquery():
         query = users.select(col("*")).where(col("id").is_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users
-            WHERE id IN (SELECT user_id FROM orders WHERE status = $status)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"status": "active"}
 
     def it_builds_not_in_with_subquery():
-        """
+        expected_sql = """
         SELECT * FROM users
         WHERE id NOT IN (SELECT user_id FROM banned_users)
         """
+
         users = source("users")
         banned_users = source("banned_users")
 
@@ -135,21 +121,19 @@ def describe_in_subquery():
         query = users.select(col("*")).where(col("id").is_not_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users
-            WHERE id NOT IN (SELECT user_id FROM banned_users)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}
 
     def it_builds_in_with_complex_subquery():
-        """
+        expected_sql = """
         SELECT * FROM users
         WHERE id IN (
-            SELECT o.user_id FROM orders AS o
-            INNER JOIN products AS p ON (o.product_id = p.id)
-            WHERE p.category = $category
+        SELECT o.user_id FROM orders AS o
+        INNER JOIN products AS p ON (o.product_id = p.id)
+        WHERE p.category = $category
         )
         """
+
         users = source("users")
         orders = source("orders").alias("o")
         products = source("products").alias("p")
@@ -163,26 +147,20 @@ def describe_in_subquery():
         query = users.select(col("*")).where(col("id").is_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users
-            WHERE id IN (
-                SELECT o.user_id FROM orders AS o
-                INNER JOIN products AS p ON (o.product_id = p.id)
-                WHERE p.category = $category
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"category": "electronics"}
 
 
 def describe_correlated_subqueries():
     def it_builds_correlated_exists():
-        """
-        SELECT u.id, u.name FROM users AS u
-        WHERE EXISTS (
-            SELECT 1 FROM orders AS o
+        expected_sql = """
+            SELECT u.id, u.name FROM users AS u
+            WHERE EXISTS (
+            SELECT $one FROM orders AS o
             WHERE o.user_id = u.id AND o.status = $status
-        )
+            )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -195,23 +173,18 @@ def describe_correlated_subqueries():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT u.id, u.name FROM users AS u
-            WHERE EXISTS (
-                SELECT $one FROM orders AS o
-                WHERE o.user_id = u.id AND o.status = $status
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"one": 1, "status": "completed"}
 
     def it_builds_correlated_in():
-        """
+        expected_sql = """
         SELECT * FROM products AS p
         WHERE p.category_id IN (
-            SELECT c.id FROM categories AS c
-            WHERE c.name = p.name
+        SELECT c.id FROM categories AS c
+        WHERE c.name = p.name
         )
         """
+
         products = source("products").alias("p")
         categories = source("categories").alias("c")
 
@@ -220,23 +193,18 @@ def describe_correlated_subqueries():
         query = products.select(col("*")).where(products.col("category_id").is_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM products AS p
-            WHERE p.category_id IN (
-                SELECT c.id FROM categories AS c
-                WHERE c.name = p.name
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}
 
     def it_builds_multiple_correlated_references():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (
-            SELECT * FROM orders AS o
-            WHERE o.user_id = u.id AND o.email = u.email
+        SELECT * FROM orders AS o
+        WHERE o.user_id = u.id AND o.email = u.email
         )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -249,28 +217,23 @@ def describe_correlated_subqueries():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (
-                SELECT * FROM orders AS o
-                WHERE o.user_id = u.id AND o.email = u.email
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}
 
 
 def describe_nested_subqueries():
     def it_builds_exists_in_subquery():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE u.id IN (
-            SELECT o.user_id FROM orders AS o
-            WHERE EXISTS (
-                SELECT * FROM products AS p
-                WHERE p.id = o.product_id AND p.available = $available
-            )
+        SELECT o.user_id FROM orders AS o
+        WHERE EXISTS (
+        SELECT * FROM products AS p
+        WHERE p.id = o.product_id AND p.available = $available
+        )
         )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
         products = source("products").alias("p")
@@ -286,29 +249,21 @@ def describe_nested_subqueries():
         query = users.select(col("*")).where(users.col("id").is_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE u.id IN (
-                SELECT o.user_id FROM orders AS o
-                WHERE EXISTS (
-                    SELECT * FROM products AS p
-                    WHERE p.id = o.product_id AND p.available = $available
-                )
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"available": True}
 
     def it_builds_in_with_in():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE u.id IN (
-            SELECT o.user_id FROM orders AS o
-            WHERE o.product_id IN (
-                SELECT p.id FROM products AS p
-                WHERE p.category = $category
-            )
+        SELECT o.user_id FROM orders AS o
+        WHERE o.product_id IN (
+        SELECT p.id FROM products AS p
+        WHERE p.category = $category
+        )
         )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
         products = source("products").alias("p")
@@ -322,29 +277,21 @@ def describe_nested_subqueries():
         query = users.select(col("*")).where(users.col("id").is_in(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE u.id IN (
-                SELECT o.user_id FROM orders AS o
-                WHERE o.product_id IN (
-                    SELECT p.id FROM products AS p
-                    WHERE p.category = $category
-                )
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"category": "electronics"}
 
 
 def describe_exists_with_joins():
     def it_builds_exists_with_inner_join():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (
-            SELECT * FROM orders AS o
-            INNER JOIN products AS p ON (o.product_id = p.id)
-            WHERE o.user_id = u.id AND p.price > $min_price
+        SELECT * FROM orders AS o
+        INNER JOIN products AS p ON (o.product_id = p.id)
+        WHERE o.user_id = u.id AND p.price > $min_price
         )
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
         products = source("products").alias("p")
@@ -359,23 +306,17 @@ def describe_exists_with_joins():
         query = users.select(col("*")).where(exists(subquery))
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (
-                SELECT * FROM orders AS o
-                INNER JOIN products AS p ON (o.product_id = p.id)
-                WHERE o.user_id = u.id AND p.price > $min_price
-            )
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"min_price": 100}
 
 
 def describe_combined_conditions():
     def it_builds_exists_with_and():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE u.active = $active AND EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
 
@@ -386,18 +327,16 @@ def describe_combined_conditions():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE u.active = $active AND EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {"active": True}
 
     def it_builds_multiple_exists():
-        """
+        expected_sql = """
         SELECT * FROM users AS u
         WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
         AND EXISTS (SELECT * FROM reviews AS r WHERE r.user_id = u.id)
         """
+
         users = source("users").alias("u")
         orders = source("orders").alias("o")
         reviews = source("reviews").alias("r")
@@ -409,9 +348,5 @@ def describe_combined_conditions():
         )
 
         result = render(query)
-        assert result.query == sql("""
-            SELECT * FROM users AS u
-            WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
-            AND EXISTS (SELECT * FROM reviews AS r WHERE r.user_id = u.id)
-        """)
+        assert result.query == sql(expected_sql)
         assert result.params == {}

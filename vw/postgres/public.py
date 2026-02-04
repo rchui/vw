@@ -1,19 +1,9 @@
 from vw.core.base import Factories
-from vw.core.frame import (
-    CURRENT_ROW as CURRENT_ROW,
-)
-from vw.core.frame import (
-    UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING,
-)
-from vw.core.frame import (
-    UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING,
-)
-from vw.core.frame import (
-    following as following,
-)
-from vw.core.frame import (
-    preceding as preceding,
-)
+from vw.core.frame import CURRENT_ROW as CURRENT_ROW
+from vw.core.frame import UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING
+from vw.core.frame import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
+from vw.core.frame import following as following
+from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
 from vw.core.states import Column, Exists, Parameter, Source
 from vw.postgres.base import Expression, RowSet, SetOperation

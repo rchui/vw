@@ -21,7 +21,10 @@ def describe_window_frames():
         """Test ROWS BETWEEN frame clauses."""
 
         def test_rows_unbounded_preceding_to_current_row():
-            """ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -30,13 +33,14 @@ def describe_window_frames():
                 .alias("running_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_rows_current_row_to_unbounded_following():
-            """ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -45,13 +49,14 @@ def describe_window_frames():
                 .alias("future_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_rows_n_preceding_to_current_row():
-            """ROWS BETWEEN n PRECEDING AND CURRENT ROW."""
+            expected_sql = """
+                SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS moving_avg FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.avg(col("amount"))
@@ -60,13 +65,14 @@ def describe_window_frames():
                 .alias("moving_avg"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS moving_avg FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_rows_n_preceding_to_n_following():
-            """ROWS BETWEEN n PRECEDING AND n FOLLOWING."""
+            expected_sql = """
+                SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS centered_avg FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.avg(col("amount"))
@@ -75,13 +81,14 @@ def describe_window_frames():
                 .alias("centered_avg"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS centered_avg FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_rows_current_row_to_n_following():
-            """ROWS BETWEEN CURRENT ROW AND n FOLLOWING."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND 5 FOLLOWING) AS next_5_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -90,16 +97,17 @@ def describe_window_frames():
                 .alias("next_5_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND 5 FOLLOWING) AS next_5_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
     def describe_range_between():
         """Test RANGE BETWEEN frame clauses."""
 
         def test_range_unbounded_preceding_to_current_row():
-            """RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -108,13 +116,14 @@ def describe_window_frames():
                 .alias("running_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_range_current_row_to_unbounded_following():
-            """RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -123,16 +132,17 @@ def describe_window_frames():
                 .alias("future_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
     def describe_exclude():
         """Test EXCLUDE clause."""
 
         def test_exclude_current_row():
-            """EXCLUDE CURRENT ROW."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) AS total_without_current FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -142,13 +152,14 @@ def describe_window_frames():
                 .alias("total_without_current"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) AS total_without_current FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_exclude_group():
-            """EXCLUDE GROUP."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE GROUP) AS total_without_group FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -158,13 +169,14 @@ def describe_window_frames():
                 .alias("total_without_group"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE GROUP) AS total_without_group FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_exclude_ties():
-            """EXCLUDE TIES."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE TIES) AS total_without_ties FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -174,13 +186,14 @@ def describe_window_frames():
                 .alias("total_without_ties"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE TIES) AS total_without_ties FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_exclude_no_others():
-            """EXCLUDE NO OTHERS."""
+            expected_sql = """
+                SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE NO OTHERS) AS total_with_all FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -190,16 +203,17 @@ def describe_window_frames():
                 .alias("total_with_all"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE NO OTHERS) AS total_with_all FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
     def describe_with_partition_by():
         """Test frame clauses with PARTITION BY."""
 
         def test_rows_between_with_partition_by():
-            """ROWS BETWEEN with PARTITION BY."""
+            expected_sql = """
+                SELECT department, date, SUM(amount) OVER (PARTITION BY department ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dept_running_total FROM sales
+            """
+
             q = source("sales").select(
                 col("department"),
                 col("date"),
@@ -209,13 +223,14 @@ def describe_window_frames():
                 .alias("dept_running_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT department, date, SUM(amount) OVER (PARTITION BY department ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dept_running_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}
 
         def test_range_between_with_partition_by():
-            """RANGE BETWEEN with PARTITION BY."""
+            expected_sql = """
+                SELECT department, date, AVG(amount) OVER (PARTITION BY department ORDER BY date ASC RANGE BETWEEN 7 PRECEDING AND CURRENT ROW) AS dept_7day_avg FROM sales
+            """
+
             q = source("sales").select(
                 col("department"),
                 col("date"),
@@ -225,7 +240,5 @@ def describe_window_frames():
                 .alias("dept_7day_avg"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT department, date, AVG(amount) OVER (PARTITION BY department ORDER BY date ASC RANGE BETWEEN 7 PRECEDING AND CURRENT ROW) AS dept_7day_avg FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {}

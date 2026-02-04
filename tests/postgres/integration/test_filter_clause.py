@@ -11,89 +11,101 @@ def describe_filter_clause():
         """Test FILTER clause on aggregate functions."""
 
         def test_count_with_filter():
-            """COUNT(*) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT COUNT(*) FILTER (WHERE status = $status) AS completed_orders FROM orders
+            """
+
             q = source("orders").select(
                 F.count().filter(col("status") == param("status", "completed")).alias("completed_orders")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT COUNT(*) FILTER (WHERE status = $status) AS completed_orders FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "completed"}
 
         def test_count_column_with_filter():
-            """COUNT(column) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT COUNT(id) FILTER (WHERE status = $status) AS pending_orders FROM orders
+            """
+
             q = source("orders").select(
                 F.count(col("id")).filter(col("status") == param("status", "pending")).alias("pending_orders")
             )
             result = render(q)
-            assert result.query == sql("SELECT COUNT(id) FILTER (WHERE status = $status) AS pending_orders FROM orders")
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "pending"}
 
         def test_sum_with_filter():
-            """SUM(column) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT SUM(amount) FILTER (WHERE status = $status) AS completed_revenue FROM orders
+            """
+
             q = source("orders").select(
                 F.sum(col("amount")).filter(col("status") == param("status", "completed")).alias("completed_revenue")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT SUM(amount) FILTER (WHERE status = $status) AS completed_revenue FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "completed"}
 
         def test_avg_with_filter():
-            """AVG(column) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT AVG(price) FILTER (WHERE category = $category) AS avg_electronics_price FROM products
+            """
+
             q = source("products").select(
                 F.avg(col("price"))
                 .filter(col("category") == param("category", "electronics"))
                 .alias("avg_electronics_price")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT AVG(price) FILTER (WHERE category = $category) AS avg_electronics_price FROM products"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"category": "electronics"}
 
         def test_min_with_filter():
-            """MIN(column) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT MIN(price) FILTER (WHERE in_stock = $in_stock) AS min_available_price FROM products
+            """
+
             q = source("products").select(
                 F.min(col("price")).filter(col("in_stock") == param("in_stock", True)).alias("min_available_price")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT MIN(price) FILTER (WHERE in_stock = $in_stock) AS min_available_price FROM products"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"in_stock": True}
 
         def test_max_with_filter():
-            """MAX(column) FILTER (WHERE ...)."""
+            expected_sql = """
+                SELECT MAX(price) FILTER (WHERE in_stock = $in_stock) AS max_available_price FROM products
+            """
+
             q = source("products").select(
                 F.max(col("price")).filter(col("in_stock") == param("in_stock", True)).alias("max_available_price")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT MAX(price) FILTER (WHERE in_stock = $in_stock) AS max_available_price FROM products"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"in_stock": True}
 
     def describe_filter_with_complex_conditions():
         """Test FILTER clause with complex conditions."""
 
         def test_filter_with_and():
-            """FILTER with AND condition."""
+            expected_sql = """
+                SELECT COUNT(*) FILTER (WHERE (status = $status) AND (amount > $min_amount)) AS large_completed_orders FROM orders
+            """
+
             q = source("orders").select(
                 F.count()
                 .filter((col("status") == param("status", "completed")) & (col("amount") > param("min_amount", 100)))
                 .alias("large_completed_orders")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT COUNT(*) FILTER (WHERE (status = $status) AND (amount > $min_amount)) AS large_completed_orders FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "completed", "min_amount": 100}
 
         def test_filter_with_or():
-            """FILTER with OR condition."""
+            expected_sql = """
+                SELECT SUM(amount) FILTER (WHERE (status = $status1) OR (status = $status2)) AS completed_or_shipped_revenue FROM orders
+            """
+
             q = source("orders").select(
                 F.sum(col("amount"))
                 .filter(
@@ -102,27 +114,29 @@ def describe_filter_clause():
                 .alias("completed_or_shipped_revenue")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT SUM(amount) FILTER (WHERE (status = $status1) OR (status = $status2)) AS completed_or_shipped_revenue FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status1": "completed", "status2": "shipped"}
 
         def test_filter_with_not():
-            """FILTER with NOT condition."""
+            expected_sql = """
+                SELECT COUNT(*) FILTER (WHERE NOT (status = $status)) AS non_cancelled_orders FROM orders
+            """
+
             q = source("orders").select(
                 F.count().filter(~(col("status") == param("status", "cancelled"))).alias("non_cancelled_orders")
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT COUNT(*) FILTER (WHERE NOT (status = $status)) AS non_cancelled_orders FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "cancelled"}
 
     def describe_filter_with_group_by():
         """Test FILTER clause with GROUP BY."""
 
         def test_filter_with_group_by():
-            """FILTER with GROUP BY."""
+            expected_sql = """
+                SELECT customer_id, COUNT(*) FILTER (WHERE status = $status) AS completed_orders FROM orders GROUP BY customer_id
+            """
+
             q = (
                 source("orders")
                 .select(
@@ -132,13 +146,14 @@ def describe_filter_clause():
                 .group_by(col("customer_id"))
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT customer_id, COUNT(*) FILTER (WHERE status = $status) AS completed_orders FROM orders GROUP BY customer_id"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "completed"}
 
         def test_multiple_filters_with_group_by():
-            """Multiple FILTER clauses with GROUP BY."""
+            expected_sql = """
+                SELECT customer_id, COUNT(*) FILTER (WHERE status = $completed) AS completed_orders, COUNT(*) FILTER (WHERE status = $pending) AS pending_orders, SUM(amount) FILTER (WHERE status = $completed_status) AS completed_revenue FROM orders GROUP BY customer_id
+            """
+
             q = (
                 source("orders")
                 .select(
@@ -152,16 +167,17 @@ def describe_filter_clause():
                 .group_by(col("customer_id"))
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT customer_id, COUNT(*) FILTER (WHERE status = $completed) AS completed_orders, COUNT(*) FILTER (WHERE status = $pending) AS pending_orders, SUM(amount) FILTER (WHERE status = $completed_status) AS completed_revenue FROM orders GROUP BY customer_id"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"completed": "completed", "pending": "pending", "completed_status": "completed"}
 
     def describe_filter_with_window_functions():
         """Test FILTER clause combined with window functions."""
 
         def test_filter_with_over():
-            """FILTER combined with OVER clause."""
+            expected_sql = """
+                SELECT id, COUNT(*) FILTER (WHERE status = $status) OVER (PARTITION BY customer_id) AS customer_completed_orders FROM orders
+            """
+
             q = source("orders").select(
                 col("id"),
                 F.count()
@@ -170,13 +186,14 @@ def describe_filter_clause():
                 .alias("customer_completed_orders"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT id, COUNT(*) FILTER (WHERE status = $status) OVER (PARTITION BY customer_id) AS customer_completed_orders FROM orders"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"status": "completed"}
 
         def test_filter_with_over_and_order_by():
-            """FILTER with OVER and ORDER BY."""
+            expected_sql = """
+                SELECT date, SUM(amount) FILTER (WHERE category = $category) OVER (ORDER BY date ASC) AS electronics_running_total FROM sales
+            """
+
             q = source("sales").select(
                 col("date"),
                 F.sum(col("amount"))
@@ -185,7 +202,5 @@ def describe_filter_clause():
                 .alias("electronics_running_total"),
             )
             result = render(q)
-            assert result.query == sql(
-                "SELECT date, SUM(amount) FILTER (WHERE category = $category) OVER (ORDER BY date ASC) AS electronics_running_total FROM sales"
-            )
+            assert result.query == sql(expected_sql)
             assert result.params == {"category": "electronics"}
