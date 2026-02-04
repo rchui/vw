@@ -6,6 +6,7 @@ from vw.postgres.public import UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING
 from vw.postgres.public import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
 from vw.postgres.public import F as F
 from vw.postgres.public import col as col
+from vw.postgres.public import cte as cte
 from vw.postgres.public import exists as exists
 from vw.postgres.public import following as following
 from vw.postgres.public import param as param

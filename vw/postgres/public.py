@@ -104,3 +104,96 @@ def exists(subquery: RowSet, /) -> Expression:
     return Expression(
         state=Exists(subquery=subquery.state), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
     )
+
+
+def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
+    """Create a Common Table Expression (CTE).
+
+    CTEs define temporary named result sets using the WITH clause.
+    They can be used anywhere a table can be used (FROM, JOIN, subqueries).
+
+    Args:
+        name: The name for the CTE.
+        query: The query that defines the CTE (must have .select() called or be a SetOperation).
+        recursive: If True, creates WITH RECURSIVE for self-referencing CTEs.
+
+    Returns:
+        A RowSet that can be used like a table.
+
+    Example:
+        >>> active_users = cte(
+        ...     "active_users",
+        ...     source("users").select(col("*")).where(col("active") == True)
+        ... )
+        >>> result = active_users.select(col("id"), col("name"))
+        # WITH active_users AS (SELECT * FROM users WHERE active = true)
+        # SELECT id, name FROM active_users
+
+    Recursive Example:
+        >>> # Anchor: top-level items
+        >>> anchor = source("items").select(col("*")).where(col("parent_id").is_null())
+        >>> tree = cte("tree", anchor, recursive=True)
+        >>> # Recursive part
+        >>> recursive_part = tree.alias("t").join.inner(
+        ...     source("items").alias("i"),
+        ...     on=[col("i.parent_id") == col("t.id")]
+        ... ).select(col("i.*"))
+        >>> # Final CTE with UNION ALL
+        >>> tree = cte("tree", anchor + recursive_part, recursive=True)
+    """
+    from vw.core.states import CTE, SetOperationState, Source
+
+    state = query.state
+
+    # Handle Source - convenience wrapper (convert to SELECT *)
+    if isinstance(state, Source):
+        stmt = query.select(col("*"))
+        stmt_state = stmt.state
+        cte_state = CTE(
+            name=name,
+            recursive=recursive,
+            source=stmt_state.source,
+            alias=stmt_state.alias,
+            columns=stmt_state.columns,
+            where_conditions=stmt_state.where_conditions,
+            group_by_columns=stmt_state.group_by_columns,
+            having_conditions=stmt_state.having_conditions,
+            order_by_columns=stmt_state.order_by_columns,
+            limit=stmt_state.limit,
+            distinct=stmt_state.distinct,
+            joins=stmt_state.joins,
+        )
+    elif isinstance(state, SetOperationState):
+        # Wrap SetOperationState in a CTE
+        cte_state = CTE(
+            name=name,
+            recursive=recursive,
+            source=state,  # Use SetOperationState as source
+            alias=None,
+            columns=(),
+            where_conditions=(),
+            group_by_columns=(),
+            having_conditions=(),
+            order_by_columns=(),
+            limit=None,
+            distinct=None,
+            joins=(),
+        )
+    else:
+        # Type narrowing: state is now Statement
+        cte_state = CTE(
+            name=name,
+            recursive=recursive,
+            source=state.source,
+            alias=state.alias,
+            columns=state.columns,
+            where_conditions=state.where_conditions,
+            group_by_columns=state.group_by_columns,
+            having_conditions=state.having_conditions,
+            order_by_columns=state.order_by_columns,
+            limit=state.limit,
+            distinct=state.distinct,
+            joins=state.joins,
+        )
+
+    return RowSet(state=cte_state, factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))

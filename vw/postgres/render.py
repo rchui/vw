@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from vw.core.render import SQL, ParamStyle, RenderConfig, RenderContext
 from vw.core.states import (
+    CTE,
     Add,
     Alias,
     And,
@@ -79,6 +80,11 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
     else:
         query = render_state(obj.state, ctx)
 
+    # Prepend WITH clause if CTEs exist
+    if ctx.ctes:
+        with_clause = render_with_clause(ctx)
+        query = f"{with_clause} {query}"
+
     return SQL(query=query, params=ctx.params)
 
 
@@ -97,6 +103,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
     """
     match state:
         # --- Core Query States ----------------------------------------- #
+        case CTE():
+            return render_cte(state, ctx)
         case Statement():
             return render_statement(state, ctx)
         case Source():
@@ -225,6 +233,24 @@ def render_state(state: object, ctx: RenderContext) -> str:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
+def render_cte(cte: CTE, ctx: RenderContext) -> str:
+    """Render a CTE body.
+
+    Args:
+        cte: A CTE to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string for the CTE body.
+    """
+    # If CTE source is a set operation, render just that
+    if isinstance(cte.source, SetOperationState):
+        return render_set_operation(cte.source, ctx)
+
+    # Otherwise, render as a Statement (CTE extends Statement)
+    return render_statement(cte, ctx)
+
+
 def render_statement(stmt: Statement, ctx: RenderContext) -> str:
     """Render a Statement to SQL.
 
@@ -245,9 +271,20 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
         cols = ", ".join(render_state(col.state, ctx) for col in stmt.columns)
         parts.append(f"{select_clause} {cols}")
 
-    # FROM clause (source can be Source or Statement for subqueries)
+    # FROM clause (source can be Source, Statement for subqueries, or CTE)
     if isinstance(stmt.source, Source):
         source_sql = render_source(stmt.source, ctx)
+    elif isinstance(stmt.source, CTE):
+        # Register CTE and render as CTE reference
+        # First render the CTE body
+        cte_body = render_cte(stmt.source, ctx)
+        ctx.register_cte(stmt.source.name, cte_body, stmt.source.recursive)
+
+        # Render CTE reference with name (and alias if set)
+        if stmt.source.alias:
+            source_sql = f"{stmt.source.name} AS {stmt.source.alias}"
+        else:
+            source_sql = stmt.source.name
     else:  # Statement (subquery)
         source_sql = f"({render_statement(stmt.source, ctx)})"
         if stmt.source.alias:
@@ -441,9 +478,20 @@ def render_join(join: Join, ctx: RenderContext) -> str:
         The SQL string (e.g., "INNER JOIN orders AS o ON (u.id = o.user_id)").
     """
 
-    # Render right side (can be Source or Statement)
+    # Render right side (can be Source, Statement, or CTE)
     if isinstance(join.right, Source):
         right_sql = render_source(join.right, ctx)
+    elif isinstance(join.right, CTE):
+        # Register CTE and render as CTE reference
+        # First render the CTE body
+        cte_body = render_statement(join.right, ctx)
+        ctx.register_cte(join.right.name, cte_body, join.right.recursive)
+
+        # Render CTE reference with name (and alias if set)
+        if join.right.alias:
+            right_sql = f"{join.right.name} AS {join.right.alias}"
+        else:
+            right_sql = join.right.name
     else:  # Statement (subquery)
         right_sql = f"({render_statement(join.right, ctx)})"
         if join.right.alias:
@@ -514,3 +562,26 @@ def render_set_operation(setop: SetOperationState, ctx: RenderContext) -> str:
 
     # Wrap each side in parentheses and combine
     return f"({left_sql}) {setop.operator} ({right_sql})"
+
+
+def render_with_clause(ctx: RenderContext) -> str:
+    """Render the WITH clause from registered CTEs.
+
+    Args:
+        ctx: Rendering context with registered CTEs.
+
+    Returns:
+        The WITH clause SQL (e.g., "WITH RECURSIVE cte1 AS (...), cte2 AS (...)").
+    """
+    if not ctx.ctes:
+        return ""
+
+    # Check if any CTE is recursive
+    has_recursive = any(cte.recursive for cte in ctx.ctes)
+
+    # Build CTE definitions
+    cte_definitions = [f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes]
+
+    # Build WITH clause
+    with_keyword = "WITH RECURSIVE" if has_recursive else "WITH"
+    return f"{with_keyword} {', '.join(cte_definitions)}"

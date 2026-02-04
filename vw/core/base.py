@@ -358,6 +358,7 @@ class RowSet(Stateful, FactoryT):
         """Add columns to SELECT clause.
 
         Transforms Source → Statement if needed.
+        For CTEs, creates new Statement with CTE as source.
 
         Args:
             *columns: Column expressions to select.
@@ -365,10 +366,13 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with the columns added.
         """
-        from vw.core.states import Source, Statement
+        from vw.core.states import CTE, Source, Statement
 
         if isinstance(self.state, Source):
             # Transform Source → Statement
+            new_state = Statement(source=self.state, columns=tuple(columns))
+        elif isinstance(self.state, CTE):
+            # CTE → new Statement with CTE as source
             new_state = Statement(source=self.state, columns=tuple(columns))
         else:
             # Already Statement, update columns
@@ -521,7 +525,9 @@ class RowSet(Stateful, FactoryT):
         return self.factories.rowset(state=new_state, factories=self.factories)
 
     def col(self, name: str, /) -> ExprT:
-        """Create a column reference qualified with this rowset's alias.
+        """Create a column reference qualified with this rowset's alias or CTE name.
+
+        Preference: alias > CTE name > unqualified
 
         Args:
             name: Column name.
@@ -529,10 +535,12 @@ class RowSet(Stateful, FactoryT):
         Returns:
             An Expression with qualified or unqualified column.
         """
-        from vw.core.states import Column
+        from vw.core.states import CTE, Column
 
         if self.state.alias:
             qualified_name = f"{self.state.alias}.{name}"
+        elif isinstance(self.state, CTE):
+            qualified_name = f"{self.state.name}.{name}"
         else:
             qualified_name = name
 
@@ -540,15 +548,19 @@ class RowSet(Stateful, FactoryT):
 
     @property
     def star(self) -> ExprT:
-        """Create a star expression qualified with this rowset's alias.
+        """Create a star expression qualified with this rowset's alias or CTE name.
+
+        Preference: alias > CTE name > unqualified
 
         Returns:
             An Expression with qualified or unqualified star.
         """
-        from vw.core.states import Column
+        from vw.core.states import CTE, Column
 
         if self.state.alias:
             star_name = f"{self.state.alias}.*"
+        elif isinstance(self.state, CTE):
+            star_name = f"{self.state.name}.*"
         else:
             star_name = "*"
 

@@ -79,7 +79,7 @@ class Join(Generic[ExprT]):
 class Statement(Generic[ExprT]):
     """Represents a SELECT query."""
 
-    source: Source | Statement
+    source: Source | Statement[ExprT]
     alias: str | None = None
     columns: tuple[ExprT, ...] = field(default_factory=tuple)
     where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
@@ -301,6 +301,21 @@ class SetOperationState(Generic[ExprT]):
     left: Source | Statement[ExprT] | SetOperationState[ExprT]
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
     right: Source | Statement[ExprT] | SetOperationState[ExprT]
+
+
+# --- Common Table Expressions ---------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class CTE(Statement[ExprT], Generic[ExprT]):
+    """A Common Table Expression (WITH clause).
+
+    Extends Statement to represent a named query that can be
+    referenced in subsequent queries like a table.
+    """
+
+    name: str
+    recursive: bool = False
 
 
 # --- Expression Modifiers -------------------------------------------------- #
