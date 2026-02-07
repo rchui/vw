@@ -15,7 +15,7 @@ vw is a lightweight Python library that brings Polars-inspired method chaining t
 ## Quick Example
 
 ```python
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 users = source("users")
 query = (

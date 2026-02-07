@@ -1,6 +1,6 @@
 """Tests for col() function and Column rendering."""
 
-from vw.postgres import col, render, source
+from vw.postgres import col, ref, render
 
 
 def describe_col() -> None:
@@ -29,14 +29,14 @@ def describe_col() -> None:
 
     def it_renders_in_select() -> None:
         """Column should render correctly in SELECT."""
-        q = source("users").select(col("id"))
+        q = ref("users").select(col("id"))
         result = render(q)
         assert result.query == "SELECT id FROM users"
         assert result.params == {}
 
     def it_renders_multiple_columns_in_select() -> None:
         """Multiple columns should render separated by commas."""
-        q = source("users").select(col("id"), col("name"), col("email"))
+        q = ref("users").select(col("id"), col("name"), col("email"))
         result = render(q)
         assert result.query == "SELECT id, name, email FROM users"
         assert result.params == {}

@@ -11,7 +11,7 @@ vw (pronounced "view") is a SQL query builder that brings method chaining to SQL
 Every query operation returns a new object. Nothing is mutated:
 
 ```python
-from vw.postgres import source, col
+from vw.postgres as vw, col
 
 users = source("users")
 query1 = users.select(col("id"))
@@ -86,7 +86,7 @@ print(result.params)  # The parameters dict
 
 1. **Import** - Import from the dialect module you need:
    ```python
-   from vw.postgres import source, col, param, render
+   from vw.postgres as vw, col, param, render
    ```
 
 2. **Create a source** - Start with a table or view:

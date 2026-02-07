@@ -17,15 +17,15 @@ Stop fearing the complexity of large queries. vw lets you fully embrace SQL by t
 Here's a simple example using vw with SQLAlchemy:
 
 ```python
-import vw.reference as vw
+import vw.postgres as vw
 from sqlalchemy import create_engine, text
 
 # Create your database connection
 engine = create_engine("postgresql://user:password@localhost/mydb")
 
 # Build a query with vw
-users = vw.Source(name="users")
-orders = vw.Source(name="orders")
+users = vw.ref("users")
+orders = vw.ref("orders")
 
 user_id = vw.param("user_id", 123)
 status = vw.param("status", "active")
@@ -43,10 +43,10 @@ query = (
 )
 
 # Render to SQL and parameters
-result = query.render()
+result = vw.render(query)
 
-print(result.sql)
->>> "SELECT users.name, orders.total FROM users INNER JOIN orders ON users.id = :user_id AND orders.status = :status"
+print(result.query)
+>>> "SELECT users.name, orders.total FROM users INNER JOIN orders ON (users.id = $user_id) AND (orders.status = $status)"
 
 print(result.params)
 >>> {"user_id": 123, "status": "active"}
@@ -54,7 +54,7 @@ print(result.params)
 # Execute with SQLAlchemy
 with engine.connect() as connection:
     rows = connection.execute(
-        text(result.sql),
+        text(result.query),
         result.params
     )
     for row in rows:

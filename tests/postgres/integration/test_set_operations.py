@@ -1,7 +1,7 @@
 """Integration tests for set operation SQL rendering."""
 
 from tests.utils import sql
-from vw.postgres import col, param, render, source
+from vw.postgres import col, param, ref, render
 
 
 def describe_union():
@@ -10,8 +10,8 @@ def describe_union():
         (SELECT id FROM users) UNION (SELECT id FROM admins)
         """
 
-        query1 = source("users").select(col("id"))
-        query2 = source("admins").select(col("id"))
+        query1 = ref("users").select(col("id"))
+        query2 = ref("admins").select(col("id"))
 
         result = render(query1 | query2)
 
@@ -23,8 +23,8 @@ def describe_union():
         (SELECT id FROM users) UNION ALL (SELECT id FROM admins)
         """
 
-        query1 = source("users").select(col("id"))
-        query2 = source("admins").select(col("id"))
+        query1 = ref("users").select(col("id"))
+        query2 = ref("admins").select(col("id"))
 
         result = render(query1 + query2)
 
@@ -36,8 +36,8 @@ def describe_union():
         (SELECT id FROM users WHERE active = $active) UNION (SELECT id FROM admins)
         """
 
-        query1 = source("users").select(col("id")).where(col("active") == param("active", True))
-        query2 = source("admins").select(col("id"))
+        query1 = ref("users").select(col("id")).where(col("active") == param("active", True))
+        query2 = ref("admins").select(col("id"))
 
         result = render(query1 | query2)
 
@@ -51,8 +51,8 @@ def describe_intersect():
         (SELECT id FROM users) INTERSECT (SELECT user_id FROM banned)
         """
 
-        query1 = source("users").select(col("id"))
-        query2 = source("banned").select(col("user_id"))
+        query1 = ref("users").select(col("id"))
+        query2 = ref("banned").select(col("user_id"))
 
         result = render(query1 & query2)
 
@@ -66,8 +66,8 @@ def describe_intersect():
         (SELECT user_id FROM banned WHERE reason = $reason)
         """
 
-        query1 = source("users").select(col("id")).where(col("age") >= param("min_age", 18))
-        query2 = source("banned").select(col("user_id")).where(col("reason") == param("reason", "spam"))
+        query1 = ref("users").select(col("id")).where(col("age") >= param("min_age", 18))
+        query2 = ref("banned").select(col("user_id")).where(col("reason") == param("reason", "spam"))
 
         result = render(query1 & query2)
 
@@ -81,8 +81,8 @@ def describe_except():
         (SELECT id FROM users) EXCEPT (SELECT user_id FROM banned)
         """
 
-        query1 = source("users").select(col("id"))
-        query2 = source("banned").select(col("user_id"))
+        query1 = ref("users").select(col("id"))
+        query2 = ref("banned").select(col("user_id"))
 
         result = render(query1 - query2)
 
@@ -96,8 +96,8 @@ def describe_except():
         (SELECT user_id FROM banned)
         """
 
-        query1 = source("users").select(col("id")).where(col("active") == param("active", True))
-        query2 = source("banned").select(col("user_id"))
+        query1 = ref("users").select(col("id")).where(col("active") == param("active", True))
+        query2 = ref("banned").select(col("user_id"))
 
         result = render(query1 - query2)
 
@@ -111,9 +111,9 @@ def describe_chaining():
         ((SELECT id FROM users) UNION (SELECT id FROM admins)) UNION (SELECT id FROM guests)
         """
 
-        users = source("users").select(col("id"))
-        admins = source("admins").select(col("id"))
-        guests = source("guests").select(col("id"))
+        users = ref("users").select(col("id"))
+        admins = ref("admins").select(col("id"))
+        guests = ref("guests").select(col("id"))
 
         result = render((users | admins) | guests)
 
@@ -126,9 +126,9 @@ def describe_chaining():
         (SELECT user_id FROM banned)
         """
 
-        users = source("users").select(col("id"))
-        admins = source("admins").select(col("id"))
-        banned = source("banned").select(col("user_id"))
+        users = ref("users").select(col("id"))
+        admins = ref("admins").select(col("id"))
+        banned = ref("banned").select(col("user_id"))
 
         result = render((users | admins) - banned)
 
@@ -141,9 +141,9 @@ def describe_chaining():
         ((SELECT id FROM admins) EXCEPT (SELECT user_id FROM banned))
         """
 
-        users = source("users").select(col("id"))
-        admins = source("admins").select(col("id"))
-        banned = source("banned").select(col("user_id"))
+        users = ref("users").select(col("id"))
+        admins = ref("admins").select(col("id"))
+        banned = ref("banned").select(col("user_id"))
 
         result = render(users | (admins - banned))
 
@@ -158,8 +158,8 @@ def describe_parameters():
         (SELECT id FROM admins WHERE role = $role)
         """
 
-        query1 = source("users").select(col("id")).where(col("active") == param("active", True))
-        query2 = source("admins").select(col("id")).where(col("role") == param("role", "admin"))
+        query1 = ref("users").select(col("id")).where(col("active") == param("active", True))
+        query2 = ref("admins").select(col("id")).where(col("role") == param("role", "admin"))
 
         result = render(query1 | query2)
 
@@ -174,12 +174,12 @@ def describe_parameters():
         """
 
         query1 = (
-            source("users")
+            ref("users")
             .select(col("id"))
             .where(col("age") >= param("min_age", 18))
             .where(col("active") == param("active", True))
         )
-        query2 = source("premium").select(col("user_id")).where(col("tier") == param("tier", "gold"))
+        query2 = ref("premium").select(col("user_id")).where(col("tier") == param("tier", "gold"))
 
         result = render(query1 & query2)
 
@@ -187,30 +187,30 @@ def describe_parameters():
         assert result.params == {"min_age": 18, "active": True, "tier": "gold"}
 
 
-def describe_with_source():
-    def it_handles_bare_source_on_left():
+def describe_with_ref():
+    def it_handles_bare_ref_on_left():
         expected_sql = """
         (SELECT * FROM users) UNION (SELECT id FROM admins)
         """
 
-        result = render(source("users") | source("admins").select(col("id")))
+        result = render(ref("users") | ref("admins").select(col("id")))
 
         assert result.query == sql(expected_sql)
 
-    def it_handles_bare_source_on_right():
+    def it_handles_bare_ref_on_right():
         expected_sql = """
         (SELECT id FROM users) UNION (SELECT * FROM admins)
         """
 
-        result = render(source("users").select(col("id")) | source("admins"))
+        result = render(ref("users").select(col("id")) | ref("admins"))
 
         assert result.query == sql(expected_sql)
 
-    def it_handles_bare_source_on_both_sides():
+    def it_handles_bare_ref_on_both_sides():
         expected_sql = """
         (SELECT * FROM users) UNION (SELECT * FROM admins)
         """
 
-        result = render(source("users") | source("admins"))
+        result = render(ref("users") | ref("admins"))
 
         assert result.query == sql(expected_sql)

@@ -1,7 +1,7 @@
 """Integration tests for subquery SQL rendering."""
 
 from tests.utils import sql
-from vw.postgres import F, col, exists, param, render, source
+from vw.postgres import F, col, exists, param, ref, render
 
 
 def describe_exists():
@@ -11,8 +11,8 @@ def describe_exists():
         WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(col("*")).where(
             exists(orders.select(col("*")).where(orders.col("user_id") == users.col("id")))
@@ -28,8 +28,8 @@ def describe_exists():
         WHERE NOT (EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id))
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(col("*")).where(
             ~exists(orders.select(col("*")).where(orders.col("user_id") == users.col("id")))
@@ -45,8 +45,8 @@ def describe_exists():
         WHERE EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id AND o.status = $status)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(col("*")).where(
             exists(
@@ -71,8 +71,8 @@ def describe_exists():
         )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(col("*")).where(
             exists(
@@ -96,8 +96,8 @@ def describe_in_subquery():
         WHERE id IN (SELECT user_id FROM orders WHERE status = $status)
         """
 
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         subquery = orders.select(col("user_id")).where(col("status") == param("status", "active"))
 
@@ -113,8 +113,8 @@ def describe_in_subquery():
         WHERE id NOT IN (SELECT user_id FROM banned_users)
         """
 
-        users = source("users")
-        banned_users = source("banned_users")
+        users = ref("users")
+        banned_users = ref("banned_users")
 
         subquery = banned_users.select(col("user_id"))
 
@@ -134,9 +134,9 @@ def describe_in_subquery():
         )
         """
 
-        users = source("users")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         subquery = (
             orders.join.inner(products, on=[orders.col("product_id") == products.col("id")])
@@ -161,8 +161,8 @@ def describe_correlated_subqueries():
             )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(users.col("id"), users.col("name")).where(
             exists(
@@ -185,8 +185,8 @@ def describe_correlated_subqueries():
         )
         """
 
-        products = source("products").alias("p")
-        categories = source("categories").alias("c")
+        products = ref("products").alias("p")
+        categories = ref("categories").alias("c")
 
         subquery = categories.select(categories.col("id")).where(categories.col("name") == products.col("name"))
 
@@ -205,8 +205,8 @@ def describe_correlated_subqueries():
         )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.select(col("*")).where(
             exists(
@@ -234,9 +234,9 @@ def describe_nested_subqueries():
         )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         innermost = (
             products.select(col("*"))
@@ -264,9 +264,9 @@ def describe_nested_subqueries():
         )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         innermost = products.select(products.col("id")).where(
             products.col("category") == param("category", "electronics")
@@ -292,9 +292,9 @@ def describe_exists_with_joins():
         )
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         subquery = (
             orders.select(col("*"))
@@ -317,8 +317,8 @@ def describe_combined_conditions():
         WHERE u.active = $active AND EXISTS (SELECT * FROM orders AS o WHERE o.user_id = u.id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.select(col("*"))
@@ -337,9 +337,9 @@ def describe_combined_conditions():
         AND EXISTS (SELECT * FROM reviews AS r WHERE r.user_id = u.id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        reviews = source("reviews").alias("r")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        reviews = ref("reviews").alias("r")
 
         query = (
             users.select(col("*"))

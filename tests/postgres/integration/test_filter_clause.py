@@ -1,7 +1,7 @@
 """Integration tests for FILTER clause."""
 
 from tests.utils import sql
-from vw.postgres import F, col, param, render, source
+from vw.postgres import F, col, param, ref, render
 
 
 def describe_filter_clause():
@@ -15,7 +15,7 @@ def describe_filter_clause():
                 SELECT COUNT(*) FILTER (WHERE status = $status) AS completed_orders FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.count().filter(col("status") == param("status", "completed")).alias("completed_orders")
             )
             result = render(q)
@@ -27,7 +27,7 @@ def describe_filter_clause():
                 SELECT COUNT(id) FILTER (WHERE status = $status) AS pending_orders FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.count(col("id")).filter(col("status") == param("status", "pending")).alias("pending_orders")
             )
             result = render(q)
@@ -39,7 +39,7 @@ def describe_filter_clause():
                 SELECT SUM(amount) FILTER (WHERE status = $status) AS completed_revenue FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.sum(col("amount")).filter(col("status") == param("status", "completed")).alias("completed_revenue")
             )
             result = render(q)
@@ -51,7 +51,7 @@ def describe_filter_clause():
                 SELECT AVG(price) FILTER (WHERE category = $category) AS avg_electronics_price FROM products
             """
 
-            q = source("products").select(
+            q = ref("products").select(
                 F.avg(col("price"))
                 .filter(col("category") == param("category", "electronics"))
                 .alias("avg_electronics_price")
@@ -65,7 +65,7 @@ def describe_filter_clause():
                 SELECT MIN(price) FILTER (WHERE in_stock = $in_stock) AS min_available_price FROM products
             """
 
-            q = source("products").select(
+            q = ref("products").select(
                 F.min(col("price")).filter(col("in_stock") == param("in_stock", True)).alias("min_available_price")
             )
             result = render(q)
@@ -77,7 +77,7 @@ def describe_filter_clause():
                 SELECT MAX(price) FILTER (WHERE in_stock = $in_stock) AS max_available_price FROM products
             """
 
-            q = source("products").select(
+            q = ref("products").select(
                 F.max(col("price")).filter(col("in_stock") == param("in_stock", True)).alias("max_available_price")
             )
             result = render(q)
@@ -92,7 +92,7 @@ def describe_filter_clause():
                 SELECT COUNT(*) FILTER (WHERE (status = $status) AND (amount > $min_amount)) AS large_completed_orders FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.count()
                 .filter((col("status") == param("status", "completed")) & (col("amount") > param("min_amount", 100)))
                 .alias("large_completed_orders")
@@ -106,7 +106,7 @@ def describe_filter_clause():
                 SELECT SUM(amount) FILTER (WHERE (status = $status1) OR (status = $status2)) AS completed_or_shipped_revenue FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.sum(col("amount"))
                 .filter(
                     (col("status") == param("status1", "completed")) | (col("status") == param("status2", "shipped"))
@@ -122,7 +122,7 @@ def describe_filter_clause():
                 SELECT COUNT(*) FILTER (WHERE NOT (status = $status)) AS non_cancelled_orders FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 F.count().filter(~(col("status") == param("status", "cancelled"))).alias("non_cancelled_orders")
             )
             result = render(q)
@@ -138,7 +138,7 @@ def describe_filter_clause():
             """
 
             q = (
-                source("orders")
+                ref("orders")
                 .select(
                     col("customer_id"),
                     F.count().filter(col("status") == param("status", "completed")).alias("completed_orders"),
@@ -155,7 +155,7 @@ def describe_filter_clause():
             """
 
             q = (
-                source("orders")
+                ref("orders")
                 .select(
                     col("customer_id"),
                     F.count().filter(col("status") == param("completed", "completed")).alias("completed_orders"),
@@ -178,7 +178,7 @@ def describe_filter_clause():
                 SELECT id, COUNT(*) FILTER (WHERE status = $status) OVER (PARTITION BY customer_id) AS customer_completed_orders FROM orders
             """
 
-            q = source("orders").select(
+            q = ref("orders").select(
                 col("id"),
                 F.count()
                 .filter(col("status") == param("status", "completed"))
@@ -194,7 +194,7 @@ def describe_filter_clause():
                 SELECT date, SUM(amount) FILTER (WHERE category = $category) OVER (ORDER BY date ASC) AS electronics_running_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .filter(col("category") == param("category", "electronics"))

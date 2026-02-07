@@ -9,8 +9,8 @@ from vw.postgres import (
     col,
     following,
     preceding,
+    ref,
     render,
-    source,
 )
 
 
@@ -25,7 +25,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -41,7 +41,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -57,7 +57,7 @@ def describe_window_frames():
                 SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) AS moving_avg FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.avg(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -73,7 +73,7 @@ def describe_window_frames():
                 SELECT date, AVG(amount) OVER (ORDER BY date ASC ROWS BETWEEN 2 PRECEDING AND 2 FOLLOWING) AS centered_avg FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.avg(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -89,7 +89,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN CURRENT ROW AND 5 FOLLOWING) AS next_5_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -108,7 +108,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS running_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -124,7 +124,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC RANGE BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING) AS future_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -143,7 +143,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE CURRENT ROW) AS total_without_current FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -160,7 +160,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE GROUP) AS total_without_group FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -177,7 +177,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE TIES) AS total_without_ties FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -194,7 +194,7 @@ def describe_window_frames():
                 SELECT date, SUM(amount) OVER (ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW EXCLUDE NO OTHERS) AS total_with_all FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("date"),
                 F.sum(col("amount"))
                 .over(order_by=[col("date").asc()])
@@ -214,7 +214,7 @@ def describe_window_frames():
                 SELECT department, date, SUM(amount) OVER (PARTITION BY department ORDER BY date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dept_running_total FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("department"),
                 col("date"),
                 F.sum(col("amount"))
@@ -231,7 +231,7 @@ def describe_window_frames():
                 SELECT department, date, AVG(amount) OVER (PARTITION BY department ORDER BY date ASC RANGE BETWEEN 7 PRECEDING AND CURRENT ROW) AS dept_7day_avg FROM sales
             """
 
-            q = source("sales").select(
+            q = ref("sales").select(
                 col("department"),
                 col("date"),
                 F.avg(col("amount"))

@@ -5,7 +5,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 ## Module Import
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 ```
 
 ## Factory Functions
@@ -29,7 +29,7 @@ orders = source("orders").alias("o")
 
 **Example:**
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users")
 query = users.select(col("*"))
@@ -81,7 +81,7 @@ query = users.where(col("age") >= min_age)
 
 **Example:**
 ```python
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 users = source("users")
 query = users.where(col("age") >= param("min_age", 18))
@@ -118,7 +118,7 @@ print(result.params)  # Parameters dict
 
 **Example:**
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 users = source("users")
 query = (
@@ -187,7 +187,7 @@ PostgreSQL supports set operations for combining multiple queries. vw provides o
 Combines results from two queries and removes duplicates.
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users").select(col("id"))
 admins = source("admins").select(col("id"))
@@ -303,7 +303,7 @@ For psycopg2, you may need to convert parameter style or use SQLAlchemy.
 ### Basic Query
 
 ```python
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 users = source("users")
 query = (
@@ -320,7 +320,7 @@ result = render(query)
 ### Aggregation
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 orders = source("orders")
 query = (
@@ -343,7 +343,7 @@ result = render(query)
 ### Window Functions
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 sales = source("sales")
 query = sales.select(
@@ -366,7 +366,7 @@ result = render(query)
 ### Subquery
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 users = source("users")
 active_users = (
@@ -391,7 +391,7 @@ result = render(query)
 ### Joins
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 # Basic INNER JOIN
 users = source("users").alias("u")
@@ -459,7 +459,7 @@ result = render(query)
 ### Complex Expressions
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 orders = source("orders")
 query = orders.select(
@@ -478,7 +478,7 @@ result = render(query)
 
 ```python
 from sqlalchemy import create_engine, text
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 # Setup
 engine = create_engine("postgresql://user:pass@localhost/mydb")
@@ -503,7 +503,7 @@ with engine.connect() as conn:
 
 ```python
 import asyncpg
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 async def fetch_users():
     # Connect

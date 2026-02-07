@@ -1,7 +1,7 @@
 """Integration tests for joins."""
 
 from tests.utils import sql
-from vw.postgres import F, col, param, render, source
+from vw.postgres import F, col, param, ref, render
 
 
 def describe_inner_joins():
@@ -12,8 +12,8 @@ def describe_inner_joins():
         INNER JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")]).select(
             users.col("id"), orders.col("total")
@@ -30,8 +30,8 @@ def describe_inner_joins():
         INNER JOIN orders AS o ON (u.id = o.user_id AND o.status = $status)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.inner(
             orders, on=[users.col("id") == orders.col("user_id"), orders.col("status") == param("status", "active")]
@@ -49,9 +49,9 @@ def describe_inner_joins():
         INNER JOIN products AS p ON (o.product_id = p.id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         query = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
@@ -72,8 +72,8 @@ def describe_left_joins():
         LEFT JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.left(orders, on=[users.col("id") == orders.col("user_id")]).select(
             users.col("id"), orders.col("total")
@@ -91,8 +91,8 @@ def describe_left_joins():
         WHERE u.active = $active
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.join.left(orders, on=[users.col("id") == orders.col("user_id")])
@@ -113,8 +113,8 @@ def describe_right_joins():
         RIGHT JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.right(orders, on=[users.col("id") == orders.col("user_id")]).select(
             users.col("id"), orders.col("total")
@@ -133,8 +133,8 @@ def describe_full_outer_joins():
         FULL JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.full_outer(orders, on=[users.col("id") == orders.col("user_id")]).select(
             users.col("id"), orders.col("total")
@@ -153,8 +153,8 @@ def describe_cross_joins():
         CROSS JOIN tags AS t
         """
 
-        users = source("users").alias("u")
-        tags = source("tags").alias("t")
+        users = ref("users").alias("u")
+        tags = ref("tags").alias("t")
 
         query = users.join.cross(tags).select(users.col("id"), tags.col("tag"))
 
@@ -170,8 +170,8 @@ def describe_cross_joins():
         WHERE u.active = $active
         """
 
-        users = source("users").alias("u")
-        tags = source("tags").alias("t")
+        users = ref("users").alias("u")
+        tags = ref("tags").alias("t")
 
         query = (
             users.join.cross(tags)
@@ -192,8 +192,8 @@ def describe_using_clause():
         INNER JOIN orders AS o USING (user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.inner(orders, using=[col("user_id")]).select(users.col("id"), orders.col("total"))
 
@@ -208,8 +208,8 @@ def describe_using_clause():
         INNER JOIN orders AS o USING (user_id, tenant_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.inner(orders, using=[col("user_id"), col("tenant_id")]).select(
             users.col("id"), orders.col("total")
@@ -229,8 +229,8 @@ def describe_joins_with_clauses():
         GROUP BY u.name
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
@@ -251,8 +251,8 @@ def describe_joins_with_clauses():
         HAVING SUM(o.total) > $min_total
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
@@ -274,8 +274,8 @@ def describe_joins_with_clauses():
         LIMIT 10
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
@@ -295,8 +295,8 @@ def describe_joins_with_clauses():
         INNER JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = (
             users.join.inner(orders, on=[users.col("id") == orders.col("user_id")]).select(users.col("name")).distinct()
@@ -316,9 +316,9 @@ def describe_mixed_join_types():
         INNER JOIN products AS p ON (o.product_id = p.id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         query = (
             users.join.left(orders, on=[users.col("id") == orders.col("user_id")])
@@ -339,8 +339,8 @@ def describe_joins_with_qualified_stars():
         INNER JOIN orders AS o ON (u.id = o.user_id)
         """
 
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
 
         query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")]).select(users.star, orders.star)
 
@@ -357,8 +357,8 @@ def describe_self_joins():
         INNER JOIN employees AS m ON (e.manager_id = m.id)
         """
 
-        employees = source("employees").alias("e")
-        managers = source("employees").alias("m")
+        employees = ref("employees").alias("e")
+        managers = ref("employees").alias("m")
 
         query = employees.join.inner(managers, on=[employees.col("manager_id") == managers.col("id")]).select(
             employees.col("name"), managers.col("name").alias("manager_name")

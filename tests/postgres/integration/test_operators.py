@@ -1,7 +1,7 @@
 """Integration tests for operators and expressions."""
 
 from tests.utils import sql
-from vw.postgres import col, param, render, source
+from vw.postgres import col, param, ref, render
 
 
 def describe_comparison_operators() -> None:
@@ -12,7 +12,7 @@ def describe_comparison_operators() -> None:
             WHERE age = $age
         """
 
-        q = source("users").select(col("id")).where(col("age") == param("age", 18))
+        q = ref("users").select(col("id")).where(col("age") == param("age", 18))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"age": 18}
@@ -24,7 +24,7 @@ def describe_comparison_operators() -> None:
             WHERE status <> $status
         """
 
-        q = source("users").select(col("id")).where(col("status") != param("status", "inactive"))
+        q = ref("users").select(col("id")).where(col("status") != param("status", "inactive"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"status": "inactive"}
@@ -36,7 +36,7 @@ def describe_comparison_operators() -> None:
             WHERE price < $price
         """
 
-        q = source("products").select(col("id")).where(col("price") < param("price", 100))
+        q = ref("products").select(col("id")).where(col("price") < param("price", 100))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"price": 100}
@@ -48,7 +48,7 @@ def describe_comparison_operators() -> None:
             WHERE price <= $price
         """
 
-        q = source("products").select(col("id")).where(col("price") <= param("price", 50))
+        q = ref("products").select(col("id")).where(col("price") <= param("price", 50))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"price": 50}
@@ -60,7 +60,7 @@ def describe_comparison_operators() -> None:
             WHERE age > $age
         """
 
-        q = source("users").select(col("id")).where(col("age") > param("age", 21))
+        q = ref("users").select(col("id")).where(col("age") > param("age", 21))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"age": 21}
@@ -72,7 +72,7 @@ def describe_comparison_operators() -> None:
             WHERE age >= $age
         """
 
-        q = source("users").select(col("id")).where(col("age") >= param("age", 18))
+        q = ref("users").select(col("id")).where(col("age") >= param("age", 18))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"age": 18}
@@ -84,7 +84,7 @@ def describe_comparison_operators() -> None:
         WHERE paid_amount >= total_amount
         """
 
-        q = source("orders").select(col("id")).where(col("paid_amount") >= col("total_amount"))
+        q = ref("orders").select(col("id")).where(col("paid_amount") >= col("total_amount"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -97,7 +97,7 @@ def describe_arithmetic_operators() -> None:
         FROM orders
         """
 
-        q = source("orders").select(col("price") + col("tax"))
+        q = ref("orders").select(col("price") + col("tax"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -108,7 +108,7 @@ def describe_arithmetic_operators() -> None:
         FROM invoices
         """
 
-        q = source("invoices").select(col("total") - col("discount"))
+        q = ref("invoices").select(col("total") - col("discount"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -119,7 +119,7 @@ def describe_arithmetic_operators() -> None:
         FROM order_items
         """
 
-        q = source("order_items").select(col("price") * col("quantity"))
+        q = ref("order_items").select(col("price") * col("quantity"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -130,7 +130,7 @@ def describe_arithmetic_operators() -> None:
         FROM aggregates
         """
 
-        q = source("aggregates").select(col("total") / col("count"))
+        q = ref("aggregates").select(col("total") / col("count"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -141,7 +141,7 @@ def describe_arithmetic_operators() -> None:
             FROM items
         """
 
-        q = source("items").select(col("id") % param("divisor", 10))
+        q = ref("items").select(col("id") % param("divisor", 10))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"divisor": 10}
@@ -152,7 +152,7 @@ def describe_arithmetic_operators() -> None:
         FROM orders
         """
 
-        q = source("orders").select(col("price") * col("quantity") + col("tax"))
+        q = ref("orders").select(col("price") * col("quantity") + col("tax"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -166,7 +166,7 @@ def describe_logical_operators() -> None:
         WHERE (active) AND (verified)
         """
 
-        q = source("users").select(col("id")).where(col("active") & col("verified"))
+        q = ref("users").select(col("id")).where(col("active") & col("verified"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -179,7 +179,7 @@ def describe_logical_operators() -> None:
         """
 
         q = (
-            source("users")
+            ref("users")
             .select(col("id"))
             .where((col("role") == param("admin", "admin")) | (col("role") == param("mod", "moderator")))
         )
@@ -194,7 +194,7 @@ def describe_logical_operators() -> None:
         WHERE NOT (deleted)
         """
 
-        q = source("users").select(col("id")).where(~col("deleted"))
+        q = ref("users").select(col("id")).where(~col("deleted"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -207,7 +207,7 @@ def describe_logical_operators() -> None:
         """
 
         q = (
-            source("users")
+            ref("users")
             .select(col("id"))
             .where((col("active") & col("verified")) | (col("role") == param("role", "admin")))
         )
@@ -224,7 +224,7 @@ def describe_pattern_matching() -> None:
             WHERE email LIKE $pattern
         """
 
-        q = source("users").select(col("id")).where(col("email").like(param("pattern", "%@example.com")))
+        q = ref("users").select(col("id")).where(col("email").like(param("pattern", "%@example.com")))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"pattern": "%@example.com"}
@@ -236,7 +236,7 @@ def describe_pattern_matching() -> None:
             WHERE name NOT LIKE $pattern
         """
 
-        q = source("users").select(col("id")).where(col("name").not_like(param("pattern", "test%")))
+        q = ref("users").select(col("id")).where(col("name").not_like(param("pattern", "test%")))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"pattern": "test%"}
@@ -249,7 +249,7 @@ def describe_pattern_matching() -> None:
         """
 
         q = (
-            source("users")
+            ref("users")
             .select(col("id"))
             .where(col("status").is_in(param("s1", "active"), param("s2", "pending"), param("s3", "verified")))
         )
@@ -264,11 +264,7 @@ def describe_pattern_matching() -> None:
             WHERE role NOT IN ($r1, $r2)
         """
 
-        q = (
-            source("users")
-            .select(col("id"))
-            .where(col("role").is_not_in(param("r1", "banned"), param("r2", "suspended")))
-        )
+        q = ref("users").select(col("id")).where(col("role").is_not_in(param("r1", "banned"), param("r2", "suspended")))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"r1": "banned", "r2": "suspended"}
@@ -280,7 +276,7 @@ def describe_pattern_matching() -> None:
             WHERE price BETWEEN $low AND $high
         """
 
-        q = source("products").select(col("id")).where(col("price").between(param("low", 10), param("high", 100)))
+        q = ref("products").select(col("id")).where(col("price").between(param("low", 10), param("high", 100)))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"low": 10, "high": 100}
@@ -292,7 +288,7 @@ def describe_pattern_matching() -> None:
             WHERE price NOT BETWEEN $low AND $high
         """
 
-        q = source("products").select(col("id")).where(col("price").not_between(param("low", 50), param("high", 200)))
+        q = ref("products").select(col("id")).where(col("price").not_between(param("low", 50), param("high", 200)))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"low": 50, "high": 200}
@@ -306,7 +302,7 @@ def describe_null_checks() -> None:
         WHERE deleted_at IS NULL
         """
 
-        q = source("users").select(col("id")).where(col("deleted_at").is_null())
+        q = ref("users").select(col("id")).where(col("deleted_at").is_null())
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -318,7 +314,7 @@ def describe_null_checks() -> None:
         WHERE email IS NOT NULL
         """
 
-        q = source("users").select(col("id")).where(col("email").is_not_null())
+        q = ref("users").select(col("id")).where(col("email").is_not_null())
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -331,7 +327,7 @@ def describe_expression_modifiers() -> None:
         FROM order_items
         """
 
-        q = source("order_items").select((col("price") * col("quantity")).alias("total"))
+        q = ref("order_items").select((col("price") * col("quantity")).alias("total"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -342,7 +338,7 @@ def describe_expression_modifiers() -> None:
         FROM users
         """
 
-        q = source("users").select(col("id").cast("text"))
+        q = ref("users").select(col("id").cast("text"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -354,7 +350,7 @@ def describe_expression_modifiers() -> None:
         ORDER BY created_at ASC
         """
 
-        q = source("users").select(col("id")).order_by(col("created_at").asc())
+        q = ref("users").select(col("id")).order_by(col("created_at").asc())
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -366,7 +362,7 @@ def describe_expression_modifiers() -> None:
         ORDER BY created_at DESC
         """
 
-        q = source("users").select(col("id")).order_by(col("created_at").desc())
+        q = ref("users").select(col("id")).order_by(col("created_at").desc())
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -380,7 +376,7 @@ def describe_parameter_types() -> None:
             WHERE email = $email
         """
 
-        q = source("users").select(col("id")).where(col("email") == param("email", None))
+        q = ref("users").select(col("id")).where(col("email") == param("email", None))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"email": None}
@@ -392,7 +388,7 @@ def describe_parameter_types() -> None:
             WHERE active = $active
         """
 
-        q = source("users").select(col("id")).where(col("active") == param("active", True))
+        q = ref("users").select(col("id")).where(col("active") == param("active", True))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"active": True}
@@ -404,7 +400,7 @@ def describe_parameter_types() -> None:
             WHERE deleted = $deleted
         """
 
-        q = source("users").select(col("id")).where(col("deleted") == param("deleted", False))
+        q = ref("users").select(col("id")).where(col("deleted") == param("deleted", False))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"deleted": False}
@@ -416,7 +412,7 @@ def describe_parameter_types() -> None:
             WHERE age = $age
         """
 
-        q = source("users").select(col("id")).where(col("age") == param("age", 25))
+        q = ref("users").select(col("id")).where(col("age") == param("age", 25))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"age": 25}
@@ -428,7 +424,7 @@ def describe_parameter_types() -> None:
             WHERE price = $price
         """
 
-        q = source("products").select(col("id")).where(col("price") == param("price", 19.99))
+        q = ref("products").select(col("id")).where(col("price") == param("price", 19.99))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"price": 19.99}
@@ -440,7 +436,7 @@ def describe_parameter_types() -> None:
             WHERE name = $name
         """
 
-        q = source("users").select(col("id")).where(col("name") == param("name", "O'Brien"))
+        q = ref("users").select(col("id")).where(col("name") == param("name", "O'Brien"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"name": "O'Brien"}
@@ -457,7 +453,7 @@ def describe_real_world_patterns() -> None:
         """
 
         q = (
-            source("products")
+            ref("products")
             .select(col("id"), col("name"), (col("price") * param("tax_multiplier", 1.1)).alias("price_with_tax"))
             .where(
                 (col("price") >= param("min", 10))
@@ -481,7 +477,7 @@ def describe_real_world_patterns() -> None:
         """
 
         q = (
-            source("users")
+            ref("users")
             .select(col("id"), col("email"), col("name"))
             .where(
                 (col("email").is_not_null() & col("email").like(param("domain", "%@company.com")))

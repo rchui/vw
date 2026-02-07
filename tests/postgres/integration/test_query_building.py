@@ -1,7 +1,7 @@
 """Integration tests for query building."""
 
 from tests.utils import sql
-from vw.postgres import col, render, source
+from vw.postgres import col, ref, render
 
 
 def describe_basic_queries() -> None:
@@ -11,7 +11,7 @@ def describe_basic_queries() -> None:
             FROM users
         """
 
-        q = source("users").select(col("id"), col("name"), col("email"))
+        q = ref("users").select(col("id"), col("name"), col("email"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -23,7 +23,7 @@ def describe_basic_queries() -> None:
         WHERE active
         """
 
-        q = source("users").select(col("id"), col("name")).where(col("active"))
+        q = ref("users").select(col("id"), col("name")).where(col("active"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -36,7 +36,7 @@ def describe_basic_queries() -> None:
         LIMIT 10 OFFSET 20
         """
 
-        q = source("users").select(col("id"), col("name")).order_by(col("id")).limit(10, offset=20)
+        q = ref("users").select(col("id"), col("name")).order_by(col("id")).limit(10, offset=20)
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -50,7 +50,7 @@ def describe_filtered_queries() -> None:
         WHERE active AND verified AND premium
         """
 
-        q = source("users").select(col("id"), col("name")).where(col("active"), col("verified"), col("premium"))
+        q = ref("users").select(col("id"), col("name")).where(col("active"), col("verified"), col("premium"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -65,7 +65,7 @@ def describe_filtered_queries() -> None:
         """
 
         q = (
-            source("products")
+            ref("products")
             .select(col("id"), col("name"), col("price"))
             .where(col("in_stock"), col("published"))
             .order_by(col("price"), col("name"))
@@ -84,7 +84,7 @@ def describe_aggregation_queries() -> None:
         GROUP BY user_id
         """
 
-        q = source("orders").select(col("user_id"), col("total")).group_by(col("user_id"))
+        q = ref("orders").select(col("user_id"), col("total")).group_by(col("user_id"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -97,7 +97,7 @@ def describe_aggregation_queries() -> None:
         HAVING total
         """
 
-        q = source("orders").select(col("user_id"), col("total")).group_by(col("user_id")).having(col("total"))
+        q = ref("orders").select(col("user_id"), col("total")).group_by(col("user_id")).having(col("total"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -114,7 +114,7 @@ def describe_aggregation_queries() -> None:
         """
 
         q = (
-            source("sales")
+            ref("sales")
             .select(col("product_id"), col("category"), col("revenue"))
             .where(col("year"), col("region"))
             .group_by(col("product_id"), col("category"))
@@ -134,7 +134,7 @@ def describe_distinct_queries() -> None:
         FROM orders
         """
 
-        q = source("orders").select(col("user_id")).distinct()
+        q = ref("orders").select(col("user_id")).distinct()
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -147,7 +147,7 @@ def describe_distinct_queries() -> None:
         ORDER BY event_type
         """
 
-        q = source("events").select(col("event_type")).distinct().where(col("active")).order_by(col("event_type"))
+        q = ref("events").select(col("event_type")).distinct().where(col("active")).order_by(col("event_type"))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
@@ -160,7 +160,7 @@ def describe_aliased_queries() -> None:
         FROM users AS u
         """
 
-        s = source("users").alias("u")
+        s = ref("users").alias("u")
         q = s.select(s.col("id"), s.col("name"))
         result = render(q)
         assert result.query == sql(expected_sql)
@@ -175,7 +175,7 @@ def describe_aliased_queries() -> None:
         LIMIT 100
         """
 
-        s = source("orders").alias("o")
+        s = ref("orders").alias("o")
         q = (
             s.select(s.col("id"), s.col("user_id"), s.col("total"))
             .where(s.col("status"))
@@ -194,7 +194,7 @@ def describe_aliased_queries() -> None:
         LIMIT 10
         """
 
-        s = source("products").alias("p")
+        s = ref("products").alias("p")
         q = s.select(s.star).where(s.col("active")).limit(10)
         result = render(q)
         assert result.query == sql(expected_sql)
@@ -211,7 +211,7 @@ def describe_real_world_patterns() -> None:
         LIMIT 25
         """
 
-        s = source("users").alias("u")
+        s = ref("users").alias("u")
         q = (
             s.select(s.col("id"), s.col("email"), s.col("name"), s.col("created_at"))
             .where(s.col("active"), s.col("verified"))
@@ -233,7 +233,7 @@ def describe_real_world_patterns() -> None:
         LIMIT 20
         """
 
-        s = source("order_items").alias("oi")
+        s = ref("order_items").alias("oi")
         q = (
             s.select(s.col("product_id"), s.col("quantity_sold"), s.col("revenue"))
             .where(s.col("year"))
@@ -254,7 +254,7 @@ def describe_real_world_patterns() -> None:
         ORDER BY p.category
         """
 
-        s = source("products").alias("p")
+        s = ref("products").alias("p")
         q = s.select(s.col("category")).distinct().where(s.col("published")).order_by(s.col("category"))
         result = render(q)
         assert result.query == sql(expected_sql)

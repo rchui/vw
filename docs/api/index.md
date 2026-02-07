@@ -17,7 +17,7 @@ vw/
 ### PostgreSQL
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 # Factory functions
 users = source("users")              # Create table source

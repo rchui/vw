@@ -2,20 +2,20 @@
 
 import pytest
 
-from vw.postgres import col, render, source
+from vw.postgres import col, ref, render
 
 
 def describe_render() -> None:
-    def it_renders_source() -> None:
-        """Should render Source with FROM."""
-        s = source("users")
+    def it_renders_ref() -> None:
+        """Should render Reference with FROM."""
+        s = ref("users")
         result = render(s)
         assert result.query == "FROM users"
         assert result.params == {}
 
     def it_renders_statement() -> None:
         """Should render Statement with SELECT."""
-        q = source("users").select(col("id"))
+        q = ref("users").select(col("id"))
         result = render(q)
         assert result.query == "SELECT id FROM users"
         assert result.params == {}
@@ -38,24 +38,24 @@ def describe_render() -> None:
 
 
 def describe_render_source() -> None:
-    def it_renders_simple_source() -> None:
-        """Simple source should render as name."""
+    def it_renders_simple_reference() -> None:
+        """Simple reference should render as name."""
         from vw.core.render import RenderConfig, RenderContext
-        from vw.core.states import Source
+        from vw.core.states import Reference
         from vw.postgres.render import ParamStyle, render_source
 
         ctx = RenderContext(config=RenderConfig(param_style=ParamStyle.DOLLAR))
-        s = Source(name="users")
+        s = Reference(name="users")
         assert render_source(s, ctx) == "users"
 
-    def it_renders_aliased_source() -> None:
-        """Aliased source should render with AS."""
+    def it_renders_aliased_reference() -> None:
+        """Aliased reference should render with AS."""
         from vw.core.render import RenderConfig, RenderContext
-        from vw.core.states import Source
+        from vw.core.states import Reference
         from vw.postgres.render import ParamStyle, render_source
 
         ctx = RenderContext(config=RenderConfig(param_style=ParamStyle.DOLLAR))
-        s = Source(name="users", alias="u")
+        s = Reference(name="users", alias="u")
         assert render_source(s, ctx) == "users AS u"
 
 
@@ -79,25 +79,25 @@ def describe_render_column() -> None:
 
 def describe_render_statement() -> None:
     def it_renders_statement_with_source() -> None:
-        """Statement with Source should render correctly."""
+        """Statement with Reference should render correctly."""
         from vw.core.render import RenderConfig, RenderContext
-        from vw.core.states import Source, Statement
+        from vw.core.states import Reference, Statement
         from vw.postgres.render import ParamStyle, render_statement
 
         ctx = RenderContext(config=RenderConfig(param_style=ParamStyle.DOLLAR))
-        stmt = Statement(source=Source(name="users"), columns=())
+        stmt = Statement(source=Reference(name="users"), columns=())
         assert render_statement(stmt, ctx) == "FROM users"
 
     def it_renders_statement_with_columns() -> None:
         """Statement with columns should render SELECT."""
-        q = source("users").select(col("id"), col("name"))
+        q = ref("users").select(col("id"), col("name"))
         result = render(q)
         assert result.query == "SELECT id, name FROM users"
         assert result.params == {}
 
-    def it_renders_statement_with_aliased_source() -> None:
-        """Statement with aliased source should include alias."""
-        q = source("users").alias("u").select(col("id"))
+    def it_renders_statement_with_aliased_reference() -> None:
+        """Statement with aliased reference should include alias."""
+        q = ref("users").alias("u").select(col("id"))
         result = render(q)
         assert result.query == "SELECT id FROM users AS u"
         assert result.params == {}

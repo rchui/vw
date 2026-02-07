@@ -39,8 +39,8 @@ from vw.core.states import (
     Or,
     Parameter,
     Preceding,
+    Reference,
     SetOperationState,
-    Source,
     Statement,
     Subtract,
     UnboundedFollowing,
@@ -71,8 +71,8 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
     # Create rendering context with PostgreSQL defaults
     ctx = RenderContext(config=config or RenderConfig(param_style=ParamStyle.DOLLAR))
 
-    # Top-level Source should render with FROM
-    if isinstance(obj.state, Source):
+    # Top-level Reference should render with FROM
+    if isinstance(obj.state, Reference):
         query = f"FROM {render_source(obj.state, ctx)}"
     elif isinstance(obj.state, SetOperationState):
         # Set operations render directly without FROM prefix
@@ -107,7 +107,7 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_cte(state, ctx)
         case Statement():
             return render_statement(state, ctx)
-        case Source():
+        case Reference():
             return render_source(state, ctx)
         case Column():
             return render_column(state)
@@ -271,10 +271,8 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
         cols = ", ".join(render_state(col.state, ctx) for col in stmt.columns)
         parts.append(f"{select_clause} {cols}")
 
-    # FROM clause (source can be Source, Statement for subqueries, or CTE)
-    if isinstance(stmt.source, Source):
-        source_sql = render_source(stmt.source, ctx)
-    elif isinstance(stmt.source, CTE):
+    # FROM clause (source can be Reference, Statement for subqueries, or CTE)
+    if isinstance(stmt.source, CTE):
         # Register CTE and render as CTE reference
         # First render the CTE body
         cte_body = render_cte(stmt.source, ctx)
@@ -285,10 +283,14 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
             source_sql = f"{stmt.source.name} AS {stmt.source.alias}"
         else:
             source_sql = stmt.source.name
-    else:  # Statement (subquery)
-        source_sql = f"({render_statement(stmt.source, ctx)})"
+    elif isinstance(stmt.source, Statement):
+        # Subquery
+        source_sql = f"({render_state(stmt.source, ctx)})"
         if stmt.source.alias:
             source_sql += f" AS {stmt.source.alias}"
+    else:
+        # Reference
+        source_sql = render_state(stmt.source, ctx)
     parts.append(f"FROM {source_sql}")
 
     # JOIN clauses
@@ -324,11 +326,11 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
     return " ".join(parts)
 
 
-def render_source(source: Source, ctx: RenderContext) -> str:
-    """Render a Source to SQL.
+def render_source(source: Reference, ctx: RenderContext) -> str:
+    """Render a Reference to SQL.
 
     Args:
-        source: A Source to render.
+        source: A Reference to render.
         ctx: Rendering context for parameter collection.
 
     Returns:
@@ -478,10 +480,8 @@ def render_join(join: Join, ctx: RenderContext) -> str:
         The SQL string (e.g., "INNER JOIN orders AS o ON (u.id = o.user_id)").
     """
 
-    # Render right side (can be Source, Statement, or CTE)
-    if isinstance(join.right, Source):
-        right_sql = render_source(join.right, ctx)
-    elif isinstance(join.right, CTE):
+    # Render right side (can be Reference, Statement, or CTE)
+    if isinstance(join.right, CTE):
         # Register CTE and render as CTE reference
         # First render the CTE body
         cte_body = render_statement(join.right, ctx)
@@ -492,10 +492,14 @@ def render_join(join: Join, ctx: RenderContext) -> str:
             right_sql = f"{join.right.name} AS {join.right.alias}"
         else:
             right_sql = join.right.name
-    else:  # Statement (subquery)
-        right_sql = f"({render_statement(join.right, ctx)})"
+    elif isinstance(join.right, Statement):
+        # Subquery
+        right_sql = f"({render_state(join.right, ctx)})"
         if join.right.alias:
             right_sql += f" AS {join.right.alias}"
+    else:
+        # Reference
+        right_sql = render_state(join.right, ctx)
 
     # Build join clause
     parts = [f"{join.jtype.value} JOIN {right_sql}"]
@@ -525,12 +529,12 @@ def render_exists(exists: Exists, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "EXISTS (SELECT ...)").
     """
-    # Render subquery (can be Source or Statement)
-    if isinstance(exists.subquery, Source):
-        # Source without SELECT - need to wrap as subquery
-        subquery_sql = f"SELECT * FROM {render_source(exists.subquery, ctx)}"
+    # Render subquery (can be Reference or Statement)
+    if isinstance(exists.subquery, Reference):
+        # Reference without SELECT - need to wrap as subquery
+        subquery_sql = f"SELECT * FROM {render_state(exists.subquery, ctx)}"
     else:  # Statement
-        subquery_sql = render_statement(exists.subquery, ctx)
+        subquery_sql = render_state(exists.subquery, ctx)
     return f"EXISTS ({subquery_sql})"
 
 
@@ -544,21 +548,21 @@ def render_set_operation(setop: SetOperationState, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "(SELECT ...) UNION (SELECT ...)").
     """
-    # Render left side (Source, Statement, or SetOperationState)
-    if isinstance(setop.left, Source):
-        left_sql = f"SELECT * FROM {render_source(setop.left, ctx)}"
+    # Render left side (Reference, Statement, or SetOperationState)
+    if isinstance(setop.left, Reference):
+        left_sql = f"SELECT * FROM {render_state(setop.left, ctx)}"
     elif isinstance(setop.left, Statement):
-        left_sql = render_statement(setop.left, ctx)
+        left_sql = render_state(setop.left, ctx)
     else:  # SetOperationState (nested)
-        left_sql = render_set_operation(setop.left, ctx)
+        left_sql = render_state(setop.left, ctx)
 
-    # Render right side (Source, Statement, or SetOperationState)
-    if isinstance(setop.right, Source):
-        right_sql = f"SELECT * FROM {render_source(setop.right, ctx)}"
+    # Render right side (Reference, Statement, or SetOperationState)
+    if isinstance(setop.right, Reference):
+        right_sql = f"SELECT * FROM {render_state(setop.right, ctx)}"
     elif isinstance(setop.right, Statement):
-        right_sql = render_statement(setop.right, ctx)
+        right_sql = render_state(setop.right, ctx)
     else:  # SetOperationState (nested)
-        right_sql = render_set_operation(setop.right, ctx)
+        right_sql = render_state(setop.right, ctx)
 
     # Wrap each side in parentheses and combine
     return f"({left_sql}) {setop.operator} ({right_sql})"

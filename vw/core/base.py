@@ -7,7 +7,7 @@ from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
     from vw.core.joins import JoinAccessor
-    from vw.core.states import ExpressionState, SetOperationState, Source, Statement
+    from vw.core.states import ExpressionState, Reference, SetOperationState, Statement
 
 ExprT = TypeVar("ExprT", bound="Expression")
 RowSetT = TypeVar("RowSetT", bound="RowSet")
@@ -351,7 +351,7 @@ class Expression(Stateful, FactoryT):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(Stateful, FactoryT):
-    state: Source | Statement[ExprT]
+    state: Reference | Statement[ExprT]
     factories: Factories[ExprT, RowSetT, SetOpT]
 
     def select(self, *columns: ExprT) -> RowSetT:
@@ -366,9 +366,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with the columns added.
         """
-        from vw.core.states import CTE, Source, Statement
+        from vw.core.states import CTE, Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             # Transform Source → Statement
             new_state = Statement(source=self.state, columns=tuple(columns))
         elif isinstance(self.state, CTE):
@@ -398,7 +398,7 @@ class RowSet(Stateful, FactoryT):
     def where(self, *conditions: ExprT) -> RowSetT:
         """Add WHERE clause conditions.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference → Statement if needed.
         Multiple calls accumulate conditions (combined with AND).
 
         Args:
@@ -407,9 +407,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with WHERE conditions added.
         """
-        from vw.core.states import Source, Statement
+        from vw.core.states import Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, where_conditions=tuple(conditions))
         else:
             new_state = replace(
@@ -431,9 +431,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with GROUP BY set.
         """
-        from vw.core.states import Source, Statement
+        from vw.core.states import Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, group_by_columns=tuple(columns))
         else:
             new_state = replace(self.state, group_by_columns=tuple(columns))
@@ -443,7 +443,7 @@ class RowSet(Stateful, FactoryT):
     def having(self, *conditions: ExprT) -> RowSetT:
         """Add HAVING clause conditions.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference → Statement if needed.
         Multiple calls accumulate conditions (combined with AND).
 
         Args:
@@ -452,9 +452,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with HAVING conditions added.
         """
-        from vw.core.states import Source, Statement
+        from vw.core.states import Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, having_conditions=tuple(conditions))
         else:
             new_state = replace(
@@ -476,9 +476,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with ORDER BY set.
         """
-        from vw.core.states import Source, Statement
+        from vw.core.states import Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, order_by_columns=tuple(columns))
         else:
             new_state = replace(self.state, order_by_columns=tuple(columns))
@@ -498,9 +498,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with LIMIT set.
         """
-        from vw.core.states import Limit, Source, Statement
+        from vw.core.states import Limit, Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, limit=Limit(count=count, offset=offset))
         else:
             new_state = replace(self.state, limit=Limit(count=count, offset=offset))
@@ -515,9 +515,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with DISTINCT set.
         """
-        from vw.core.states import Distinct, Source, Statement
+        from vw.core.states import Distinct, Reference, Statement
 
-        if isinstance(self.state, Source):
+        if isinstance(self.state, Reference):
             new_state = Statement(source=self.state, distinct=Distinct())
         else:
             new_state = replace(self.state, distinct=Distinct())

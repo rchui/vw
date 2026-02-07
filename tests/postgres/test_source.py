@@ -1,80 +1,80 @@
-"""Tests for source() function and Source rendering."""
+"""Tests for ref() function and Reference rendering."""
 
-from vw.core.states import Source
-from vw.postgres import col, render, source
+from vw.core.states import Reference
+from vw.postgres import col, ref, render
 
 
-def describe_source() -> None:
-    def it_creates_source() -> None:
-        """source() should create a RowSet with Source state."""
-        s = source("users")
-        assert isinstance(s.state, Source)
+def describe_ref() -> None:
+    def it_creates_reference() -> None:
+        """ref() should create a RowSet with Reference state."""
+        s = ref("users")
+        assert isinstance(s.state, Reference)
         assert s.state.name == "users"
         assert s.state.alias is None
 
     def it_renders_with_from() -> None:
-        """Source should render with FROM prefix."""
-        s = source("users")
+        """Reference should render with FROM prefix."""
+        s = ref("users")
         result = render(s)
         assert result.query == "FROM users"
         assert result.params == {}
 
     def describe_alias() -> None:
-        def it_sets_alias_on_source() -> None:
-            """alias() should set the alias on the Source."""
-            s = source("users").alias("u")
+        def it_sets_alias_on_reference() -> None:
+            """alias() should set the alias on the Reference."""
+            s = ref("users").alias("u")
             assert s.state.alias == "u"
 
         def it_renders_with_alias() -> None:
-            """Aliased source should render with AS."""
-            s = source("users").alias("u")
+            """Aliased reference should render with AS."""
+            s = ref("users").alias("u")
             result = render(s)
             assert result.query == "FROM users AS u"
             assert result.params == {}
 
         def it_works_before_select() -> None:
             """Alias can be set before select()."""
-            s = source("users").alias("u").select(col("id"))
+            s = ref("users").alias("u").select(col("id"))
             result = render(s)
             assert result.query == "SELECT id FROM users AS u"
             assert result.params == {}
 
 
 def describe_select() -> None:
-    def it_transforms_source_to_statement() -> None:
-        """select() should transform Source to Statement."""
-        from vw.core.states import Source, Statement
+    def it_transforms_reference_to_statement() -> None:
+        """select() should transform Reference to Statement."""
+        from vw.core.states import Reference, Statement
 
-        s = source("users")
-        assert isinstance(s.state, Source)
+        s = ref("users")
+        assert isinstance(s.state, Reference)
 
         q = s.select(col("id"))
         assert isinstance(q.state, Statement)
 
     def it_renders_single_column() -> None:
         """Single column SELECT should render correctly."""
-        q = source("users").select(col("id"))
+        q = ref("users").select(col("id"))
         result = render(q)
         assert result.query == "SELECT id FROM users"
         assert result.params == {}
 
     def it_renders_multiple_columns() -> None:
         """Multiple columns should render correctly."""
-        q = source("users").select(col("id"), col("name"), col("email"))
+        q = ref("users").select(col("id"), col("name"), col("email"))
         result = render(q)
         assert result.query == "SELECT id, name, email FROM users"
         assert result.params == {}
 
     def it_replaces_columns_on_second_select() -> None:
         """Second select() should replace columns, not append."""
-        q = source("users").select(col("id")).select(col("name"))
+        q = ref("users").select(col("id")).select(col("name"))
         result = render(q)
         assert result.query == "SELECT name FROM users"
         assert result.params == {}
 
-    def it_preserves_source_alias() -> None:
-        """select() should preserve the source alias."""
-        q = source("users").alias("u").select(col("id"))
+    def it_preserves_reference_alias() -> None:
+        """select() should preserve the reference alias."""
+        q = ref("users").alias("u").select(col("id"))
         result = render(q)
         assert result.query == "SELECT id FROM users AS u"
         assert result.params == {}
@@ -85,13 +85,13 @@ def describe_statement_alias() -> None:
         """alias() on Statement should set statement alias."""
         from vw.core.states import Statement
 
-        q = source("users").select(col("id")).alias("subq")
+        q = ref("users").select(col("id")).alias("subq")
         assert isinstance(q.state, Statement)
         assert q.state.alias == "subq"
 
     def it_does_not_render_top_level_statement_alias() -> None:
         """Top-level statement alias should not render (only for subqueries)."""
-        q = source("users").select(col("id")).alias("subq")
+        q = ref("users").select(col("id")).alias("subq")
         result = render(q)
         assert result.query == "SELECT id FROM users"
         assert result.params == {}

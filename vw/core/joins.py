@@ -29,10 +29,10 @@ def add_join(
     Returns:
         A new RowSet with the join added.
     """
-    from vw.core.states import Join, Source, Statement
+    from vw.core.states import Join, Reference, Statement
 
     # Ensure we have a Statement
-    if isinstance(rowset.state, Source):
+    if isinstance(rowset.state, Reference):
         stmt = Statement(source=rowset.state)
     else:
         stmt = rowset.state

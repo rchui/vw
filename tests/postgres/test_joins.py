@@ -1,7 +1,7 @@
 """Unit tests for join state construction."""
 
 from vw.core.states import Join, JoinType, Statement
-from vw.postgres import col, source
+from vw.postgres import col, ref
 from vw.postgres.base import Expression
 
 
@@ -23,7 +23,7 @@ def describe_join_type_enum():
 def describe_join_dataclass():
     def it_creates_join_with_on_clause():
         """Join should be created with ON clause."""
-        orders = source("orders")
+        orders = ref("orders")
 
         join: Join[Expression] = Join(
             jtype=JoinType.INNER,
@@ -38,7 +38,7 @@ def describe_join_dataclass():
 
     def it_creates_join_with_using_clause():
         """Join should be created with USING clause."""
-        orders = source("orders")
+        orders = ref("orders")
 
         join: Join[Expression] = Join(
             jtype=JoinType.LEFT,
@@ -53,7 +53,7 @@ def describe_join_dataclass():
 
     def it_is_frozen():
         """Join should be immutable."""
-        orders = source("orders")
+        orders = ref("orders")
 
         join: Join[Expression] = Join(
             jtype=JoinType.INNER,
@@ -71,8 +71,8 @@ def describe_join_dataclass():
 def describe_join_accessor():
     def it_creates_inner_join_state():
         """JoinAccessor.inner() should create correct state."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = users.join.inner(orders, on=[col("id") == col("user_id")])
 
@@ -82,8 +82,8 @@ def describe_join_accessor():
 
     def it_creates_left_join_state():
         """JoinAccessor.left() should create correct state."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = users.join.left(orders, on=[col("id") == col("user_id")])
 
@@ -93,8 +93,8 @@ def describe_join_accessor():
 
     def it_creates_right_join_state():
         """JoinAccessor.right() should create correct state."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = users.join.right(orders, on=[col("id") == col("user_id")])
 
@@ -104,8 +104,8 @@ def describe_join_accessor():
 
     def it_creates_full_outer_join_state():
         """JoinAccessor.full_outer() should create correct state."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = users.join.full_outer(orders, on=[col("id") == col("user_id")])
 
@@ -115,8 +115,8 @@ def describe_join_accessor():
 
     def it_creates_cross_join_state():
         """JoinAccessor.cross() should create correct state."""
-        users = source("users")
-        tags = source("tags")
+        users = ref("users")
+        tags = ref("tags")
 
         query = users.join.cross(tags)
 
@@ -128,9 +128,9 @@ def describe_join_accessor():
 
     def it_accumulates_multiple_joins():
         """Multiple join calls should accumulate."""
-        users = source("users")
-        orders = source("orders")
-        products = source("products")
+        users = ref("users")
+        orders = ref("orders")
+        products = ref("products")
 
         query = users.join.inner(orders, on=[col("id") == col("user_id")]).join.left(
             products, on=[col("product_id") == col("id")]
@@ -145,7 +145,7 @@ def describe_join_accessor():
 def describe_statement_joins_field():
     def it_defaults_to_empty_tuple():
         """Statement.joins should default to empty tuple."""
-        users = source("users")
+        users = ref("users")
         query = users.select(col("id"))
 
         assert isinstance(query.state, Statement)
@@ -154,8 +154,8 @@ def describe_statement_joins_field():
 
     def it_preserves_joins_with_other_operations():
         """Joins should be preserved when adding other clauses."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = (
             users.join.inner(orders, on=[col("id") == col("user_id")])
@@ -172,8 +172,8 @@ def describe_statement_joins_field():
 def describe_join_with_using_clause():
     def it_creates_join_with_using():
         """Join should support USING clause."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         query = users.join.inner(orders, using=[col("user_id")])
 
@@ -184,8 +184,8 @@ def describe_join_with_using_clause():
 
     def it_creates_join_with_both_on_and_using():
         """Join should allow both ON and USING (no validation)."""
-        users = source("users")
-        orders = source("orders")
+        users = ref("users")
+        orders = ref("orders")
 
         # This is allowed (no validation), but will error in PostgreSQL
         query = users.join.inner(

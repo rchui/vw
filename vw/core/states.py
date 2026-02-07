@@ -17,10 +17,16 @@ class ExpressionState:
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Source:
-    """Represents a table/view reference."""
+    """Base class for table-like sources."""
+
+    alias: str | None = None
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Reference(Source):
+    """Represents a named table/view reference."""
 
     name: str
-    alias: str | None = None
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -70,7 +76,7 @@ class Join(Generic[ExprT]):
     """Represents a SQL join clause."""
 
     jtype: JoinType
-    right: Source | Statement[ExprT]
+    right: Reference | Statement[ExprT]
     on: tuple[ExprT, ...] = field(default_factory=tuple)
     using: tuple[ExprT, ...] = field(default_factory=tuple)
 
@@ -79,7 +85,7 @@ class Join(Generic[ExprT]):
 class Statement(Generic[ExprT]):
     """Represents a SELECT query."""
 
-    source: Source | Statement[ExprT]
+    source: Reference | Statement[ExprT]
     alias: str | None = None
     columns: tuple[ExprT, ...] = field(default_factory=tuple)
     where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
@@ -288,7 +294,7 @@ class IsNotNull(ExpressionState):
 class Exists(ExpressionState, Generic[ExprT]):
     """Represents EXISTS subquery check."""
 
-    subquery: Source | Statement[ExprT]
+    subquery: Reference | Statement[ExprT]
 
 
 # --- Set Operations -------------------------------------------------------- #
@@ -298,9 +304,9 @@ class Exists(ExpressionState, Generic[ExprT]):
 class SetOperationState(Generic[ExprT]):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Source | Statement[ExprT] | SetOperationState[ExprT]
+    left: Reference | Statement[ExprT] | SetOperationState[ExprT]
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Source | Statement[ExprT] | SetOperationState[ExprT]
+    right: Reference | Statement[ExprT] | SetOperationState[ExprT]
 
 
 # --- Common Table Expressions ---------------------------------------------- #

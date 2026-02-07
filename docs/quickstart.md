@@ -5,7 +5,7 @@ This guide shows practical examples of building SQL queries with vw.
 ## Basic SELECT Query
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users")
 query = users.select(col("id"), col("name"), col("email"))
@@ -18,7 +18,7 @@ print(result.query)
 ## SELECT with WHERE
 
 ```python
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 users = source("users")
 query = (
@@ -39,7 +39,7 @@ print(result.params)
 ## Complex WHERE Conditions
 
 ```python
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 users = source("users")
 
@@ -68,7 +68,7 @@ query = users.select(col("*")).where(
 ## Pattern Matching
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users")
 
@@ -96,7 +96,7 @@ query = users.select(col("*")).where(
 ## Arithmetic Operations
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 orders = source("orders")
 
@@ -116,7 +116,7 @@ query = orders.select(
 ## Aggregation
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 orders = source("orders")
 
@@ -153,7 +153,7 @@ query = (
 ## Window Functions
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 sales = source("sales")
 
@@ -195,7 +195,7 @@ query = sales.select(
 ## Sorting and Limiting
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users")
 
@@ -225,7 +225,7 @@ query = (
 ## Distinct
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 orders = source("orders")
 
@@ -247,7 +247,7 @@ query = (
 ## Aliasing
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 # Column aliases
 users = source("users")
@@ -275,7 +275,7 @@ query = orders.select(
 ## Subqueries
 
 ```python
-from vw.postgres import source, col, render, F
+from vw.postgres as vw, col, render, F
 
 # Subquery in FROM
 users = source("users")
@@ -300,7 +300,7 @@ Combine multiple queries using set operations with intuitive operators.
 ### UNION (deduplicates)
 
 ```python
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 # Combine user IDs from two tables, removing duplicates
 users = source("users").select(col("id"))
@@ -356,7 +356,7 @@ result = render((users | admins) - banned)
 ## Joins
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 # Basic INNER JOIN
 users = source("users").alias("u")
@@ -457,7 +457,7 @@ result = render(query)
 ## FILTER Clause
 
 ```python
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 orders = source("orders")
 
@@ -480,7 +480,7 @@ result = render(query)
 
 ```python
 from sqlalchemy import create_engine, text
-from vw.postgres import source, col, param, render, F
+from vw.postgres as vw, col, param, render, F
 
 # Setup
 engine = create_engine("postgresql://user:pass@localhost/mydb")

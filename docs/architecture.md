@@ -7,7 +7,7 @@ vw is designed with a clean separation of concerns: a dialect-agnostic core laye
 ```
 ┌──────────────────────────────────────────────────────────┐
 │                    User Code                             │
-│  from vw.postgres import source, col, param, render      │
+│  from vw.postgres as vw, col, param, render              │
 └────────────────────────┬─────────────────────────────────┘
                          │
                          ↓
@@ -200,7 +200,7 @@ result = render(query)  # Now converted to SQL
 Factory functions return typed objects:
 
 ```python
-from vw.postgres import source, col, param
+from vw.postgres as vw, col, param
 
 users: RowSet = source("users")
 age: Expression = col("age")
@@ -211,7 +211,7 @@ min_age: Expression = param("min_age", 18)
 
 1. **User imports dialect-specific API**
    ```python
-   from vw.postgres import source, col, param, render
+   from vw.postgres as vw, col, param, render
    ```
 
 2. **User builds query with fluent API**

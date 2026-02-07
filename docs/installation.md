@@ -37,7 +37,7 @@ Verify the installation:
 
 ```python
 import vw.postgres
-from vw.postgres import source, col, render
+from vw.postgres as vw, col, render
 
 users = source("users")
 query = users.select(col("id"))
@@ -71,7 +71,7 @@ uv pip install duckdb
 
 ```python
 from sqlalchemy import create_engine, text
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 # Create engine
 engine = create_engine("postgresql://user:pass@localhost/mydb")
@@ -92,7 +92,7 @@ with engine.connect() as conn:
 
 ```python
 import psycopg2
-from vw.postgres import source, col, param, render
+from vw.postgres as vw, col, param, render
 
 # Connect
 conn = psycopg2.connect("dbname=mydb user=postgres")

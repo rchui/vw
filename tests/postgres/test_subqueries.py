@@ -1,13 +1,13 @@
 """Unit tests for subquery state construction."""
 
 from vw.core.states import Exists, Statement
-from vw.postgres import col, exists, param, source
+from vw.postgres import col, exists, param, ref
 
 
 def describe_exists_state():
     def it_creates_exists_state():
         """Test EXISTS state construction."""
-        orders = source("orders")
+        orders = ref("orders")
         subquery = orders.where(col("status") == param("status", "active"))
 
         expr = exists(subquery)
@@ -17,7 +17,7 @@ def describe_exists_state():
 
     def it_wraps_exists_in_expression():
         """Test exists() returns Expression."""
-        orders = source("orders")
+        orders = ref("orders")
         subquery = orders.where(col("status") == param("status", "active"))
 
         expr = exists(subquery)
@@ -30,9 +30,9 @@ def describe_exists_state():
 def describe_exists_with_complex_subquery():
     def it_creates_exists_with_joins():
         """Test EXISTS with complex subquery including joins."""
-        users = source("users").alias("u")
-        orders = source("orders").alias("o")
-        products = source("products").alias("p")
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        products = ref("products").alias("p")
 
         subquery = (
             orders.join.inner(products, on=[orders.col("product_id") == products.col("id")])

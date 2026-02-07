@@ -4,7 +4,7 @@ import pytest
 
 from tests.utils import sql
 from vw.core.exceptions import CTENameCollisionError
-from vw.postgres import F, col, cte, param, render, source
+from vw.postgres import F, col, cte, param, ref, render
 
 
 def describe_basic_ctes():
@@ -14,9 +14,7 @@ def describe_basic_ctes():
         SELECT id, name FROM active_users
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(col("id"), col("name"))
 
@@ -32,7 +30,7 @@ def describe_basic_ctes():
 
         high_value_orders = cte(
             "high_value_orders",
-            source("orders").select(col("*")).where(col("total") > param("min_total", 1000)),
+            ref("orders").select(col("*")).where(col("total") > param("min_total", 1000)),
         )
 
         query = high_value_orders.select(col("*")).where(col("status") == param("status", "completed"))
@@ -49,7 +47,7 @@ def describe_basic_ctes():
 
         active_users = cte(
             "active_users",
-            source("users").select(col("id"), col("name"), col("email")).where(col("active") == param("active", True)),
+            ref("users").select(col("id"), col("name"), col("email")).where(col("active") == param("active", True)),
         )
 
         query = active_users.select(active_users.col("id"), active_users.col("name"))
@@ -66,7 +64,7 @@ def describe_basic_ctes():
 
         filtered_users = cte(
             "filtered_users",
-            source("users")
+            ref("users")
             .select(col("*"))
             .where(col("age") >= param("min_age", 18))
             .where(col("country") == param("country", "US")),
@@ -86,9 +84,7 @@ def describe_cte_references():
         SELECT * FROM active_users
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(col("*"))
 
@@ -104,11 +100,9 @@ def describe_cte_references():
         INNER JOIN active_users AS u ON (o.user_id = u.id)
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
-        orders = source("orders").alias("o")
+        orders = ref("orders").alias("o")
         users_cte = active_users.alias("u")
 
         query = orders.select(orders.col("id"), orders.col("total"), users_cte.col("name")).join.inner(
@@ -125,7 +119,7 @@ def describe_cte_references():
         SELECT u.id, u.name FROM users_summary AS u
         """
 
-        users_summary = cte("users_summary", source("users").select(col("id"), col("name")))
+        users_summary = cte("users_summary", ref("users").select(col("id"), col("name")))
 
         query = users_summary.alias("u").select(col("u.id"), col("u.name"))
 
@@ -139,9 +133,7 @@ def describe_cte_references():
         SELECT active_users.id FROM active_users
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(active_users.col("id"))
 
@@ -155,9 +147,7 @@ def describe_cte_references():
         SELECT u.id FROM active_users AS u
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
         aliased_cte = active_users.alias("u")
 
         query = aliased_cte.select(aliased_cte.col("id"))
@@ -177,13 +167,11 @@ def describe_multiple_ctes():
         INNER JOIN high_value_orders AS o ON (u.id = o.user_id)
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         high_value_orders = cte(
             "high_value_orders",
-            source("orders").select(col("*")).where(col("total") > param("min_total", 1000)),
+            ref("orders").select(col("*")).where(col("total") > param("min_total", 1000)),
         )
 
         u = active_users.alias("u")
@@ -202,9 +190,7 @@ def describe_multiple_ctes():
         SELECT id, name FROM premium_users
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         premium_users = cte(
             "premium_users",
@@ -225,7 +211,7 @@ def describe_recursive_ctes():
         SELECT * FROM tree
         """
 
-        tree = cte("tree", source("items").select(col("*")).where(col("parent_id").is_null()), recursive=True)
+        tree = cte("tree", ref("items").select(col("*")).where(col("parent_id").is_null()), recursive=True)
 
         query = tree.select(col("*"))
 
@@ -244,12 +230,12 @@ def describe_recursive_ctes():
         """
 
         # Anchor: top-level items
-        anchor = source("items").select(col("*")).where(col("parent_id").is_null())
+        anchor = ref("items").select(col("*")).where(col("parent_id").is_null())
 
-        # Recursive part: join items with tree (self-reference via source)
-        items = source("items").alias("i")
+        # Recursive part: join items with tree (self-reference via ref)
+        items = ref("items").alias("i")
         recursive_part = items.select(items.star).join.inner(
-            source("tree").alias("t"), on=[items.col("parent_id") == col("t.id")]
+            ref("tree").alias("t"), on=[items.col("parent_id") == col("t.id")]
         )
 
         # Combine with UNION ALL
@@ -274,12 +260,10 @@ def describe_recursive_ctes():
         """
 
         # Non-recursive CTE
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         # Recursive CTE
-        tree = cte("tree", source("items").select(col("*")).where(col("parent_id").is_null()), recursive=True)
+        tree = cte("tree", ref("items").select(col("*")).where(col("parent_id").is_null()), recursive=True)
 
         u = active_users.alias("u")
         t = tree.alias("t")
@@ -298,9 +282,7 @@ def describe_complex_scenarios():
         SELECT status, COUNT(*) FROM active_users GROUP BY status
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(col("status"), F.count()).group_by(col("status"))
 
@@ -314,9 +296,7 @@ def describe_complex_scenarios():
         SELECT id, name FROM active_users ORDER BY name ASC
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(col("id"), col("name")).order_by(col("name").asc())
 
@@ -330,9 +310,7 @@ def describe_complex_scenarios():
         SELECT id, name FROM active_users LIMIT 10 OFFSET 5
         """
 
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         query = active_users.select(col("id"), col("name")).limit(10, offset=5)
 
@@ -348,7 +326,7 @@ def describe_complex_scenarios():
 
         filtered = cte(
             "filtered",
-            source("users")
+            ref("users")
             .select(col("*"))
             .where(col("age") >= param("min_age", 18))
             .where(col("country") == param("country", "US")),
@@ -364,14 +342,12 @@ def describe_complex_scenarios():
 def describe_cte_name_collision():
     def it_handles_cte_name_collision():
         """Should raise CTENameCollisionError when same CTE name is used twice."""
-        active_users = cte(
-            "active_users", source("users").select(col("*")).where(col("active") == param("active", True))
-        )
+        active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
         # Try to reuse same CTE name - this should fail during rendering
         duplicate_users = cte(
             "active_users",
-            source("users").select(col("*")).where(col("premium") == param("premium", True)),
+            ref("users").select(col("*")).where(col("premium") == param("premium", True)),
         )
 
         # Join the two CTEs with the same name

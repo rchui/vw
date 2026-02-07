@@ -1,1 +1,1 @@
-from vw.duckdb.public import source as source
+from vw.duckdb.public import ref as ref

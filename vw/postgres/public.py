@@ -5,7 +5,7 @@ from vw.core.frame import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
 from vw.core.frame import following as following
 from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
-from vw.core.states import Column, Exists, Parameter, Source
+from vw.core.states import Column, Exists, Parameter, Reference
 from vw.postgres.base import Expression, RowSet, SetOperation
 
 
@@ -23,20 +23,20 @@ class Functions(CoreFunctions):
 F = Functions(factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
 
 
-def source(name: str, /) -> RowSet:
-    """Create a table/view source.
+def ref(name: str, /) -> RowSet:
+    """Create a table/view reference.
 
     Args:
         name: The table or view name.
 
     Returns:
-        A RowSet wrapping a Source.
+        A RowSet wrapping a Reference.
 
     Example:
-        >>> source("users")
+        >>> ref("users")
     """
     return RowSet(
-        state=Source(name=name),
+        state=Reference(name=name),
         factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation),
     )
 
@@ -87,8 +87,8 @@ def exists(subquery: RowSet, /) -> Expression:
         An Expression wrapping an Exists state.
 
     Example:
-        >>> users = source("users")
-        >>> orders = source("orders")
+        >>> users = ref("users")
+        >>> orders = ref("orders")
         >>> users.where(exists(orders.where(orders.col("user_id") == users.col("id"))))
     """
     return Expression(
@@ -113,7 +113,7 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
     Example:
         >>> active_users = cte(
         ...     "active_users",
-        ...     source("users").select(col("*")).where(col("active") == True)
+        ...     ref("users").select(col("*")).where(col("active") == True)
         ... )
         >>> result = active_users.select(col("id"), col("name"))
         # WITH active_users AS (SELECT * FROM users WHERE active = true)
@@ -121,22 +121,22 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
 
     Recursive Example:
         >>> # Anchor: top-level items
-        >>> anchor = source("items").select(col("*")).where(col("parent_id").is_null())
+        >>> anchor = ref("items").select(col("*")).where(col("parent_id").is_null())
         >>> tree = cte("tree", anchor, recursive=True)
         >>> # Recursive part
         >>> recursive_part = tree.alias("t").join.inner(
-        ...     source("items").alias("i"),
+        ...     ref("items").alias("i"),
         ...     on=[col("i.parent_id") == col("t.id")]
         ... ).select(col("i.*"))
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, SetOperationState, Source
+    from vw.core.states import CTE, Reference, SetOperationState
 
     state = query.state
 
-    # Handle Source - convenience wrapper (convert to SELECT *)
-    if isinstance(state, Source):
+    # Handle Reference - convenience wrapper (convert to SELECT *)
+    if isinstance(state, Reference):
         stmt = query.select(col("*"))
         stmt_state = stmt.state
         cte_state = CTE(
