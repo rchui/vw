@@ -3,7 +3,8 @@
 Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 **Status:** 🚧 In Progress
-**Current Phase:** Phase 5 - Advanced Query Features
+**Current Phase:** Phase 5a - Advanced Query Features (Subqueries, VALUES, CASE)
+**Recently Completed:** Phase 5b (Set Operations), Phase 5c (CTEs)
 
 ---
 
@@ -182,28 +183,57 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 ---
 
-## 📋 Phase 5: Advanced Query Features
+## ✅ Phase 5b: Set Operations
+
+### Set Operations
+- ✅ UNION via `statement1 | statement2` (remove duplicates)
+- ✅ UNION ALL via `statement1 + statement2` (keep duplicates)
+- ✅ INTERSECT via `statement1 & statement2`
+- ✅ EXCEPT via `statement1 - statement2`
+- ✅ Nested set operations with proper precedence
+- ✅ Set operations can be aliased via `.alias("name")`
+- ✅ Set operations can be used as subqueries
+- ✅ Set operations preserve parameters from both sides
+- ✅ Set operations can have ORDER BY/LIMIT applied
+
+### Data Structures
+- ✅ SetOperation dataclass (extends Source with alias support)
+- ✅ SetOperation supports Reference, Statement, and nested SetOperation on both sides
+
+### Integration Tests
+- ✅ 12 integration tests in test_set_operations.py (basic, nested, with clauses)
+
+---
+
+## ✅ Phase 5c: CTEs (Common Table Expressions)
+
+### CTEs
+- ✅ Basic CTE via `cte(name, query)`
+- ✅ Multiple CTEs via chaining `.select()` calls on CTE references
+- ✅ Recursive CTEs via `cte(name, query, recursive=True)`
+- ✅ CTEs with set operations as source
+- ✅ CTE references in FROM, JOIN, and subqueries
+- ✅ CTE column qualification via `.col("name")` and `.star`
+- ✅ CTE aliasing via `.alias("name")`
+
+### Data Structures
+- ✅ CTE dataclass (extends Statement)
+- ✅ EXISTS expression support
+
+### Integration Tests
+- ✅ 14 integration tests in test_ctes.py (basic, nested, recursive, complex scenarios)
+
+---
+
+## 📋 Phase 5a: Advanced Query Features (In Progress)
 
 ### Subqueries
 - ✅ Subqueries in FROM (Statement as source)
+- ✅ Subqueries in WHERE with EXISTS via `exists(subquery)`
 - [ ] Subqueries in WHERE with IN via `col("x").is_in(subquery)`
-- [ ] Subqueries in WHERE with EXISTS via `exists(subquery)`
 - [ ] Scalar subqueries in SELECT via `select(subquery.alias("x"))`
 - [ ] Scalar subqueries in comparisons via `col("x") > subquery`
 - [ ] Correlated subqueries
-
-### CTEs (Common Table Expressions)
-- [ ] Basic CTE via `with_cte(name, query)`
-- [ ] Multiple CTEs via chaining or list
-- [ ] Recursive CTEs via `with_cte(name, query, recursive=True)`
-- [ ] CTE column list via `with_cte(name, query, columns=[...])`
-
-### Set Operations
-- [ ] UNION via `statement1 | statement2` (remove duplicates)
-- [ ] UNION ALL via `statement1 + statement2` (keep duplicates)
-- [ ] INTERSECT via `statement1 & statement2`
-- [ ] EXCEPT via `statement1 - statement2`
-- [ ] Parenthesized set operations for precedence
 
 ### VALUES Clause
 - [ ] VALUES as row source via `values(*rows)`
@@ -217,11 +247,9 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] Nested CASE expressions
 
 ### Data Structures Needed
-- [ ] CTE dataclass
-- [ ] SetOperation dataclass (extends RowSet)
-- [ ] Values dataclass
-- [ ] Case dataclass
-- [ ] When dataclass
+- [ ] Values dataclass (row value constructor)
+- [ ] Case dataclass (CASE expression)
+- [ ] When dataclass (WHEN clause in CASE)
 
 ---
 
@@ -426,16 +454,17 @@ Each phase should include:
 - Phase 2: Operators & Expressions ✅
 - Phase 3: Aggregate & Window Functions ✅
 - Phase 4: Joins ✅
+- Phase 5b: Set Operations ✅
+- Phase 5c: CTEs (Common Table Expressions) ✅
 - Phase 6: Parameters & Rendering ✅
 
 **In Progress:**
-- None
+- Phase 5a: Advanced Query Features (Subqueries, VALUES, CASE)
 
 **Remaining:**
-- Phase 5: Advanced Query Features
 - Phase 7: Scalar Functions
 - Phase 8: DML Statements
 - Phase 9: DDL Statements
 - Phase 10: PostgreSQL-Specific Features
 
-**Total Progress:** ~50% complete (5/10 phases)
+**Total Progress:** ~60% complete (7/12 phases, with 5a partially complete)

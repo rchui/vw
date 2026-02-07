@@ -7,25 +7,23 @@ from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
     from vw.core.joins import JoinAccessor
-    from vw.core.states import ExpressionState, Reference, SetOperationState, Statement
+    from vw.core.states import ExpressionState, Reference, SetOperation, Statement
 
 ExprT = TypeVar("ExprT", bound="Expression")
 RowSetT = TypeVar("RowSetT", bound="RowSet")
-SetOpT = TypeVar("SetOpT", bound="SetOperation")
-FactoryT = Generic[ExprT, RowSetT, SetOpT]
+FactoryT = Generic[ExprT, RowSetT]
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Factories(FactoryT):
     expr: type[ExprT]
     rowset: type[RowSetT]
-    setop: type[SetOpT]
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Expression(Stateful, FactoryT):
     state: ExpressionState
-    factories: Factories[ExprT, RowSetT, SetOpT]
+    factories: Factories[ExprT, RowSetT]
 
     # --- Comparison Operators ---------------------------------------------- #
 
@@ -351,8 +349,8 @@ class Expression(Stateful, FactoryT):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(Stateful, FactoryT):
-    state: Reference | Statement[ExprT]
-    factories: Factories[ExprT, RowSetT, SetOpT]
+    state: Reference | Statement[ExprT] | SetOperation[ExprT]
+    factories: Factories[ExprT, RowSetT]
 
     def select(self, *columns: ExprT) -> RowSetT:
         """Add columns to SELECT clause.
@@ -398,7 +396,7 @@ class RowSet(Stateful, FactoryT):
     def where(self, *conditions: ExprT) -> RowSetT:
         """Add WHERE clause conditions.
 
-        Transforms Reference → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
         Multiple calls accumulate conditions (combined with AND).
 
         Args:
@@ -407,9 +405,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with WHERE conditions added.
         """
-        from vw.core.states import Reference, Statement
+        from vw.core.states import Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, where_conditions=tuple(conditions))
         else:
             new_state = replace(
@@ -422,7 +420,7 @@ class RowSet(Stateful, FactoryT):
     def group_by(self, *columns: ExprT) -> RowSetT:
         """Add GROUP BY clause.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
         Multiple calls replace previous GROUP BY (last wins).
 
         Args:
@@ -431,9 +429,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with GROUP BY set.
         """
-        from vw.core.states import Reference, Statement
+        from vw.core.states import Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, group_by_columns=tuple(columns))
         else:
             new_state = replace(self.state, group_by_columns=tuple(columns))
@@ -443,7 +441,7 @@ class RowSet(Stateful, FactoryT):
     def having(self, *conditions: ExprT) -> RowSetT:
         """Add HAVING clause conditions.
 
-        Transforms Reference → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
         Multiple calls accumulate conditions (combined with AND).
 
         Args:
@@ -452,9 +450,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with HAVING conditions added.
         """
-        from vw.core.states import Reference, Statement
+        from vw.core.states import Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, having_conditions=tuple(conditions))
         else:
             new_state = replace(
@@ -467,7 +465,7 @@ class RowSet(Stateful, FactoryT):
     def order_by(self, *columns: ExprT) -> RowSetT:
         """Add ORDER BY clause.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
         Multiple calls replace previous ORDER BY (last wins).
 
         Args:
@@ -476,9 +474,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with ORDER BY set.
         """
-        from vw.core.states import Reference, Statement
+        from vw.core.states import Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, order_by_columns=tuple(columns))
         else:
             new_state = replace(self.state, order_by_columns=tuple(columns))
@@ -488,7 +486,7 @@ class RowSet(Stateful, FactoryT):
     def limit(self, count: int, /, *, offset: int | None = None) -> RowSetT:
         """Add LIMIT and optional OFFSET clause.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
         Multiple calls replace previous LIMIT (last wins).
 
         Args:
@@ -498,9 +496,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with LIMIT set.
         """
-        from vw.core.states import Limit, Reference, Statement
+        from vw.core.states import Limit, Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, limit=Limit(count=count, offset=offset))
         else:
             new_state = replace(self.state, limit=Limit(count=count, offset=offset))
@@ -510,14 +508,14 @@ class RowSet(Stateful, FactoryT):
     def distinct(self) -> RowSetT:
         """Add DISTINCT clause to remove duplicate rows.
 
-        Transforms Source → Statement if needed.
+        Transforms Reference or SetOperation → Statement if needed.
 
         Returns:
             A new RowSet with DISTINCT set.
         """
-        from vw.core.states import Distinct, Reference, Statement
+        from vw.core.states import Distinct, Reference, SetOperation, Statement
 
-        if isinstance(self.state, Reference):
+        if isinstance(self.state, (Reference, SetOperation)):
             new_state = Statement(source=self.state, distinct=Distinct())
         else:
             new_state = replace(self.state, distinct=Distinct())
@@ -567,7 +565,7 @@ class RowSet(Stateful, FactoryT):
         return self.factories.expr(state=Column(name=star_name), factories=self.factories)
 
     @property
-    def join(self) -> JoinAccessor[ExprT, RowSetT, SetOpT]:
+    def join(self) -> JoinAccessor[ExprT, RowSetT]:
         """Access join operations.
 
         Returns:
@@ -580,89 +578,78 @@ class RowSet(Stateful, FactoryT):
 
         return JoinAccessor(_rowset=self)
 
-    def __or__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+    def __or__(self, other: RowSet[ExprT, RowSetT]) -> RowSetT:
         """UNION operator (deduplicates rows).
 
         Args:
             other: The right side of the UNION operation.
 
         Returns:
-            A SetOperation with UNION operator.
+            A RowSet wrapping a SetOperation state with UNION operator.
 
         Example:
             >>> users.select(col("id")) | admins.select(col("id"))
         """
-        from vw.core.states import SetOperationState
+        from vw.core.states import SetOperation
 
-        return self.factories.setop(
-            state=SetOperationState(left=self.state, operator="UNION", right=other.state),
+        return self.factories.rowset(
+            state=SetOperation(left=self.state, operator="UNION", right=other.state),
             factories=self.factories,
         )
 
-    def __add__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+    def __add__(self, other: RowSet[ExprT, RowSetT]) -> RowSetT:
         """UNION ALL operator (keeps duplicates).
 
         Args:
             other: The right side of the UNION ALL operation.
 
         Returns:
-            A SetOperation with UNION ALL operator.
+            A RowSet wrapping a SetOperation state with UNION ALL operator.
 
         Example:
             >>> users.select(col("id")) + admins.select(col("id"))
         """
-        from vw.core.states import SetOperationState
+        from vw.core.states import SetOperation
 
-        return self.factories.setop(
-            state=SetOperationState(left=self.state, operator="UNION ALL", right=other.state),
+        return self.factories.rowset(
+            state=SetOperation(left=self.state, operator="UNION ALL", right=other.state),
             factories=self.factories,
         )
 
-    def __and__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+    def __and__(self, other: RowSet[ExprT, RowSetT]) -> RowSetT:
         """INTERSECT operator.
 
         Args:
             other: The right side of the INTERSECT operation.
 
         Returns:
-            A SetOperation with INTERSECT operator.
+            A RowSet wrapping a SetOperation state with INTERSECT operator.
 
         Example:
             >>> users.select(col("id")) & banned.select(col("user_id"))
         """
-        from vw.core.states import SetOperationState
+        from vw.core.states import SetOperation
 
-        return self.factories.setop(
-            state=SetOperationState(left=self.state, operator="INTERSECT", right=other.state),
+        return self.factories.rowset(
+            state=SetOperation(left=self.state, operator="INTERSECT", right=other.state),
             factories=self.factories,
         )
 
-    def __sub__(self, other: RowSet[ExprT, RowSetT, SetOpT]) -> SetOpT:
+    def __sub__(self, other: RowSet[ExprT, RowSetT]) -> RowSetT:
         """EXCEPT operator.
 
         Args:
             other: The right side of the EXCEPT operation.
 
         Returns:
-            A SetOperation with EXCEPT operator.
+            A RowSet wrapping a SetOperation state with EXCEPT operator.
 
         Example:
             >>> users.select(col("id")) - banned.select(col("user_id"))
         """
-        from vw.core.states import SetOperationState
+        from vw.core.states import SetOperation
 
-        return self.factories.setop(
-            state=SetOperationState(left=self.state, operator="EXCEPT", right=other.state),
+        return self.factories.rowset(
+            state=SetOperation(left=self.state, operator="EXCEPT", right=other.state),
             factories=self.factories,
         )
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class SetOperation(RowSet[ExprT, RowSetT, SetOpT]):
-    """Wrapper for set operation states (UNION, INTERSECT, EXCEPT).
-
-    Extends RowSet, so can be used anywhere a RowSet is expected
-    (as subquery, with alias, etc.).
-    """
-
-    state: SetOperationState[ExprT]

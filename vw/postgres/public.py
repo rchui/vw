@@ -6,7 +6,7 @@ from vw.core.frame import following as following
 from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
 from vw.core.states import Column, Exists, Parameter, Reference
-from vw.postgres.base import Expression, RowSet, SetOperation
+from vw.postgres.base import Expression, RowSet
 
 
 class Functions(CoreFunctions):
@@ -20,7 +20,7 @@ class Functions(CoreFunctions):
 
 
 # Instantiate with PostgreSQL factories
-F = Functions(factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
+F = Functions(factories=Factories(expr=Expression, rowset=RowSet))
 
 
 def ref(name: str, /) -> RowSet:
@@ -37,7 +37,7 @@ def ref(name: str, /) -> RowSet:
     """
     return RowSet(
         state=Reference(name=name),
-        factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation),
+        factories=Factories(expr=Expression, rowset=RowSet),
     )
 
 
@@ -54,7 +54,7 @@ def col(name: str, /) -> Expression:
         >>> col("id")
         >>> col("users.id")
     """
-    return Expression(state=Column(name=name), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
+    return Expression(state=Column(name=name), factories=Factories(expr=Expression, rowset=RowSet))
 
 
 def param(name: str, value: object, /) -> Expression:
@@ -72,9 +72,7 @@ def param(name: str, value: object, /) -> Expression:
         >>> param("status", "active")
         >>> param("enabled", True)
     """
-    return Expression(
-        state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
-    )
+    return Expression(state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet))
 
 
 def exists(subquery: RowSet, /) -> Expression:
@@ -91,9 +89,7 @@ def exists(subquery: RowSet, /) -> Expression:
         >>> orders = ref("orders")
         >>> users.where(exists(orders.where(orders.col("user_id") == users.col("id"))))
     """
-    return Expression(
-        state=Exists(subquery=subquery.state), factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation)
-    )
+    return Expression(state=Exists(subquery=subquery.state), factories=Factories(expr=Expression, rowset=RowSet))
 
 
 def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
@@ -104,7 +100,7 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
 
     Args:
         name: The name for the CTE.
-        query: The query that defines the CTE (must have .select() called or be a SetOperation).
+        query: The query that defines the CTE (must have .select() called or be a set operation).
         recursive: If True, creates WITH RECURSIVE for self-referencing CTEs.
 
     Returns:
@@ -131,7 +127,7 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, Reference, SetOperationState
+    from vw.core.states import CTE, Reference, SetOperation
 
     state = query.state
 
@@ -153,12 +149,12 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
             distinct=stmt_state.distinct,
             joins=stmt_state.joins,
         )
-    elif isinstance(state, SetOperationState):
-        # Wrap SetOperationState in a CTE
+    elif isinstance(state, SetOperation):
+        # Wrap SetOperation in a CTE
         cte_state = CTE(
             name=name,
             recursive=recursive,
-            source=state,  # Use SetOperationState as source
+            source=state,  # Use SetOperation as source
             alias=None,
             columns=(),
             where_conditions=(),
@@ -186,4 +182,4 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
             joins=state.joins,
         )
 
-    return RowSet(state=cte_state, factories=Factories(expr=Expression, rowset=RowSet, setop=SetOperation))
+    return RowSet(state=cte_state, factories=Factories(expr=Expression, rowset=RowSet))

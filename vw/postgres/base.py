@@ -2,15 +2,10 @@ from dataclasses import dataclass
 
 from vw.core.base import Expression as CoreExpression
 from vw.core.base import RowSet as CoreRowSet
-from vw.core.base import SetOperation as CoreSetOperation
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Expression(CoreExpression): ...
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class SetOperation(CoreSetOperation): ...
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

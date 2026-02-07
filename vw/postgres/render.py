@@ -40,7 +40,7 @@ from vw.core.states import (
     Parameter,
     Preceding,
     Reference,
-    SetOperationState,
+    SetOperation,
     Statement,
     Subtract,
     UnboundedFollowing,
@@ -74,7 +74,7 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
     # Top-level Reference should render with FROM
     if isinstance(obj.state, Reference):
         query = f"FROM {render_source(obj.state, ctx)}"
-    elif isinstance(obj.state, SetOperationState):
+    elif isinstance(obj.state, SetOperation):
         # Set operations render directly without FROM prefix
         query = render_set_operation(obj.state, ctx)
     else:
@@ -226,7 +226,7 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_exists(state, ctx)
 
         # --- Set Operations -------------------------------------------- #
-        case SetOperationState():
+        case SetOperation():
             return render_set_operation(state, ctx)
 
         case _:
@@ -244,7 +244,7 @@ def render_cte(cte: CTE, ctx: RenderContext) -> str:
         The SQL string for the CTE body.
     """
     # If CTE source is a set operation, render just that
-    if isinstance(cte.source, SetOperationState):
+    if isinstance(cte.source, SetOperation):
         return render_set_operation(cte.source, ctx)
 
     # Otherwise, render as a Statement (CTE extends Statement)
@@ -538,30 +538,30 @@ def render_exists(exists: Exists, ctx: RenderContext) -> str:
     return f"EXISTS ({subquery_sql})"
 
 
-def render_set_operation(setop: SetOperationState, ctx: RenderContext) -> str:
+def render_set_operation(setop: SetOperation, ctx: RenderContext) -> str:
     """Render a set operation to SQL.
 
     Args:
-        setop: A SetOperationState to render.
+        setop: A SetOperation to render.
         ctx: Rendering context for parameter collection.
 
     Returns:
         The SQL string (e.g., "(SELECT ...) UNION (SELECT ...)").
     """
-    # Render left side (Reference, Statement, or SetOperationState)
+    # Render left side (Reference, Statement, or SetOperation)
     if isinstance(setop.left, Reference):
         left_sql = f"SELECT * FROM {render_state(setop.left, ctx)}"
     elif isinstance(setop.left, Statement):
         left_sql = render_state(setop.left, ctx)
-    else:  # SetOperationState (nested)
+    else:  # SetOperation (nested)
         left_sql = render_state(setop.left, ctx)
 
-    # Render right side (Reference, Statement, or SetOperationState)
+    # Render right side (Reference, Statement, or SetOperation)
     if isinstance(setop.right, Reference):
         right_sql = f"SELECT * FROM {render_state(setop.right, ctx)}"
     elif isinstance(setop.right, Statement):
         right_sql = render_state(setop.right, ctx)
-    else:  # SetOperationState (nested)
+    else:  # SetOperation (nested)
         right_sql = render_state(setop.right, ctx)
 
     # Wrap each side in parentheses and combine

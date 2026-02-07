@@ -24,8 +24,8 @@ vw is designed with a clean separation of concerns: a dialect-agnostic core laye
         │        vw/core (Abstract Layer)            │
         │  - Expression (wrapper class)              │
         │  - RowSet (wrapper class)                  │
-        │  - SetOperation (wrapper class)            │
-        │  - ExpressionState (dataclasses)           │
+        │  - State dataclasses (Reference,           │
+        │    SetOperation, Statement, etc.)          │
         │  - Functions (aggregate/window)            │
         │  - Rendering infrastructure                │
         └────────────────────────────────────────────┘
@@ -41,13 +41,21 @@ The core layer provides dialect-agnostic abstractions and shared infrastructure.
 
 Immutable dataclasses representing SQL concepts:
 
-- **Source** - Table or view reference
+**Sources:**
+- **Reference** - Table or view reference (inherits from Source)
+- **SetOperation** - UNION/INTERSECT/EXCEPT operations (inherits from Source)
+
+**Queries:**
 - **Statement** - SELECT query with all clauses
+
+**Expressions:**
 - **Column** - Column reference (qualified or unqualified)
 - **Parameter** - Query parameter with name and value
 - **Operators** - Equals, LessThan, Add, And, etc.
 - **Functions** - Function calls (aggregate/window)
 - **Window** - Window function with OVER clause
+
+**Modifiers:**
 - **Distinct** - DISTINCT flag
 - **Limit** - LIMIT and OFFSET
 
@@ -64,14 +72,11 @@ Wrapper classes that provide fluent APIs:
 - Returns new Expression instances
 
 **RowSet**
-- Wraps Source or Statement
+- Wraps Reference, Statement, or SetOperation
 - Provides query building methods (`.select()`, `.where()`, `.group_by()`, etc.)
 - Returns new RowSet instances
-- Transforms Source → Statement on first query method
-
-**SetOperation**
-- Wraps UNION/INTERSECT/EXCEPT operations
-- Inherits from RowSet
+- Transforms Reference or SetOperation → Statement on first query method
+- Provides set operation operators (`|`, `+`, `&`, `-`) that return RowSet wrapping SetOperation
 
 #### 3. Functions (vw/core/functions.py)
 

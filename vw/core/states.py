@@ -76,7 +76,7 @@ class Join(Generic[ExprT]):
     """Represents a SQL join clause."""
 
     jtype: JoinType
-    right: Reference | Statement[ExprT]
+    right: Reference | Statement[ExprT] | SetOperation[ExprT]
     on: tuple[ExprT, ...] = field(default_factory=tuple)
     using: tuple[ExprT, ...] = field(default_factory=tuple)
 
@@ -85,7 +85,7 @@ class Join(Generic[ExprT]):
 class Statement(Generic[ExprT]):
     """Represents a SELECT query."""
 
-    source: Reference | Statement[ExprT]
+    source: Reference | Statement[ExprT] | SetOperation[ExprT]
     alias: str | None = None
     columns: tuple[ExprT, ...] = field(default_factory=tuple)
     where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
@@ -294,19 +294,19 @@ class IsNotNull(ExpressionState):
 class Exists(ExpressionState, Generic[ExprT]):
     """Represents EXISTS subquery check."""
 
-    subquery: Reference | Statement[ExprT]
+    subquery: Reference | Statement[ExprT] | SetOperation[ExprT]
 
 
 # --- Set Operations -------------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class SetOperationState(Generic[ExprT]):
+class SetOperation(Source, Generic[ExprT]):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Reference | Statement[ExprT] | SetOperationState[ExprT]
+    left: Reference | Statement[ExprT] | SetOperation[ExprT]
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Reference | Statement[ExprT] | SetOperationState[ExprT]
+    right: Reference | Statement[ExprT] | SetOperation[ExprT]
 
 
 # --- Common Table Expressions ---------------------------------------------- #

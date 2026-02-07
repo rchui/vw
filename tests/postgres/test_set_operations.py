@@ -1,6 +1,6 @@
 """Unit tests for set operation state construction."""
 
-from vw.core.states import SetOperationState, Statement
+from vw.core.states import SetOperation, Statement
 from vw.postgres import col, ref
 
 
@@ -12,7 +12,7 @@ def describe_set_operation_state():
 
         setop = query1 | query2
 
-        assert isinstance(setop.state, SetOperationState)
+        assert isinstance(setop.state, SetOperation)
         assert setop.state.operator == "UNION"
         assert isinstance(setop.state.left, Statement)
         assert isinstance(setop.state.right, Statement)
@@ -24,7 +24,7 @@ def describe_set_operation_state():
 
         setop = query1 + query2
 
-        assert isinstance(setop.state, SetOperationState)
+        assert isinstance(setop.state, SetOperation)
         assert setop.state.operator == "UNION ALL"
 
     def it_creates_intersect_state():
@@ -34,7 +34,7 @@ def describe_set_operation_state():
 
         setop = query1 & query2
 
-        assert isinstance(setop.state, SetOperationState)
+        assert isinstance(setop.state, SetOperation)
         assert setop.state.operator == "INTERSECT"
 
     def it_creates_except_state():
@@ -44,7 +44,7 @@ def describe_set_operation_state():
 
         setop = query1 - query2
 
-        assert isinstance(setop.state, SetOperationState)
+        assert isinstance(setop.state, SetOperation)
         assert setop.state.operator == "EXCEPT"
 
     def it_handles_nested_set_operations():
@@ -56,6 +56,6 @@ def describe_set_operation_state():
         # (query1 UNION query2) UNION query3
         setop = (query1 | query2) | query3
 
-        assert isinstance(setop.state, SetOperationState)
-        assert isinstance(setop.state.left, SetOperationState)
+        assert isinstance(setop.state, SetOperation)
+        assert isinstance(setop.state.left, SetOperation)
         assert isinstance(setop.state.right, Statement)

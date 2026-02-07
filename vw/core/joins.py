@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING, Generic
 
-from vw.core.base import ExprT, RowSetT, SetOpT
+from vw.core.base import ExprT, RowSetT
 
 if TYPE_CHECKING:
     from vw.core.base import RowSet
@@ -11,12 +11,12 @@ if TYPE_CHECKING:
 
 
 def add_join(
-    rowset: RowSet[ExprT, RowSetT, SetOpT],
+    rowset: RowSet[ExprT, RowSetT],
     jtype: JoinType,
-    right: RowSet[ExprT, RowSetT, SetOpT],
+    right: RowSet[ExprT, RowSetT],
     on: list[ExprT],
     using: list[ExprT],
-) -> RowSet[ExprT, RowSetT, SetOpT]:
+) -> RowSet[ExprT, RowSetT]:
     """Add a join to a rowset.
 
     Args:
@@ -29,10 +29,10 @@ def add_join(
     Returns:
         A new RowSet with the join added.
     """
-    from vw.core.states import Join, Reference, Statement
+    from vw.core.states import Join, Reference, SetOperation, Statement
 
     # Ensure we have a Statement
-    if isinstance(rowset.state, Reference):
+    if isinstance(rowset.state, (Reference, SetOperation)):
         stmt = Statement(source=rowset.state)
     else:
         stmt = rowset.state
@@ -51,14 +51,14 @@ def add_join(
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class JoinAccessor(Generic[ExprT, RowSetT, SetOpT]):
+class JoinAccessor(Generic[ExprT, RowSetT]):
     """Accessor for join operations on a RowSet."""
 
-    _rowset: RowSet[ExprT, RowSetT, SetOpT]
+    _rowset: RowSet[ExprT, RowSetT]
 
     def inner(
         self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
-    ) -> RowSet[ExprT, RowSetT, SetOpT]:
+    ) -> RowSet[ExprT, RowSetT]:
         """Create an INNER JOIN.
 
         Args:
@@ -75,7 +75,7 @@ class JoinAccessor(Generic[ExprT, RowSetT, SetOpT]):
 
     def left(
         self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
-    ) -> RowSet[ExprT, RowSetT, SetOpT]:
+    ) -> RowSet[ExprT, RowSetT]:
         """Create a LEFT JOIN.
 
         Args:
@@ -92,7 +92,7 @@ class JoinAccessor(Generic[ExprT, RowSetT, SetOpT]):
 
     def right(
         self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
-    ) -> RowSet[ExprT, RowSetT, SetOpT]:
+    ) -> RowSet[ExprT, RowSetT]:
         """Create a RIGHT JOIN.
 
         Args:
@@ -109,7 +109,7 @@ class JoinAccessor(Generic[ExprT, RowSetT, SetOpT]):
 
     def full_outer(
         self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
-    ) -> RowSet[ExprT, RowSetT, SetOpT]:
+    ) -> RowSet[ExprT, RowSetT]:
         """Create a FULL OUTER JOIN.
 
         Args:
@@ -124,7 +124,7 @@ class JoinAccessor(Generic[ExprT, RowSetT, SetOpT]):
 
         return add_join(self._rowset, JoinType.FULL, right, on or [], using or [])
 
-    def cross(self, right: RowSetT) -> RowSet[ExprT, RowSetT, SetOpT]:
+    def cross(self, right: RowSetT) -> RowSet[ExprT, RowSetT]:
         """Create a CROSS JOIN.
 
         Args:
