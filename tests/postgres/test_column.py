@@ -1,6 +1,6 @@
 """Tests for col() function and Column rendering."""
 
-from vw.postgres import col, ref, render
+from vw.postgres import col, render
 
 
 def describe_col() -> None:
@@ -26,4 +26,3 @@ def describe_col() -> None:
         result = render(c)
         assert result.query == "users.id"
         assert result.params == {}
-

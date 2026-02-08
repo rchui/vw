@@ -227,5 +227,3 @@ def describe_aliased_queries() -> None:
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
-
-

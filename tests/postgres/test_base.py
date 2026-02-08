@@ -353,4 +353,3 @@ def describe_rowset() -> None:
             result = render(q)
             assert result.query == "SELECT DISTINCT name FROM users WHERE active ORDER BY name LIMIT 10"
             assert result.params == {}
-
