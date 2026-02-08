@@ -310,9 +310,12 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
     """
     parts = []
 
-    # SELECT clause (with optional DISTINCT)
+    # SELECT clause (with optional DISTINCT or DISTINCT ON)
     if stmt.columns:
-        if stmt.distinct:
+        if stmt.distinct and stmt.distinct.on:
+            on_cols = ", ".join(render_state(e, ctx) for e in stmt.distinct.on)
+            select_clause = f"SELECT DISTINCT ON ({on_cols})"
+        elif stmt.distinct:
             select_clause = "SELECT DISTINCT"
         else:
             select_clause = "SELECT"

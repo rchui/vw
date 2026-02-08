@@ -152,6 +152,34 @@ def describe_distinct_queries() -> None:
         assert result.query == sql(expected_sql)
         assert result.params == {}
 
+    def it_builds_distinct_on() -> None:
+        expected_sql = """
+        SELECT DISTINCT ON (department) id, name, department
+        FROM employees
+        ORDER BY department, salary DESC
+        """
+
+        q = (
+            ref("employees")
+            .select(col("id"), col("name"), col("department"))
+            .distinct(col("department"))
+            .order_by(col("department"), col("salary").desc())
+        )
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_distinct_on_multiple_cols() -> None:
+        expected_sql = """
+        SELECT DISTINCT ON (region, department) id, name
+        FROM employees
+        """
+
+        q = ref("employees").select(col("id"), col("name")).distinct(col("region"), col("department"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
 
 def describe_aliased_queries() -> None:
     def it_builds_query_with_table_alias() -> None:

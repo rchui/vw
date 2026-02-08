@@ -136,6 +136,48 @@ def describe_interval():
         assert result.params == {}
 
 
+def describe_dt_shortcuts():
+    def test_quarter():
+        expected_sql = "SELECT EXTRACT(QUARTER FROM created_at) FROM events"
+
+        q = ref("events").select(col("created_at").dt.quarter())
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def test_week():
+        expected_sql = "SELECT EXTRACT(WEEK FROM created_at) FROM events"
+
+        q = ref("events").select(col("created_at").dt.week())
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def test_weekday():
+        expected_sql = "SELECT EXTRACT(DOW FROM created_at) FROM events"
+
+        q = ref("events").select(col("created_at").dt.weekday())
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def test_date():
+        expected_sql = "SELECT created_at::date FROM events"
+
+        q = ref("events").select(col("created_at").dt.date())
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def test_time():
+        expected_sql = "SELECT created_at::time FROM events"
+
+        q = ref("events").select(col("created_at").dt.time())
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+
 def describe_date_trunc():
     def test_basic():
         expected_sql = "SELECT DATE_TRUNC('month', created_at) FROM events"

@@ -63,7 +63,12 @@ class Limit:
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Distinct:
-    """Represents DISTINCT clause in a SQL statement."""
+    """Represents DISTINCT or DISTINCT ON clause in a SQL statement.
+
+    on is populated only for DISTINCT ON — PostgreSQL-specific.
+    """
+
+    on: tuple[Expr, ...] = field(default_factory=tuple)
 
 
 # --- Joins ----------------------------------------------------------------- #
