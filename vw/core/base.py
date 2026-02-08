@@ -7,7 +7,7 @@ from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
     from vw.core.joins import JoinAccessor
-    from vw.core.states import ExpressionState, Reference, SetOperation, Statement, Values
+    from vw.core.states import Expr, Reference, SetOperation, Statement, Values
 
 ExprT = TypeVar("ExprT", bound="Expression")
 RowSetT = TypeVar("RowSetT", bound="RowSet")
@@ -22,7 +22,7 @@ class Factories(FactoryT):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Expression(Stateful, FactoryT):
-    state: ExpressionState
+    state: Expr
     factories: Factories[ExprT, RowSetT]
 
     # --- Comparison Operators ---------------------------------------------- #

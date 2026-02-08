@@ -8,8 +8,8 @@ from strenum import StrEnum
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class ExpressionState:
-    """Base class for all expression states."""
+class Expr:
+    """Base class for all expression nodes."""
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -38,7 +38,7 @@ class Values(Source):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Column(ExpressionState):
+class Column(Expr):
     """Represents a column reference."""
 
     name: str
@@ -46,7 +46,7 @@ class Column(ExpressionState):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Parameter(ExpressionState):
+class Parameter(Expr):
     """Represents a query parameter."""
 
     name: str
@@ -85,8 +85,8 @@ class Join:
 
     jtype: JoinType
     right: Reference | Statement | SetOperation | Values
-    on: tuple[ExpressionState, ...] = field(default_factory=tuple)
-    using: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    on: tuple[Expr, ...] = field(default_factory=tuple)
+    using: tuple[Expr, ...] = field(default_factory=tuple)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -94,11 +94,11 @@ class Statement(Source):
     """Represents a SELECT query."""
 
     source: Reference | Statement | SetOperation | Values
-    columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
-    where_conditions: tuple[ExpressionState, ...] = field(default_factory=tuple)
-    group_by_columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
-    having_conditions: tuple[ExpressionState, ...] = field(default_factory=tuple)
-    order_by_columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    columns: tuple[Expr, ...] = field(default_factory=tuple)
+    where_conditions: tuple[Expr, ...] = field(default_factory=tuple)
+    group_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
+    having_conditions: tuple[Expr, ...] = field(default_factory=tuple)
+    order_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
     limit: Limit | None = None
     distinct: Distinct | None = None
     joins: tuple[Join, ...] = field(default_factory=tuple)
@@ -108,197 +108,197 @@ class Statement(Source):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Equals(ExpressionState):
+class Equals(Expr):
     """Represents an equality comparison (=)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class NotEquals(ExpressionState):
+class NotEquals(Expr):
     """Represents an inequality comparison (<>)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class LessThan(ExpressionState):
+class LessThan(Expr):
     """Represents a less than comparison (<)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class LessThanOrEqual(ExpressionState):
+class LessThanOrEqual(Expr):
     """Represents a less than or equal comparison (<=)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class GreaterThan(ExpressionState):
+class GreaterThan(Expr):
     """Represents a greater than comparison (>)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class GreaterThanOrEqual(ExpressionState):
+class GreaterThanOrEqual(Expr):
     """Represents a greater than or equal comparison (>=)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 # --- Arithmetic Operators -------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Add(ExpressionState):
+class Add(Expr):
     """Represents an addition expression (+)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Subtract(ExpressionState):
+class Subtract(Expr):
     """Represents a subtraction expression (-)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Multiply(ExpressionState):
+class Multiply(Expr):
     """Represents a multiplication expression (*)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Divide(ExpressionState):
+class Divide(Expr):
     """Represents a division expression (/)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Modulo(ExpressionState):
+class Modulo(Expr):
     """Represents a modulo expression (%)."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 # --- Logical Operators ----------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class And(ExpressionState):
+class And(Expr):
     """Represents a logical AND expression."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Or(ExpressionState):
+class Or(Expr):
     """Represents a logical OR expression."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Not(ExpressionState):
+class Not(Expr):
     """Represents a logical NOT expression."""
 
-    operand: ExpressionState
+    operand: Expr
 
 
 # --- Pattern Matching ------------------------------------------------------ #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Like(ExpressionState):
+class Like(Expr):
     """Represents a LIKE pattern match."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class NotLike(ExpressionState):
+class NotLike(Expr):
     """Represents a NOT LIKE pattern match."""
 
-    left: ExpressionState
-    right: ExpressionState
+    left: Expr
+    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class IsIn(ExpressionState):
+class IsIn(Expr):
     """Represents an IN expression."""
 
-    expr: ExpressionState
-    values: tuple[ExpressionState, ...]
+    expr: Expr
+    values: tuple[Expr, ...]
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class IsNotIn(ExpressionState):
+class IsNotIn(Expr):
     """Represents a NOT IN expression."""
 
-    expr: ExpressionState
-    values: tuple[ExpressionState, ...]
+    expr: Expr
+    values: tuple[Expr, ...]
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Between(ExpressionState):
+class Between(Expr):
     """Represents a BETWEEN expression."""
 
-    expr: ExpressionState
-    lower_bound: ExpressionState
-    upper_bound: ExpressionState
+    expr: Expr
+    lower_bound: Expr
+    upper_bound: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class NotBetween(ExpressionState):
+class NotBetween(Expr):
     """Represents a NOT BETWEEN expression."""
 
-    expr: ExpressionState
-    lower_bound: ExpressionState
-    upper_bound: ExpressionState
+    expr: Expr
+    lower_bound: Expr
+    upper_bound: Expr
 
 
 # --- NULL Checks ----------------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class IsNull(ExpressionState):
+class IsNull(Expr):
     """Represents IS NULL check."""
 
-    expr: ExpressionState
+    expr: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class IsNotNull(ExpressionState):
+class IsNotNull(Expr):
     """Represents IS NOT NULL check."""
 
-    expr: ExpressionState
+    expr: Expr
 
 
 # --- Subquery Operators ---------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Exists(ExpressionState):
+class Exists(Expr):
     """Represents EXISTS subquery check."""
 
     subquery: Reference | Statement | SetOperation | Values
@@ -311,16 +311,16 @@ class Exists(ExpressionState):
 class WhenThen:
     """A single WHEN/THEN pair in a CASE expression."""
 
-    condition: ExpressionState
-    result: ExpressionState
+    condition: Expr
+    result: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Case(ExpressionState):
+class Case(Expr):
     """Searched CASE expression: CASE WHEN cond THEN val ... [ELSE val] END"""
 
     whens: tuple[WhenThen, ...]
-    else_result: ExpressionState | None = None
+    else_result: Expr | None = None
 
 
 # --- Set Operations -------------------------------------------------------- #
@@ -354,40 +354,40 @@ class CTE(Statement):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Alias(ExpressionState):
+class Alias(Expr):
     """Represents an aliased expression (expr AS name)."""
 
-    expr: ExpressionState
+    expr: Expr
     name: str
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Cast(ExpressionState):
+class Cast(Expr):
     """Represents type cast (CAST or ::)."""
 
-    expr: ExpressionState
+    expr: Expr
     data_type: str
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Asc(ExpressionState):
+class Asc(Expr):
     """Represents ascending sort order (ASC)."""
 
-    expr: ExpressionState
+    expr: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Desc(ExpressionState):
+class Desc(Expr):
     """Represents descending sort order (DESC)."""
 
-    expr: ExpressionState
+    expr: Expr
 
 
 # --- Functions ------------------------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Function(ExpressionState):
+class Function(Expr):
     """Represents a SQL function (aggregate, window-only, or scalar)."""
 
     name: str
@@ -396,7 +396,7 @@ class Function(ExpressionState):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class WindowFunction(ExpressionState):
+class WindowFunction(Expr):
     """Represents a window function with OVER clause."""
 
     function: object

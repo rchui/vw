@@ -95,7 +95,7 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - ✅ Expression aliasing via `expr.alias("name")`
 
 ### Data Structures
-- ✅ ExpressionState base class for all operator states
+- ✅ Expr base class for all expression nodes
 - ✅ Comparison operator states (Equals, NotEquals, LessThan, LessThanOrEqual, GreaterThan, GreaterThanOrEqual)
 - ✅ Arithmetic operator states (Add, Subtract, Multiply, Divide, Modulo)
 - ✅ Logical operator states (And, Or, Not)

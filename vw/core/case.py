@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Generic
 
 from vw.core.base import ExprT, RowSetT
-from vw.core.states import ExpressionState, WhenThen
+from vw.core.states import Expr, WhenThen
 
 if TYPE_CHECKING:
     from vw.core.base import Factories
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 class When(Generic[ExprT, RowSetT]):
     """Incomplete WHEN clause - must be completed with .then()."""
 
-    condition: ExpressionState
+    condition: Expr
     prior_whens: tuple[WhenThen, ...]
     factories: Factories[ExprT, RowSetT]
 

@@ -24,7 +24,7 @@ from vw.core.states import (
     Divide,
     Equals,
     Exists,
-    ExpressionState,
+    Expr,
     Following,
     FrameClause,
     Function,
@@ -280,7 +280,7 @@ def render_values(values_src: Values, ctx: RenderContext) -> str:
         placeholders = []
         for col_idx, col_name in enumerate(columns):
             value = row[col_name]
-            if isinstance(value, ExpressionState):
+            if isinstance(value, Expr):
                 placeholders.append(render_state(value, ctx))
             else:
                 param_name = f"_v{row_idx}_{col_idx}_{col_name}"
