@@ -1,8 +1,7 @@
 """Unit tests for join state construction."""
 
-from vw.core.states import Join, JoinType, Statement
+from vw.core.states import Column, Join, JoinType, Statement
 from vw.postgres import col, ref
-from vw.postgres.base import Expression
 
 
 def describe_join_type_enum():
@@ -25,10 +24,10 @@ def describe_join_dataclass():
         """Join should be created with ON clause."""
         orders = ref("orders")
 
-        join: Join[Expression] = Join(
+        join = Join(
             jtype=JoinType.INNER,
             right=orders.state,
-            on=(col("id"), col("user_id")),
+            on=(Column(name="id"), Column(name="user_id")),
         )
 
         assert join.jtype == JoinType.INNER
@@ -40,10 +39,10 @@ def describe_join_dataclass():
         """Join should be created with USING clause."""
         orders = ref("orders")
 
-        join: Join[Expression] = Join(
+        join = Join(
             jtype=JoinType.LEFT,
             right=orders.state,
-            using=(col("user_id"),),
+            using=(Column(name="user_id"),),
         )
 
         assert join.jtype == JoinType.LEFT
@@ -55,10 +54,10 @@ def describe_join_dataclass():
         """Join should be immutable."""
         orders = ref("orders")
 
-        join: Join[Expression] = Join(
+        join = Join(
             jtype=JoinType.INNER,
             right=orders.state,
-            on=(col("id"),),
+            on=(Column(name="id"),),
         )
 
         try:

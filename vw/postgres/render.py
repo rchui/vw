@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from vw.core.render import SQL, ParamStyle, RenderConfig, RenderContext
+
+if TYPE_CHECKING:
+    from vw.postgres.base import Expression
+
 from vw.core.states import (
     CTE,
     Add,
@@ -50,7 +56,7 @@ from vw.core.states import (
     Values,
     WindowFunction,
 )
-from vw.postgres.base import Expression, RowSet
+from vw.postgres.base import RowSet
 
 
 def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> SQL:
@@ -274,9 +280,7 @@ def render_values(values_src: Values, ctx: RenderContext) -> str:
         placeholders = []
         for col_idx, col_name in enumerate(columns):
             value = row[col_name]
-            if isinstance(value, Expression):
-                placeholders.append(render_state(value.state, ctx))
-            elif isinstance(value, ExpressionState):
+            if isinstance(value, ExpressionState):
                 placeholders.append(render_state(value, ctx))
             else:
                 param_name = f"_v{row_idx}_{col_idx}_{col_name}"
@@ -322,7 +326,7 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
             select_clause = "SELECT DISTINCT"
         else:
             select_clause = "SELECT"
-        cols = ", ".join(render_state(col.state, ctx) for col in stmt.columns)
+        cols = ", ".join(render_state(col, ctx) for col in stmt.columns)
         parts.append(f"{select_clause} {cols}")
 
     # FROM clause
@@ -334,22 +338,22 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
 
     # WHERE clause
     if stmt.where_conditions:
-        conditions = " AND ".join(render_state(cond.state, ctx) for cond in stmt.where_conditions)
+        conditions = " AND ".join(render_state(cond, ctx) for cond in stmt.where_conditions)
         parts.append(f"WHERE {conditions}")
 
     # GROUP BY clause
     if stmt.group_by_columns:
-        cols = ", ".join(render_state(col.state, ctx) for col in stmt.group_by_columns)
+        cols = ", ".join(render_state(col, ctx) for col in stmt.group_by_columns)
         parts.append(f"GROUP BY {cols}")
 
     # HAVING clause
     if stmt.having_conditions:
-        conditions = " AND ".join(render_state(cond.state, ctx) for cond in stmt.having_conditions)
+        conditions = " AND ".join(render_state(cond, ctx) for cond in stmt.having_conditions)
         parts.append(f"HAVING {conditions}")
 
     # ORDER BY clause
     if stmt.order_by_columns:
-        cols = ", ".join(render_state(col.state, ctx) for col in stmt.order_by_columns)
+        cols = ", ".join(render_state(col, ctx) for col in stmt.order_by_columns)
         parts.append(f"ORDER BY {cols}")
 
     # LIMIT/OFFSET clause
@@ -480,11 +484,11 @@ def render_join(join: Join, ctx: RenderContext) -> str:
     parts = [f"{join.jtype.value} JOIN {render_source(join.right, ctx)}"]
 
     if join.on:
-        on_sql = " AND ".join(render_state(cond.state, ctx) for cond in join.on)
+        on_sql = " AND ".join(render_state(cond, ctx) for cond in join.on)
         parts.append(f"ON ({on_sql})")
 
     if join.using:
-        using_sql = ", ".join(render_state(col.state, ctx) for col in join.using)
+        using_sql = ", ".join(render_state(col, ctx) for col in join.using)
         parts.append(f"USING ({using_sql})")
 
     return " ".join(parts)

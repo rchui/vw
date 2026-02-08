@@ -41,8 +41,8 @@ def add_join(
     join = Join(
         jtype=jtype,
         right=right.state,
-        on=tuple(column for column in on),
-        using=tuple(column for column in using),
+        on=tuple(c.state for c in on),
+        using=tuple(c.state for c in using),
     )
 
     # Accumulate join

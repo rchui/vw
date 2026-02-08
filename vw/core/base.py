@@ -349,7 +349,7 @@ class Expression(Stateful, FactoryT):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(Stateful, FactoryT):
-    state: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
+    state: Reference | Statement | SetOperation | Values
     factories: Factories[ExprT, RowSetT]
 
     def select(self, *columns: ExprT) -> RowSetT:
@@ -366,15 +366,16 @@ class RowSet(Stateful, FactoryT):
         """
         from vw.core.states import CTE, Reference, Statement, Values
 
+        col_states = tuple(c.state for c in columns)
         if isinstance(self.state, (Reference, Values)):
             # Transform Source → Statement
-            new_state = Statement(source=self.state, columns=tuple(columns))
+            new_state = Statement(source=self.state, columns=col_states)
         elif isinstance(self.state, CTE):
             # CTE → new Statement with CTE as source
-            new_state = Statement(source=self.state, columns=tuple(columns))
+            new_state = Statement(source=self.state, columns=col_states)
         else:
             # Already Statement, update columns
-            new_state = replace(self.state, columns=tuple(columns))
+            new_state = replace(self.state, columns=col_states)
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 
@@ -407,12 +408,13 @@ class RowSet(Stateful, FactoryT):
         """
         from vw.core.states import Reference, SetOperation, Statement, Values
 
+        cond_states = tuple(c.state for c in conditions)
         if isinstance(self.state, (Reference, SetOperation, Values)):
-            new_state = Statement(source=self.state, where_conditions=tuple(conditions))
+            new_state = Statement(source=self.state, where_conditions=cond_states)
         else:
             new_state = replace(
                 self.state,
-                where_conditions=self.state.where_conditions + tuple(conditions),
+                where_conditions=self.state.where_conditions + cond_states,
             )
 
         return self.factories.rowset(state=new_state, factories=self.factories)
@@ -431,10 +433,11 @@ class RowSet(Stateful, FactoryT):
         """
         from vw.core.states import Reference, SetOperation, Statement, Values
 
+        col_states = tuple(c.state for c in columns)
         if isinstance(self.state, (Reference, SetOperation, Values)):
-            new_state = Statement(source=self.state, group_by_columns=tuple(columns))
+            new_state = Statement(source=self.state, group_by_columns=col_states)
         else:
-            new_state = replace(self.state, group_by_columns=tuple(columns))
+            new_state = replace(self.state, group_by_columns=col_states)
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 
@@ -452,12 +455,13 @@ class RowSet(Stateful, FactoryT):
         """
         from vw.core.states import Reference, SetOperation, Statement, Values
 
+        cond_states = tuple(c.state for c in conditions)
         if isinstance(self.state, (Reference, SetOperation, Values)):
-            new_state = Statement(source=self.state, having_conditions=tuple(conditions))
+            new_state = Statement(source=self.state, having_conditions=cond_states)
         else:
             new_state = replace(
                 self.state,
-                having_conditions=self.state.having_conditions + tuple(conditions),
+                having_conditions=self.state.having_conditions + cond_states,
             )
 
         return self.factories.rowset(state=new_state, factories=self.factories)
@@ -476,10 +480,11 @@ class RowSet(Stateful, FactoryT):
         """
         from vw.core.states import Reference, SetOperation, Statement, Values
 
+        col_states = tuple(c.state for c in columns)
         if isinstance(self.state, (Reference, SetOperation, Values)):
-            new_state = Statement(source=self.state, order_by_columns=tuple(columns))
+            new_state = Statement(source=self.state, order_by_columns=col_states)
         else:
-            new_state = replace(self.state, order_by_columns=tuple(columns))
+            new_state = replace(self.state, order_by_columns=col_states)
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 

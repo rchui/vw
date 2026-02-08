@@ -137,8 +137,9 @@ def values(alias: str, /, *rows: dict[str, Any]) -> RowSet:
     """
     from vw.core.states import Values
 
+    unwrapped = tuple({k: v.state if isinstance(v, Expression) else v for k, v in row.items()} for row in rows)
     return RowSet(
-        state=Values(rows=rows, alias=alias),
+        state=Values(rows=unwrapped, alias=alias),
         factories=Factories(expr=Expression, rowset=RowSet),
     )
 

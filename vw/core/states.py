@@ -1,11 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Generic
 
 from strenum import StrEnum
-
-from vw.core.base import ExprT
 
 # --- Base Classes ---------------------------------------------------------- #
 
@@ -83,28 +80,28 @@ class JoinType(StrEnum):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Join(Generic[ExprT]):
+class Join:
     """Represents a SQL join clause."""
 
     jtype: JoinType
-    right: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
-    on: tuple[ExprT, ...] = field(default_factory=tuple)
-    using: tuple[ExprT, ...] = field(default_factory=tuple)
+    right: Reference | Statement | SetOperation | Values
+    on: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    using: tuple[ExpressionState, ...] = field(default_factory=tuple)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Statement(Source, Generic[ExprT]):
+class Statement(Source):
     """Represents a SELECT query."""
 
-    source: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
-    columns: tuple[ExprT, ...] = field(default_factory=tuple)
-    where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
-    group_by_columns: tuple[ExprT, ...] = field(default_factory=tuple)
-    having_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
-    order_by_columns: tuple[ExprT, ...] = field(default_factory=tuple)
+    source: Reference | Statement | SetOperation | Values
+    columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    where_conditions: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    group_by_columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    having_conditions: tuple[ExpressionState, ...] = field(default_factory=tuple)
+    order_by_columns: tuple[ExpressionState, ...] = field(default_factory=tuple)
     limit: Limit | None = None
     distinct: Distinct | None = None
-    joins: tuple[Join[ExprT], ...] = field(default_factory=tuple)
+    joins: tuple[Join, ...] = field(default_factory=tuple)
 
 
 # --- Comparison Operators -------------------------------------------------- #
@@ -163,7 +160,7 @@ class GreaterThanOrEqual(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Add(ExpressionState):
-    """Represents addition (+)."""
+    """Represents an addition expression (+)."""
 
     left: ExpressionState
     right: ExpressionState
@@ -171,7 +168,7 @@ class Add(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Subtract(ExpressionState):
-    """Represents subtraction (-)."""
+    """Represents a subtraction expression (-)."""
 
     left: ExpressionState
     right: ExpressionState
@@ -179,7 +176,7 @@ class Subtract(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Multiply(ExpressionState):
-    """Represents multiplication (*)."""
+    """Represents a multiplication expression (*)."""
 
     left: ExpressionState
     right: ExpressionState
@@ -187,7 +184,7 @@ class Multiply(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Divide(ExpressionState):
-    """Represents division (/)."""
+    """Represents a division expression (/)."""
 
     left: ExpressionState
     right: ExpressionState
@@ -195,7 +192,7 @@ class Divide(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Modulo(ExpressionState):
-    """Represents modulo (%)."""
+    """Represents a modulo expression (%)."""
 
     left: ExpressionState
     right: ExpressionState
@@ -206,7 +203,7 @@ class Modulo(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class And(ExpressionState):
-    """Represents logical AND."""
+    """Represents a logical AND expression."""
 
     left: ExpressionState
     right: ExpressionState
@@ -214,7 +211,7 @@ class And(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Or(ExpressionState):
-    """Represents logical OR."""
+    """Represents a logical OR expression."""
 
     left: ExpressionState
     right: ExpressionState
@@ -222,7 +219,7 @@ class Or(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Not(ExpressionState):
-    """Represents logical NOT."""
+    """Represents a logical NOT expression."""
 
     operand: ExpressionState
 
@@ -232,7 +229,7 @@ class Not(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Like(ExpressionState):
-    """Represents LIKE pattern match."""
+    """Represents a LIKE pattern match."""
 
     left: ExpressionState
     right: ExpressionState
@@ -240,7 +237,7 @@ class Like(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class NotLike(ExpressionState):
-    """Represents NOT LIKE pattern match."""
+    """Represents a NOT LIKE pattern match."""
 
     left: ExpressionState
     right: ExpressionState
@@ -248,7 +245,7 @@ class NotLike(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class IsIn(ExpressionState):
-    """Represents IN check against list of values or subquery."""
+    """Represents an IN expression."""
 
     expr: ExpressionState
     values: tuple[ExpressionState, ...]
@@ -256,7 +253,7 @@ class IsIn(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class IsNotIn(ExpressionState):
-    """Represents NOT IN check against list of values or subquery."""
+    """Represents a NOT IN expression."""
 
     expr: ExpressionState
     values: tuple[ExpressionState, ...]
@@ -264,7 +261,7 @@ class IsNotIn(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Between(ExpressionState):
-    """Represents BETWEEN check for value within range."""
+    """Represents a BETWEEN expression."""
 
     expr: ExpressionState
     lower_bound: ExpressionState
@@ -273,7 +270,7 @@ class Between(ExpressionState):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class NotBetween(ExpressionState):
-    """Represents NOT BETWEEN check for value outside range."""
+    """Represents a NOT BETWEEN expression."""
 
     expr: ExpressionState
     lower_bound: ExpressionState
@@ -301,10 +298,10 @@ class IsNotNull(ExpressionState):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Exists(ExpressionState, Generic[ExprT]):
+class Exists(ExpressionState):
     """Represents EXISTS subquery check."""
 
-    subquery: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
+    subquery: Reference | Statement | SetOperation | Values
 
 
 # --- Conditional Expressions ----------------------------------------------- #
@@ -330,19 +327,19 @@ class Case(ExpressionState):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class SetOperation(Source, Generic[ExprT]):
+class SetOperation(Source):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
+    left: Reference | Statement | SetOperation | Values
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
+    right: Reference | Statement | SetOperation | Values
 
 
 # --- Common Table Expressions ---------------------------------------------- #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class CTE(Statement[ExprT], Generic[ExprT]):
+class CTE(Statement):
     """A Common Table Expression (WITH clause).
 
     Extends Statement to represent a named query that can be
