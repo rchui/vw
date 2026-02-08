@@ -41,12 +41,10 @@ The core layer provides dialect-agnostic abstractions and shared infrastructure.
 
 Immutable dataclasses representing SQL concepts:
 
-**Sources:**
-- **Reference** - Table or view reference (inherits from Source)
-- **SetOperation** - UNION/INTERSECT/EXCEPT operations (inherits from Source)
-
-**Queries:**
+**Sources** (all inherit from `Source`):
+- **Reference** - Table or view reference
 - **Statement** - SELECT query with all clauses
+- **SetOperation** - UNION/INTERSECT/EXCEPT operations
 
 **Expressions:**
 - **Column** - Column reference (qualified or unqualified)
@@ -136,7 +134,7 @@ Converts state objects to PostgreSQL SQL:
 Example rendering chain:
 ```
 Statement(
-    source=Source(name="users"),
+    source=Reference(name="users"),
     columns=[Column(name="id")],
     where=[Equals(left=Column(name="age"), right=Parameter(name="age", value=18))]
 )

@@ -82,11 +82,10 @@ class Join(Generic[ExprT]):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Statement(Generic[ExprT]):
+class Statement(Source, Generic[ExprT]):
     """Represents a SELECT query."""
 
     source: Reference | Statement[ExprT] | SetOperation[ExprT]
-    alias: str | None = None
     columns: tuple[ExprT, ...] = field(default_factory=tuple)
     where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
     group_by_columns: tuple[ExprT, ...] = field(default_factory=tuple)
