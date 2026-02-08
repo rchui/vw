@@ -62,6 +62,23 @@ result = active.select(col("id"), col("name"))
 # SQL: WITH active AS (SELECT * FROM users WHERE active = $t) SELECT id, name FROM active
 ```
 
+### `values(alias, *rows)`
+
+Create a VALUES clause as an inline row source. The alias is required.
+
+```python
+values("t", {"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"})
+    .select(col("id"), col("name"))
+# SQL: SELECT id, name FROM (VALUES ($1, $2), ($3, $4)) AS t(id, name)
+```
+
+Row values can be Python literals (parameterized automatically) or expressions:
+
+```python
+values("t", {"id": 1, "ts": param("now", "NOW()")}).select(col("*"))
+# SQL: SELECT * FROM (VALUES ($1, $now)) AS t(id, ts)
+```
+
 ### `render(rowset)`
 
 Render a query to SQL. Returns an `SQL` object with `.query` (str) and `.params` (dict).

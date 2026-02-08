@@ -158,6 +158,29 @@ result = render(active_users.select(col("name")).limit(10))
 # SELECT name FROM (SELECT id, name FROM users WHERE status = $s) AS active_users LIMIT 10
 ```
 
+## VALUES Clause
+
+```python
+from vw.postgres import values, col, render
+
+# Inline row data as a named source
+result = render(
+    values("t", {"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"})
+    .select(col("id"), col("name"))
+)
+# SELECT id, name FROM (VALUES ($1, $2), ($3, $4)) AS t(id, name)
+
+# VALUES in a JOIN
+users = ref("users")
+allowed_ids = values("allowed", {"id": 1}, {"id": 2}, {"id": 3})
+result = render(
+    users.join.inner(allowed_ids, on=[col("users.id") == col("allowed.id")])
+    .select(col("users.name"))
+)
+# SELECT users.name FROM users
+# INNER JOIN (VALUES ($1), ($2), ($3)) AS allowed(id) ON (users.id = allowed.id)
+```
+
 ## Set Operations
 
 ```python

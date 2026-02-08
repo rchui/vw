@@ -236,9 +236,9 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] Correlated subqueries
 
 ### VALUES Clause
-- [ ] VALUES as row source via `values(*rows)`
-- [ ] VALUES with aliasing via `values(*rows).alias(name)`
-- [ ] VALUES with column list
+- ✅ VALUES as row source via `values(alias, *rows)`
+- ✅ VALUES with aliasing (alias required at construction time)
+- ✅ VALUES with column list (derived from row dict keys)
 
 ### Conditional Expressions
 - ✅ CASE WHEN via `when(condition).then(value).otherwise(default)`
@@ -246,7 +246,7 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - ✅ Nested CASE expressions
 
 ### Data Structures Needed
-- [ ] Values dataclass (row value constructor)
+- ✅ Values dataclass (row value constructor)
 - ✅ Case dataclass (CASE expression)
 - ✅ WhenThen dataclass (WHEN/THEN pair in CASE)
 
