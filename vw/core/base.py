@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Generic, TypeVar
 from vw.core.protocols import Stateful
 
 if TYPE_CHECKING:
+    from vw.core.datetime import DateTimeAccessor
     from vw.core.joins import JoinAccessor
     from vw.core.states import Expr, Reference, SetOperation, Statement, Values
     from vw.core.text import TextAccessor
@@ -344,6 +345,18 @@ class Expression(Stateful, FactoryT):
         from vw.core.text import TextAccessor
 
         return TextAccessor(self)
+
+    @property
+    def dt(self) -> DateTimeAccessor[ExprT, RowSetT]:
+        """Access date/time functions on this expression.
+
+        Example:
+            >>> col("created_at").dt.extract("year")
+            >>> col("ts").dt.extract("epoch")
+        """
+        from vw.core.datetime import DateTimeAccessor
+
+        return DateTimeAccessor(self)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

@@ -16,10 +16,13 @@ class Functions(CoreFunctions):
     """PostgreSQL function namespace.
 
     Inherits all ANSI SQL standard functions from CoreFunctions.
-    PostgreSQL-specific functions can be added here in the future.
     """
 
-    pass
+    def now(self) -> Expression:
+        """NOW() — returns current timestamp (PostgreSQL-specific)."""
+        from vw.postgres.states import Now
+
+        return self.factories.expr(state=Now(), factories=self.factories)
 
 
 # Instantiate with PostgreSQL factories
@@ -235,3 +238,22 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         )
 
     return RowSet(state=cte_state, factories=Factories(expr=Expression, rowset=RowSet))
+
+
+def interval(amount: int | float, unit: str, /) -> Expression:
+    """Create a PostgreSQL INTERVAL literal expression.
+
+    Args:
+        amount: The quantity of time units.
+        unit: The time unit (e.g. "day", "hour", "month", "year").
+
+    Returns:
+        An Expression wrapping an Interval state.
+
+    Example:
+        >>> col("created_at") + interval(1, "day")
+        >>> col("expires_at") - interval(30, "day")
+    """
+    from vw.postgres.states import Interval
+
+    return Expression(state=Interval(amount=amount, unit=unit), factories=Factories(expr=Expression, rowset=RowSet))

@@ -5,7 +5,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 ## Import
 
 ```python
-from vw.postgres import ref, col, param, when, exists, cte, render, F
+from vw.postgres import ref, col, param, when, exists, cte, interval, render, F
 ```
 
 ## Factory Functions
@@ -79,6 +79,19 @@ values("t", {"id": 1, "ts": param("now", "NOW()")}).select(col("*"))
 # SQL: SELECT * FROM (VALUES ($1, $now)) AS t(id, ts)
 ```
 
+### `interval(amount, unit)`
+
+Create a PostgreSQL `INTERVAL` literal. Use with `+` and `-` for date arithmetic.
+
+```python
+interval(1, "day")      # INTERVAL '1 day'
+interval(30, "day")     # INTERVAL '30 day'
+interval(1.5, "hour")   # INTERVAL '1.5 hour'
+
+col("created_at") + interval(1, "day")   # created_at + INTERVAL '1 day'
+col("expires_at") - interval(30, "day")  # expires_at - INTERVAL '30 day'
+```
+
 ### `render(rowset)`
 
 Render a query to SQL. Returns an `SQL` object with `.query` (str) and `.params` (dict).
@@ -88,6 +101,27 @@ result = render(query)
 print(result.query)   # SQL string with $name placeholders
 print(result.params)  # {'name': value, ...}
 ```
+
+---
+
+## Date/Time
+
+### PostgreSQL-specific functions
+
+| Function | SQL |
+|----------|-----|
+| `F.now()` | `NOW()` |
+
+### `.dt.date_trunc(unit)`
+
+Truncate a timestamp to the specified precision (PostgreSQL-specific).
+
+```python
+col("created_at").dt.date_trunc("month")  # DATE_TRUNC('month', created_at)
+col("ts").dt.date_trunc("year")           # DATE_TRUNC('year', ts)
+```
+
+For ANSI SQL `EXTRACT`, see [Date/Time Accessor](core.md#datetime-accessor) in the core docs.
 
 ---
 
@@ -293,3 +327,4 @@ See [PostgreSQL Parity](../development/postgres-parity.md) for the full roadmap.
 - CTEs (WITH, WITH RECURSIVE)
 - Conditional expressions (CASE WHEN)
 - Parameters and rendering
+- Scalar functions: string (.text), null handling, date/time (.dt)

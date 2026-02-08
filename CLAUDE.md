@@ -165,6 +165,7 @@ uv run ty check        # Type check
 - .between() and .not_between() → `docs/api/core.md` (Pattern Matching)
 - .is_null() and .is_not_null() → `docs/api/core.md` (NULL Checks)
 - .alias(), .cast(), .asc(), .desc() → `docs/api/core.md` (Expression Modifiers)
+- .dt.extract(field) (EXTRACT) → `docs/api/core.md` (Date/Time Accessor)
 - when().then().otherwise() / .end() (CASE WHEN) → `docs/api/core.md` (Conditional Expressions)
 - .over() (window specification) → `docs/api/core.md` (Window Function Methods)
 - .filter() (FILTER clause) → `docs/api/core.md` (Window Function Methods)
@@ -178,6 +179,8 @@ uv run ty check        # Type check
 ### API Reference - Functions
 - F.count/sum/avg/min/max (aggregates) → `docs/api/core.md` (Functions > Aggregate Functions)
 - F.row_number/rank/dense_rank/ntile/lag/lead/first_value/last_value (window) → `docs/api/core.md` (Functions > Window Functions)
+- F.current_timestamp/current_date/current_time (ANSI date/time) → `docs/api/core.md` (Functions > Date/Time Functions)
+- F.now() (PostgreSQL) → `docs/api/postgres.md` (Date/Time)
 
 ### API Reference - Window Frames
 - UNBOUNDED_PRECEDING, UNBOUNDED_FOLLOWING, CURRENT_ROW, preceding(n), following(n) → `docs/api/core.md` (Frame Boundaries)
@@ -190,7 +193,9 @@ uv run ty check        # Type check
 - exists() factory → `docs/api/postgres.md` (Factory Functions > exists)
 - values() factory → `docs/api/postgres.md` (Factory Functions > values)
 - cte() factory → `docs/api/postgres.md` (Factory Functions > cte)
+- interval() factory → `docs/api/postgres.md` (Factory Functions > interval)
 - render() function → `docs/api/postgres.md` (Factory Functions > render)
+- .dt.date_trunc(unit) (PostgreSQL DATE_TRUNC) → `docs/api/postgres.md` (Date/Time)
 - Parameter style (dollar-style) → `docs/api/postgres.md` (Parameter Style)
 - PostgreSQL examples → `docs/api/postgres.md` (Complete Examples)
 - Feature status → `docs/api/postgres.md` (Feature Status)

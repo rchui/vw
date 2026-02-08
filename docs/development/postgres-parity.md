@@ -292,19 +292,14 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] String concatenation operator `||` via `expr.op("||", other)` (pending .op() implementation)
 
 ### Date/Time Functions
-- [ ] CURRENT_TIMESTAMP via `F.current_timestamp()`
-- [ ] CURRENT_DATE via `F.current_date()`
-- [ ] CURRENT_TIME via `F.current_time()`
-- [ ] NOW() via `F.now()`
-- [ ] EXTRACT YEAR via `col("x").dt.year()`
-- [ ] EXTRACT MONTH via `col("x").dt.month()`
-- [ ] EXTRACT DAY via `col("x").dt.day()`
-- [ ] EXTRACT HOUR via `col("x").dt.hour()`
-- [ ] EXTRACT MINUTE via `col("x").dt.minute()`
-- [ ] EXTRACT SECOND via `col("x").dt.second()`
-- [ ] DATE_TRUNC via `col("x").dt.truncate(unit)`
-- [ ] Interval arithmetic via `+` and `-` with intervals
-- [ ] INTERVAL creation via `interval(value, unit)`
+- [x] CURRENT_TIMESTAMP via `F.current_timestamp()`
+- [x] CURRENT_DATE via `F.current_date()`
+- [x] CURRENT_TIME via `F.current_time()`
+- [x] NOW() via `F.now()` (PostgreSQL-specific)
+- [x] EXTRACT via `col("x").dt.extract(field)` (e.g. "year", "month", "day", "hour", "minute", "second")
+- [x] Interval arithmetic via `+` and `-` with intervals
+- [x] INTERVAL creation via `interval(value, unit)` (PostgreSQL-specific)
+- [x] DATE_TRUNC via `col("x").dt.date_trunc(unit)` (PostgreSQL-specific)
 
 ### Null Handling Functions
 - [x] COALESCE via `F.coalesce(*values)`
@@ -318,9 +313,9 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] Dialect-specific type mapping
 
 ### Data Structures Needed
-- [ ] TextAccessor class for .text property
-- [ ] DateTimeAccessor class for .dt property
-- [ ] Interval dataclass
+- [x] TextAccessor class for .text property
+- [x] DateTimeAccessor class for .dt property
+- [x] Interval dataclass (PostgreSQL-specific)
 - [ ] Cast dataclass
 - [ ] Type system (dtype module)
 

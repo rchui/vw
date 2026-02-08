@@ -113,6 +113,22 @@ col("created_at").desc()
 # SQL: created_at DESC
 ```
 
+### Date/Time Accessor
+
+#### `.dt.extract(field)`
+
+Extract a component from a date/time expression using ANSI SQL `EXTRACT`.
+
+```python
+col("created_at").dt.extract("year")    # EXTRACT(YEAR FROM created_at)
+col("ts").dt.extract("month")           # EXTRACT(MONTH FROM ts)
+col("ts").dt.extract("epoch")           # EXTRACT(EPOCH FROM ts)
+```
+
+The `field` is passed directly to SQL and uppercased during rendering (e.g. `"year"` → `YEAR`).
+
+---
+
 ### Conditional Expressions
 
 #### `when(condition).then(result)[.when(condition).then(result)...][.otherwise(result) | .end()]`
@@ -279,6 +295,14 @@ Import as `F` from the dialect module:
 ```python
 from vw.postgres import F
 ```
+
+### Date/Time Functions
+
+| Function | SQL |
+|----------|-----|
+| `F.current_timestamp()` | `CURRENT_TIMESTAMP` |
+| `F.current_date()` | `CURRENT_DATE` |
+| `F.current_time()` | `CURRENT_TIME` |
 
 ### Aggregate Functions
 

@@ -292,6 +292,32 @@ class Desc(Expr):
     expr: Expr
 
 
+# --- Date/Time Expressions ------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Extract(Expr):
+    """Represents EXTRACT(field FROM expr) — ANSI SQL."""
+
+    field: str
+    expr: Expr
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class CurrentTimestamp(Expr):
+    """Represents CURRENT_TIMESTAMP — ANSI SQL."""
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class CurrentDate(Expr):
+    """Represents CURRENT_DATE — ANSI SQL."""
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class CurrentTime(Expr):
+    """Represents CURRENT_TIME — ANSI SQL."""
+
+
 # --- Functions ------------------------------------------------------------- #
 
 

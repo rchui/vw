@@ -301,6 +301,26 @@ class Functions(FactoryT):
         state = Function(name="LAST_VALUE", args=(expr.state,))
         return self.factories.expr(state=state, factories=self.factories)
 
+    # --- Date/Time Functions (SQL-92) -------------------------------------- #
+
+    def current_timestamp(self) -> ExprT:
+        """CURRENT_TIMESTAMP — returns current date and time."""
+        from vw.core.states import CurrentTimestamp
+
+        return self.factories.expr(state=CurrentTimestamp(), factories=self.factories)
+
+    def current_date(self) -> ExprT:
+        """CURRENT_DATE — returns current date."""
+        from vw.core.states import CurrentDate
+
+        return self.factories.expr(state=CurrentDate(), factories=self.factories)
+
+    def current_time(self) -> ExprT:
+        """CURRENT_TIME — returns current time."""
+        from vw.core.states import CurrentTime
+
+        return self.factories.expr(state=CurrentTime(), factories=self.factories)
+
     # --- Null Handling Functions (SQL-92) ---------------------------------- #
 
     def coalesce(self, *exprs: ExprT) -> ExprT:

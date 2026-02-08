@@ -17,10 +17,14 @@ from vw.core.states import (
     Case,
     Cast,
     Column,
+    CurrentDate,
     CurrentRow,
+    CurrentTime,
+    CurrentTimestamp,
     Desc,
     Exists,
     Expr,
+    Extract,
     Following,
     FrameClause,
     Function,
@@ -46,6 +50,7 @@ from vw.core.states import (
     WindowFunction,
 )
 from vw.postgres.base import RowSet
+from vw.postgres.states import DateTrunc, Interval, Now
 
 
 def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> SQL:
@@ -152,6 +157,22 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return f"{render_state(state.expr, ctx)} ASC"
         case Desc():
             return f"{render_state(state.expr, ctx)} DESC"
+
+        # --- Date/Time Expressions ------------------------------------- #
+        case Extract():
+            return f"EXTRACT({state.field.upper()} FROM {render_state(state.expr, ctx)})"
+        case CurrentTimestamp():
+            return "CURRENT_TIMESTAMP"
+        case CurrentDate():
+            return "CURRENT_DATE"
+        case CurrentTime():
+            return "CURRENT_TIME"
+        case Now():
+            return "NOW()"
+        case Interval():
+            return f"INTERVAL '{state.amount} {state.unit}'"
+        case DateTrunc():
+            return f"DATE_TRUNC('{state.unit}', {render_state(state.expr, ctx)})"
 
         # --- Functions ------------------------------------------------- #
         case Function():
