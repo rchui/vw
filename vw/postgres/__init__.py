@@ -12,5 +12,6 @@ from vw.postgres.public import following as following
 from vw.postgres.public import param as param
 from vw.postgres.public import preceding as preceding
 from vw.postgres.public import ref as ref
+from vw.postgres.public import values as values
 from vw.postgres.public import when as when
 from vw.postgres.render import render as render

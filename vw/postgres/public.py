@@ -1,3 +1,5 @@
+from typing import Any
+
 from vw.core.base import Factories
 from vw.core.case import When as When
 from vw.core.frame import CURRENT_ROW as CURRENT_ROW
@@ -116,6 +118,31 @@ def exists(subquery: RowSet, /) -> Expression:
     return Expression(state=Exists(subquery=subquery.state), factories=Factories(expr=Expression, rowset=RowSet))
 
 
+def values(alias: str, /, *rows: dict[str, Any]) -> RowSet:
+    """Create a VALUES clause from an alias and row dictionaries.
+
+    The alias is required because VALUES must always be named when used
+    as a row source in FROM, JOIN, or CTE contexts.
+
+    Args:
+        alias: The name for the VALUES source.
+        *rows: Row dictionaries where keys are column names.
+
+    Returns:
+        A RowSet wrapping a Values state.
+
+    Example:
+        >>> values("t", {"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"})
+        ...     .select(col("id"), col("name"))
+    """
+    from vw.core.states import Values
+
+    return RowSet(
+        state=Values(rows=rows, alias=alias),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
+
+
 def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
     """Create a Common Table Expression (CTE).
 
@@ -151,7 +178,7 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, Reference, SetOperation
+    from vw.core.states import CTE, Reference, SetOperation, Values
 
     state = query.state
 
@@ -173,8 +200,8 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
             distinct=stmt_state.distinct,
             joins=stmt_state.joins,
         )
-    elif isinstance(state, SetOperation):
-        # Wrap SetOperation in a CTE
+    elif isinstance(state, (SetOperation, Values)):
+        # Wrap SetOperation/Values in a CTE
         cte_state = CTE(
             name=name,
             recursive=recursive,

@@ -18,6 +18,7 @@ from vw.core.states import (
     Divide,
     Equals,
     Exists,
+    ExpressionState,
     Following,
     FrameClause,
     Function,
@@ -46,6 +47,7 @@ from vw.core.states import (
     Subtract,
     UnboundedFollowing,
     UnboundedPreceding,
+    Values,
     WindowFunction,
 )
 from vw.postgres.base import Expression, RowSet
@@ -71,8 +73,8 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
     """
     ctx = RenderContext(config=config or RenderConfig(param_style=ParamStyle.DOLLAR))
 
-    # Top-level Reference renders with FROM prefix; everything else renders directly
-    if isinstance(obj.state, Reference):
+    # Top-level Reference and Values render with FROM prefix; everything else renders directly
+    if isinstance(obj.state, (Reference, Values)):
         query = f"FROM {render_state(obj.state, ctx)}"
     else:
         query = render_state(obj.state, ctx)
@@ -104,6 +106,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_statement(state, ctx)
         case Reference():
             return render_source(state, ctx)
+        case Values():
+            return render_values(state, ctx)
         case Column():
             return render_column(state)
         case Parameter():
@@ -220,12 +224,13 @@ def render_state(state: object, ctx: RenderContext) -> str:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
-def render_source(source: CTE | Statement | SetOperation | Reference, ctx: RenderContext) -> str:
-    """Render a source (CTE, Statement subquery, SetOperation, or Reference) to SQL.
+def render_source(source: CTE | Statement | SetOperation | Reference | Values, ctx: RenderContext) -> str:
+    """Render a source (CTE, Statement subquery, SetOperation, Reference, or Values) to SQL.
 
     For CTEs: registers the CTE body and returns the CTE name reference.
     For Statements/SetOperations: wraps in parens as a subquery.
     For References: renders the table/view name.
+    For Values: renders the VALUES clause with alias and column list.
     """
     if isinstance(source, CTE):
         ctx.register_cte(source.name, render_state(source, ctx), source.recursive)
@@ -237,10 +242,50 @@ def render_source(source: CTE | Statement | SetOperation | Reference, ctx: Rende
         if source.alias:
             return f"{sql} AS {source.alias}"
         return sql
+    elif isinstance(source, Values):
+        return render_values(source, ctx)
     else:
         if source.alias:
             return f"{source.name} AS {source.alias}"
         return source.name
+
+
+def render_values(values_src: Values, ctx: RenderContext) -> str:
+    """Render a VALUES clause to SQL.
+
+    Args:
+        values_src: A Values source to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string (e.g., "(VALUES ($1, $2)) AS t(id, name)").
+
+    Raises:
+        ValueError: If alias is missing or rows is empty.
+    """
+    if not values_src.alias:
+        raise ValueError("VALUES requires an alias")
+    if not values_src.rows:
+        raise ValueError("VALUES requires at least one row")
+
+    columns = list(values_src.rows[0].keys())
+    row_sqls = []
+    for row_idx, row in enumerate(values_src.rows):
+        placeholders = []
+        for col_idx, col_name in enumerate(columns):
+            value = row[col_name]
+            if isinstance(value, Expression):
+                placeholders.append(render_state(value.state, ctx))
+            elif isinstance(value, ExpressionState):
+                placeholders.append(render_state(value, ctx))
+            else:
+                param_name = f"_v{row_idx}_{col_idx}_{col_name}"
+                placeholders.append(ctx.add_param(param_name, value))
+        row_sqls.append(f"({', '.join(placeholders)})")
+
+    values_sql = f"VALUES {', '.join(row_sqls)}"
+    col_list = ", ".join(columns)
+    return f"({values_sql}) AS {values_src.alias}({col_list})"
 
 
 def render_cte(cte: CTE, ctx: RenderContext) -> str:

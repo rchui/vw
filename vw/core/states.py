@@ -30,6 +30,17 @@ class Reference(Source):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
+class Values(Source):
+    """Represents a VALUES clause as a row source.
+
+    Can be used in FROM clauses, JOINs, and CTEs.
+    Requires an alias when used as a source.
+    """
+
+    rows: tuple[dict[str, object], ...]
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
 class Column(ExpressionState):
     """Represents a column reference."""
 
@@ -76,7 +87,7 @@ class Join(Generic[ExprT]):
     """Represents a SQL join clause."""
 
     jtype: JoinType
-    right: Reference | Statement[ExprT] | SetOperation[ExprT]
+    right: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
     on: tuple[ExprT, ...] = field(default_factory=tuple)
     using: tuple[ExprT, ...] = field(default_factory=tuple)
 
@@ -85,7 +96,7 @@ class Join(Generic[ExprT]):
 class Statement(Source, Generic[ExprT]):
     """Represents a SELECT query."""
 
-    source: Reference | Statement[ExprT] | SetOperation[ExprT]
+    source: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
     columns: tuple[ExprT, ...] = field(default_factory=tuple)
     where_conditions: tuple[ExprT, ...] = field(default_factory=tuple)
     group_by_columns: tuple[ExprT, ...] = field(default_factory=tuple)
@@ -293,7 +304,7 @@ class IsNotNull(ExpressionState):
 class Exists(ExpressionState, Generic[ExprT]):
     """Represents EXISTS subquery check."""
 
-    subquery: Reference | Statement[ExprT] | SetOperation[ExprT]
+    subquery: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
 
 
 # --- Conditional Expressions ----------------------------------------------- #
@@ -322,9 +333,9 @@ class Case(ExpressionState):
 class SetOperation(Source, Generic[ExprT]):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Reference | Statement[ExprT] | SetOperation[ExprT]
+    left: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Reference | Statement[ExprT] | SetOperation[ExprT]
+    right: Reference | Statement[ExprT] | SetOperation[ExprT] | Values
 
 
 # --- Common Table Expressions ---------------------------------------------- #
