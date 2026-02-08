@@ -43,17 +43,3 @@ class DateTimeAccessor(Generic[ExprT, RowSetT]):
     def weekday(self) -> ExprT:
         """EXTRACT(DOW FROM expr) — extract the day of week (0=Sunday)."""
         return self.extract("dow")
-
-    def date(self) -> ExprT:
-        """Cast to DATE — extract the date component from a timestamp."""
-        from vw.core.states import Cast
-
-        state = Cast(expr=self.expr.state, data_type="date")
-        return self.expr.factories.expr(state=state, factories=self.expr.factories)
-
-    def time(self) -> ExprT:
-        """Cast to TIME — extract the time component from a timestamp."""
-        from vw.core.states import Cast
-
-        state = Cast(expr=self.expr.state, data_type="time")
-        return self.expr.factories.expr(state=state, factories=self.expr.factories)

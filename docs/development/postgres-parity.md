@@ -298,7 +298,6 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [x] NOW() via `F.now()` (PostgreSQL-specific)
 - [x] EXTRACT via `col("x").dt.extract(field)` (e.g. "year", "month", "day", "hour", "minute", "second")
 - [x] EXTRACT shortcuts: `col("x").dt.quarter()`, `.dt.week()`, `.dt.weekday()` (DOW)
-- [x] Date/time component extraction: `col("x").dt.date()` (::date), `col("x").dt.time()` (::time)
 - [x] Interval arithmetic via `+` and `-` with intervals
 - [x] INTERVAL creation via `interval(value, unit)` (PostgreSQL-specific)
 - [x] DATE_TRUNC via `col("x").dt.date_trunc(unit)` (PostgreSQL-specific)
