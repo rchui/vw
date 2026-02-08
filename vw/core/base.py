@@ -8,6 +8,7 @@ from vw.core.protocols import Stateful
 if TYPE_CHECKING:
     from vw.core.joins import JoinAccessor
     from vw.core.states import Expr, Reference, SetOperation, Statement, Values
+    from vw.core.text import TextAccessor
 
 ExprT = TypeVar("ExprT", bound="Expression")
 RowSetT = TypeVar("RowSetT", bound="RowSet")
@@ -387,6 +388,18 @@ class Expression(Stateful, FactoryT):
 
         state = replace(self.state, frame=frame)
         return self.factories.expr(state=state, factories=self.factories)
+
+    @property
+    def text(self) -> TextAccessor[ExprT, RowSetT]:
+        """Access string functions on this expression.
+
+        Example:
+            >>> col("name").text.upper()
+            >>> col("email").text.lower().alias("lower_email")
+        """
+        from vw.core.text import TextAccessor
+
+        return TextAccessor(self)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

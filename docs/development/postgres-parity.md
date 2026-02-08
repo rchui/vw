@@ -280,16 +280,16 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 ## 📋 Phase 7: Scalar Functions
 
 ### String Functions
-- [ ] UPPER via `col("x").text.upper()`
-- [ ] LOWER via `col("x").text.lower()`
-- [ ] TRIM via `col("x").text.trim()`
-- [ ] LTRIM via `col("x").text.ltrim()`
-- [ ] RTRIM via `col("x").text.rtrim()`
-- [ ] LENGTH via `col("x").text.length()`
-- [ ] SUBSTRING via `col("x").text.substring(start, length)`
-- [ ] REPLACE via `col("x").text.replace(old, new)`
-- [ ] CONCAT via `col("x").text.concat(other)` or `+` operator
-- [ ] String concatenation operator `||`
+- [x] UPPER via `col("x").text.upper()`
+- [x] LOWER via `col("x").text.lower()`
+- [x] TRIM via `col("x").text.trim()`
+- [x] LTRIM via `col("x").text.ltrim()`
+- [x] RTRIM via `col("x").text.rtrim()`
+- [x] LENGTH via `col("x").text.length()`
+- [x] SUBSTRING via `col("x").text.substring(start, length)`
+- [x] REPLACE via `col("x").text.replace(old, new)`
+- [x] CONCAT via `col("x").text.concat(*others)`
+- [ ] String concatenation operator `||` via `expr.op("||", other)` (pending .op() implementation)
 
 ### Date/Time Functions
 - [ ] CURRENT_TIMESTAMP via `F.current_timestamp()`
