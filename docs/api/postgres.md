@@ -104,6 +104,31 @@ print(result.params)  # {'name': value, ...}
 
 ---
 
+## Types
+
+`vw.postgres.types` provides type functions for use with `.cast()`. Each function returns the SQL type string. All core types are re-exported, plus PostgreSQL-specific additions.
+
+```python
+from vw.postgres import types
+
+col("id").cast(types.INTEGER())          # id::INTEGER
+col("name").cast(types.VARCHAR(255))     # name::VARCHAR(255)
+col("price").cast(types.NUMERIC(10, 2)) # price::NUMERIC(10,2)
+col("ts").cast(types.TIMESTAMPTZ())      # ts::TIMESTAMPTZ
+col("data").cast(types.JSONB())          # data::JSONB
+```
+
+### PostgreSQL-specific types
+
+| Function | SQL |
+|----------|-----|
+| `types.TIMESTAMPTZ()` | `TIMESTAMPTZ` |
+| `types.JSONB()` | `JSONB` |
+
+For all core types (`INTEGER`, `VARCHAR`, `NUMERIC`, etc.) see [core types](core.md#cast).
+
+---
+
 ## Date/Time
 
 ### PostgreSQL-specific functions

@@ -1,5 +1,6 @@
 """Integration tests for operators and expressions."""
 
+import vw.postgres.types as types
 from tests.utils import sql
 from vw.postgres import col, param, ref, render
 
@@ -339,6 +340,50 @@ def describe_expression_modifiers() -> None:
         """
 
         q = ref("users").select(col("id").cast("text"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_cast_with_type_function() -> None:
+        expected_sql = """
+        SELECT id::INTEGER
+        FROM users
+        """
+
+        q = ref("users").select(col("id").cast(types.INTEGER()))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_cast_with_varchar_type() -> None:
+        expected_sql = """
+        SELECT name::VARCHAR(255)
+        FROM users
+        """
+
+        q = ref("users").select(col("name").cast(types.VARCHAR(255)))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_cast_with_numeric_type() -> None:
+        expected_sql = """
+        SELECT price::NUMERIC(10,2)
+        FROM products
+        """
+
+        q = ref("products").select(col("price").cast(types.NUMERIC(10, 2)))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_cast_with_timestamptz_type() -> None:
+        expected_sql = """
+        SELECT created_at::TIMESTAMPTZ
+        FROM events
+        """
+
+        q = ref("events").select(col("created_at").cast(types.TIMESTAMPTZ()))
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}

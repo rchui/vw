@@ -101,9 +101,21 @@ col("deleted_at").is_null()
 
 #### `.cast(data_type)`
 
+Accepts a raw string or a type function from `vw.core.types` (or `vw.postgres.types`).
+
 ```python
 col("age").cast("INTEGER")
 # SQL: age::INTEGER
+
+from vw.postgres import types
+col("age").cast(types.INTEGER())
+# SQL: age::INTEGER
+
+col("name").cast(types.VARCHAR(255))
+# SQL: name::VARCHAR(255)
+
+col("price").cast(types.NUMERIC(10, 2))
+# SQL: price::NUMERIC(10,2)
 ```
 
 #### `.asc()` / `.desc()`

@@ -308,16 +308,16 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [x] LEAST via `F.least(*values)`
 
 ### Type Casting
-- [ ] CAST via `col("x").cast(dtype)`
-- [ ] Type constructors (VARCHAR, INTEGER, TIMESTAMP, etc.)
-- [ ] Dialect-specific type mapping
+- [x] CAST via `col("x").cast(dtype)`
+- [x] Type constructors via `vw.core.types` and `vw.postgres.types` functions
+- [ ] Dialect-specific type name aliasing (future work)
 
 ### Data Structures Needed
 - [x] TextAccessor class for .text property
 - [x] DateTimeAccessor class for .dt property
 - [x] Interval dataclass (PostgreSQL-specific)
-- [ ] Cast dataclass
-- [ ] Type system (dtype module)
+- [x] Cast dataclass
+- [x] Type system (`vw.core.types` and `vw.postgres.types` modules)
 
 ---
 
