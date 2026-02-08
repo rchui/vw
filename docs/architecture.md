@@ -49,7 +49,8 @@ Immutable dataclasses representing SQL concepts:
 **Expressions:**
 - **Column** - Column reference (qualified or unqualified)
 - **Parameter** - Query parameter with name and value
-- **Operators** - Equals, LessThan, Add, And, etc.
+- **Operator** - Generic infix binary operator (=, <, +, AND, ||, etc.)
+- **Not** - Logical NOT (unary)
 - **Functions** - Function calls (aggregate/window)
 - **Window** - Window function with OVER clause
 
@@ -65,7 +66,8 @@ Wrapper classes that provide fluent APIs:
 
 **Expression**
 - Wraps any expression state
-- Provides operator overloads (`==`, `<`, `>`, `+`, `-`, etc.)
+- Provides `.op(operator, other)` for arbitrary infix operators
+- Provides operator overloads (`==`, `<`, `>`, `+`, `-`, etc.) that delegate to `.op()`
 - Provides methods (`.like()`, `.is_null()`, `.cast()`, etc.)
 - Returns new Expression instances
 
@@ -231,7 +233,8 @@ min_age: Expression = param("min_age", 18)
    RowSet(state=Statement(
        source=Source(name="users"),
        columns=[Column(name="id"), Column(name="name")],
-       where=[Equals(
+       where=[Operator(
+           operator=">=",
            left=Column(name="age"),
            right=Parameter(name="min_age", value=18)
        )]
@@ -247,7 +250,7 @@ min_age: Expression = param("min_age", 18)
    ```
    Statement → SELECT ... FROM ... WHERE ...
    Column → "id", "name"
-   Equals → age = $min_age
+   Operator(>=) → age >= $min_age
    Parameter → collected into params dict
    ```
 

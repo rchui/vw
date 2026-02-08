@@ -5,43 +5,31 @@ import pytest
 from vw.core.render import RenderConfig, RenderContext
 from vw.core.states import (
     CTE,
-    Add,
     Alias,
-    And,
     Asc,
     Between,
     Cast,
     Column,
     CurrentRow,
     Desc,
-    Divide,
-    Equals,
     Exists,
     Following,
     FrameClause,
     Function,
-    GreaterThan,
-    GreaterThanOrEqual,
     IsIn,
     IsNotIn,
     IsNotNull,
     IsNull,
-    LessThan,
-    LessThanOrEqual,
     Like,
-    Modulo,
-    Multiply,
     Not,
     NotBetween,
-    NotEquals,
     NotLike,
-    Or,
+    Operator,
     Parameter,
     Preceding,
     Reference,
     SetOperation,
     Statement,
-    Subtract,
     UnboundedFollowing,
     UnboundedPreceding,
     WindowFunction,
@@ -103,45 +91,51 @@ def describe_render_state() -> None:
 
     def describe_comparison_operators() -> None:
         def it_renders_equals(ctx: RenderContext) -> None:
-            assert render_state(Equals(left=Column(name="a"), right=Column(name="b")), ctx) == "a = b"
+            assert render_state(Operator(operator="=", left=Column(name="a"), right=Column(name="b")), ctx) == "a = b"
 
         def it_renders_not_equals(ctx: RenderContext) -> None:
-            assert render_state(NotEquals(left=Column(name="a"), right=Column(name="b")), ctx) == "a <> b"
+            assert render_state(Operator(operator="<>", left=Column(name="a"), right=Column(name="b")), ctx) == "a <> b"
 
         def it_renders_less_than(ctx: RenderContext) -> None:
-            assert render_state(LessThan(left=Column(name="a"), right=Column(name="b")), ctx) == "a < b"
+            assert render_state(Operator(operator="<", left=Column(name="a"), right=Column(name="b")), ctx) == "a < b"
 
         def it_renders_less_than_or_equal(ctx: RenderContext) -> None:
-            assert render_state(LessThanOrEqual(left=Column(name="a"), right=Column(name="b")), ctx) == "a <= b"
+            assert render_state(Operator(operator="<=", left=Column(name="a"), right=Column(name="b")), ctx) == "a <= b"
 
         def it_renders_greater_than(ctx: RenderContext) -> None:
-            assert render_state(GreaterThan(left=Column(name="a"), right=Column(name="b")), ctx) == "a > b"
+            assert render_state(Operator(operator=">", left=Column(name="a"), right=Column(name="b")), ctx) == "a > b"
 
         def it_renders_greater_than_or_equal(ctx: RenderContext) -> None:
-            assert render_state(GreaterThanOrEqual(left=Column(name="a"), right=Column(name="b")), ctx) == "a >= b"
+            assert render_state(Operator(operator=">=", left=Column(name="a"), right=Column(name="b")), ctx) == "a >= b"
 
     def describe_arithmetic_operators() -> None:
         def it_renders_add(ctx: RenderContext) -> None:
-            assert render_state(Add(left=Column(name="a"), right=Column(name="b")), ctx) == "a + b"
+            assert render_state(Operator(operator="+", left=Column(name="a"), right=Column(name="b")), ctx) == "a + b"
 
         def it_renders_subtract(ctx: RenderContext) -> None:
-            assert render_state(Subtract(left=Column(name="a"), right=Column(name="b")), ctx) == "a - b"
+            assert render_state(Operator(operator="-", left=Column(name="a"), right=Column(name="b")), ctx) == "a - b"
 
         def it_renders_multiply(ctx: RenderContext) -> None:
-            assert render_state(Multiply(left=Column(name="a"), right=Column(name="b")), ctx) == "a * b"
+            assert render_state(Operator(operator="*", left=Column(name="a"), right=Column(name="b")), ctx) == "a * b"
 
         def it_renders_divide(ctx: RenderContext) -> None:
-            assert render_state(Divide(left=Column(name="a"), right=Column(name="b")), ctx) == "a / b"
+            assert render_state(Operator(operator="/", left=Column(name="a"), right=Column(name="b")), ctx) == "a / b"
 
         def it_renders_modulo(ctx: RenderContext) -> None:
-            assert render_state(Modulo(left=Column(name="a"), right=Column(name="b")), ctx) == "a % b"
+            assert render_state(Operator(operator="%", left=Column(name="a"), right=Column(name="b")), ctx) == "a % b"
 
     def describe_logical_operators() -> None:
         def it_renders_and(ctx: RenderContext) -> None:
-            assert render_state(And(left=Column(name="a"), right=Column(name="b")), ctx) == "(a) AND (b)"
+            assert (
+                render_state(Operator(operator="AND", left=Column(name="a"), right=Column(name="b")), ctx)
+                == "(a) AND (b)"
+            )
 
         def it_renders_or(ctx: RenderContext) -> None:
-            assert render_state(Or(left=Column(name="a"), right=Column(name="b")), ctx) == "(a) OR (b)"
+            assert (
+                render_state(Operator(operator="OR", left=Column(name="a"), right=Column(name="b")), ctx)
+                == "(a) OR (b)"
+            )
 
         def it_renders_not(ctx: RenderContext) -> None:
             assert render_state(Not(operand=Column(name="a")), ctx) == "NOT (a)"

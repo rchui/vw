@@ -11,9 +11,7 @@ if TYPE_CHECKING:
 
 from vw.core.states import (
     CTE,
-    Add,
     Alias,
-    And,
     Asc,
     Between,
     Case,
@@ -21,37 +19,27 @@ from vw.core.states import (
     Column,
     CurrentRow,
     Desc,
-    Divide,
-    Equals,
     Exists,
     Expr,
     Following,
     FrameClause,
     Function,
-    GreaterThan,
-    GreaterThanOrEqual,
     IsIn,
     IsNotIn,
     IsNotNull,
     IsNull,
     Join,
-    LessThan,
-    LessThanOrEqual,
     Like,
-    Modulo,
-    Multiply,
     Not,
     NotBetween,
-    NotEquals,
     NotLike,
-    Or,
+    Operator,
     Parameter,
     Preceding,
     Reference,
     ScalarSubquery,
     SetOperation,
     Statement,
-    Subtract,
     UnboundedFollowing,
     UnboundedPreceding,
     Values,
@@ -120,37 +108,15 @@ def render_state(state: object, ctx: RenderContext) -> str:
         case Parameter():
             return render_parameter(state, ctx)
 
-        # --- Comparison Operators -------------------------------------- #
-        case Equals():
-            return f"{render_state(state.left, ctx)} = {render_state(state.right, ctx)}"
-        case NotEquals():
-            return f"{render_state(state.left, ctx)} <> {render_state(state.right, ctx)}"
-        case LessThan():
-            return f"{render_state(state.left, ctx)} < {render_state(state.right, ctx)}"
-        case LessThanOrEqual():
-            return f"{render_state(state.left, ctx)} <= {render_state(state.right, ctx)}"
-        case GreaterThan():
-            return f"{render_state(state.left, ctx)} > {render_state(state.right, ctx)}"
-        case GreaterThanOrEqual():
-            return f"{render_state(state.left, ctx)} >= {render_state(state.right, ctx)}"
-
-        # --- Arithmetic Operators -------------------------------------- #
-        case Add():
-            return f"{render_state(state.left, ctx)} + {render_state(state.right, ctx)}"
-        case Subtract():
-            return f"{render_state(state.left, ctx)} - {render_state(state.right, ctx)}"
-        case Multiply():
-            return f"{render_state(state.left, ctx)} * {render_state(state.right, ctx)}"
-        case Divide():
-            return f"{render_state(state.left, ctx)} / {render_state(state.right, ctx)}"
-        case Modulo():
-            return f"{render_state(state.left, ctx)} % {render_state(state.right, ctx)}"
+        # --- Binary Operators ------------------------------------------ #
+        case Operator():
+            left = render_state(state.left, ctx)
+            right = render_state(state.right, ctx)
+            if state.operator in ("AND", "OR"):
+                return f"({left}) {state.operator} ({right})"
+            return f"{left} {state.operator} {right}"
 
         # --- Logical Operators ----------------------------------------- #
-        case And():
-            return f"({render_state(state.left, ctx)}) AND ({render_state(state.right, ctx)})"
-        case Or():
-            return f"({render_state(state.left, ctx)}) OR ({render_state(state.right, ctx)})"
         case Not():
             return f"NOT ({render_state(state.operand, ctx)})"
 

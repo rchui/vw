@@ -156,6 +156,7 @@ uv run ty check        # Type check
 - SQLAlchemy integration → `docs/quickstart.md` (Using with SQLAlchemy), `docs/api/postgres.md` (Using with SQLAlchemy)
 
 ### API Reference - Expression Class
+- Generic infix operator (.op()) → `docs/api/core.md` (Generic Operator)
 - Comparison operators (==, !=, <, <=, >, >=) → `docs/api/core.md` (Comparison Operators)
 - Arithmetic operators (+, -, *, /, %) → `docs/api/core.md` (Arithmetic Operators)
 - Logical operators (&, |, ~) → `docs/api/core.md` (Logical Operators)

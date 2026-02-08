@@ -14,7 +14,20 @@ The core API consists of:
 
 The `Expression` class wraps expression states and provides operators and methods for building SQL expressions.
 
+### Generic Operator
+
+#### `.op(operator, other)`
+
+Create any infix binary operator expression. Useful for database-specific operators not covered by the built-in methods.
+
+```python
+col("first_name").op("||", col("last_name"))
+# SQL: first_name || last_name
+```
+
 ### Comparison Operators
+
+All comparison operators delegate to `.op()` internally.
 
 | Operator | SQL | Example |
 |----------|-----|---------|

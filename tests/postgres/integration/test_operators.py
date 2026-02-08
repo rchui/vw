@@ -442,6 +442,18 @@ def describe_parameter_types() -> None:
         assert result.params == {"name": "O'Brien"}
 
 
+def describe_generic_operator() -> None:
+    def it_renders_generic_op() -> None:
+        expected_sql = """
+            SELECT first_name || last_name
+            FROM users
+        """
+        q = ref("users").select(col("first_name").op("||", col("last_name")))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+
 def describe_real_world_patterns() -> None:
     def it_builds_filtered_price_query() -> None:
         expected_sql = """

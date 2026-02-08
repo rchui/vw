@@ -104,117 +104,19 @@ class Statement(Source):
     joins: tuple[Join, ...] = field(default_factory=tuple)
 
 
-# --- Comparison Operators -------------------------------------------------- #
+# --- Binary Operators ------------------------------------------------------ #
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Equals(Expr):
-    """Represents an equality comparison (=)."""
+class Operator(Expr):
+    """Represents an infix binary operator (e.g. =, +, AND, ||)."""
 
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class NotEquals(Expr):
-    """Represents an inequality comparison (<>)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class LessThan(Expr):
-    """Represents a less than comparison (<)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class LessThanOrEqual(Expr):
-    """Represents a less than or equal comparison (<=)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class GreaterThan(Expr):
-    """Represents a greater than comparison (>)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class GreaterThanOrEqual(Expr):
-    """Represents a greater than or equal comparison (>=)."""
-
-    left: Expr
-    right: Expr
-
-
-# --- Arithmetic Operators -------------------------------------------------- #
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Add(Expr):
-    """Represents an addition expression (+)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Subtract(Expr):
-    """Represents a subtraction expression (-)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Multiply(Expr):
-    """Represents a multiplication expression (*)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Divide(Expr):
-    """Represents a division expression (/)."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Modulo(Expr):
-    """Represents a modulo expression (%)."""
-
+    operator: str
     left: Expr
     right: Expr
 
 
 # --- Logical Operators ----------------------------------------------------- #
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class And(Expr):
-    """Represents a logical AND expression."""
-
-    left: Expr
-    right: Expr
-
-
-@dataclass(eq=False, frozen=True, kw_only=True)
-class Or(Expr):
-    """Represents a logical OR expression."""
-
-    left: Expr
-    right: Expr
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
