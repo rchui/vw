@@ -307,10 +307,10 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] INTERVAL creation via `interval(value, unit)`
 
 ### Null Handling Functions
-- [ ] COALESCE via `F.coalesce(*values)`
-- [ ] NULLIF via `F.nullif(value1, value2)`
-- [ ] GREATEST via `F.greatest(*values)`
-- [ ] LEAST via `F.least(*values)`
+- [x] COALESCE via `F.coalesce(*values)`
+- [x] NULLIF via `F.nullif(value1, value2)`
+- [x] GREATEST via `F.greatest(*values)`
+- [x] LEAST via `F.least(*values)`
 
 ### Type Casting
 - [ ] CAST via `col("x").cast(dtype)`

@@ -300,3 +300,77 @@ class Functions(FactoryT):
 
         state = Function(name="LAST_VALUE", args=(expr.state,))
         return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Null Handling Functions (SQL-92) ---------------------------------- #
+
+    def coalesce(self, *exprs: ExprT) -> ExprT:
+        """Create a COALESCE() function. Returns first non-NULL value.
+
+        Args:
+            *exprs: Two or more expressions to evaluate in order.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.coalesce(col("nickname"), col("name"))
+            >>> F.coalesce(col("a"), col("b"), param("default", "unknown"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="COALESCE", args=tuple(e.state for e in exprs))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def nullif(self, expr1: ExprT, expr2: ExprT) -> ExprT:
+        """Create a NULLIF() function. Returns NULL if expr1 == expr2.
+
+        Args:
+            expr1: First expression.
+            expr2: Second expression to compare against.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Example:
+            >>> F.nullif(col("value"), param("sentinel", 0))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="NULLIF", args=(expr1.state, expr2.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def greatest(self, *exprs: ExprT) -> ExprT:
+        """Create a GREATEST() function. Returns largest non-NULL value.
+
+        Args:
+            *exprs: Two or more expressions to compare.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.greatest(col("a"), col("b"))
+            >>> F.greatest(col("a"), col("b"), col("c"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="GREATEST", args=tuple(e.state for e in exprs))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def least(self, *exprs: ExprT) -> ExprT:
+        """Create a LEAST() function. Returns smallest non-NULL value.
+
+        Args:
+            *exprs: Two or more expressions to compare.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.least(col("a"), col("b"))
+            >>> F.least(col("a"), col("b"), col("c"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="LEAST", args=tuple(e.state for e in exprs))
+        return self.factories.expr(state=state, factories=self.factories)
