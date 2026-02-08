@@ -153,6 +153,7 @@ uv run ty check        # Type check
 - Joins (INNER, LEFT, RIGHT, FULL, CROSS) → `docs/quickstart.md` (Joins)
 - CTEs → `docs/quickstart.md` (CTEs)
 - FILTER clause → `docs/quickstart.md` (FILTER Clause)
+- Grouping Sets (ROLLUP, CUBE, GROUPING SETS) → `docs/quickstart.md` (Grouping Sets), `docs/api/postgres.md` (Factory Functions > rollup/cube/grouping_sets)
 - SQLAlchemy integration → `docs/quickstart.md` (Using with SQLAlchemy), `docs/api/postgres.md` (Using with SQLAlchemy)
 
 ### API Reference - Expression Class
@@ -180,6 +181,7 @@ uv run ty check        # Type check
 - F.count/sum/avg/min/max (aggregates) → `docs/api/core.md` (Functions > Aggregate Functions)
 - F.row_number/rank/dense_rank/ntile/lag/lead/first_value/last_value (window) → `docs/api/core.md` (Functions > Window Functions)
 - F.current_timestamp/current_date/current_time (ANSI date/time) → `docs/api/core.md` (Functions > Date/Time Functions)
+- F.grouping() (grouping sets) → `docs/api/core.md` (Functions > Grouping Functions), `docs/api/postgres.md` (Date/Time > Grouping Functions)
 - F.now() (PostgreSQL) → `docs/api/postgres.md` (Date/Time)
 
 ### API Reference - Window Frames
@@ -193,6 +195,9 @@ uv run ty check        # Type check
 - exists() factory → `docs/api/postgres.md` (Factory Functions > exists)
 - values() factory → `docs/api/postgres.md` (Factory Functions > values)
 - cte() factory → `docs/api/postgres.md` (Factory Functions > cte)
+- rollup() factory → `docs/api/postgres.md` (Factory Functions > rollup)
+- cube() factory → `docs/api/postgres.md` (Factory Functions > cube)
+- grouping_sets() factory → `docs/api/postgres.md` (Factory Functions > grouping_sets)
 - interval() factory → `docs/api/postgres.md` (Factory Functions > interval)
 - render() function → `docs/api/postgres.md` (Factory Functions > render)
 - .dt.date_trunc(unit) (PostgreSQL DATE_TRUNC) → `docs/api/postgres.md` (Date/Time)

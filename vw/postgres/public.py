@@ -240,6 +240,74 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
     return RowSet(state=cte_state, factories=Factories(expr=Expression, rowset=RowSet))
 
 
+def rollup(*columns: Expression) -> Expression:
+    """Create a ROLLUP grouping construct for hierarchical subtotals.
+
+    Args:
+        *columns: Columns to include in the ROLLUP.
+
+    Returns:
+        An Expression wrapping a Rollup state.
+
+    Example:
+        >>> ref("sales").select(col("region"), col("product"), F.sum(col("amount")))
+        ...     .group_by(rollup(col("region"), col("product")))
+    """
+    from vw.core.states import Rollup
+
+    return Expression(
+        state=Rollup(columns=tuple(c.state for c in columns)),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
+
+
+def cube(*columns: Expression) -> Expression:
+    """Create a CUBE grouping construct for all dimension combinations.
+
+    Args:
+        *columns: Columns to include in the CUBE.
+
+    Returns:
+        An Expression wrapping a Cube state.
+
+    Example:
+        >>> ref("sales").select(col("region"), col("product"), F.sum(col("amount")))
+        ...     .group_by(cube(col("region"), col("product")))
+    """
+    from vw.core.states import Cube
+
+    return Expression(
+        state=Cube(columns=tuple(c.state for c in columns)),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
+
+
+def grouping_sets(*sets: tuple[Expression, ...]) -> Expression:
+    """Create a GROUPING SETS construct for explicit grouping combinations.
+
+    Args:
+        *sets: Tuples of column expressions defining each grouping set.
+               Use an empty tuple () for the grand total row.
+
+    Returns:
+        An Expression wrapping a GroupingSets state.
+
+    Example:
+        >>> ref("sales").select(col("region"), col("product"), F.sum(col("amount")))
+        ...     .group_by(grouping_sets(
+        ...         (col("region"), col("product")),
+        ...         (col("region"),),
+        ...         (),
+        ...     ))
+    """
+    from vw.core.states import GroupingSets
+
+    return Expression(
+        state=GroupingSets(sets=tuple(tuple(e.state for e in s) for s in sets)),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
+
+
 def interval(amount: int | float, unit: str, /) -> Expression:
     """Create a PostgreSQL INTERVAL literal expression.
 

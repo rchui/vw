@@ -323,6 +323,30 @@ class CurrentTime(Expr):
     """Represents CURRENT_TIME — ANSI SQL."""
 
 
+# --- Grouping Constructs --------------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Rollup(Expr):
+    """ROLLUP grouping construct for hierarchical subtotals."""
+
+    columns: tuple[Expr, ...]
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Cube(Expr):
+    """CUBE grouping construct for all dimension combinations."""
+
+    columns: tuple[Expr, ...]
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class GroupingSets(Expr):
+    """GROUPING SETS construct for explicit grouping combinations."""
+
+    sets: tuple[tuple[Expr, ...], ...]
+
+
 # --- Functions ------------------------------------------------------------- #
 
 

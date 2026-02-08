@@ -424,9 +424,9 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 ### PostgreSQL Advanced Features
 - [ ] FOR UPDATE / FOR SHARE locking
-- [ ] GROUPING SETS
-- [ ] CUBE
-- [ ] ROLLUP
+- [x] GROUPING SETS
+- [x] CUBE
+- [x] ROLLUP
 - [ ] FILTER clause (already in Phase 3)
 
 ---

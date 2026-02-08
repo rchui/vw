@@ -308,6 +308,14 @@ Import as `F` from the dialect module:
 from vw.postgres import F
 ```
 
+### Grouping Functions
+
+| Function | SQL |
+|----------|-----|
+| `F.grouping(col("x"), ...)` | `GROUPING(x, ...)` |
+
+For use with `GROUP BY ROLLUP(...)`, `CUBE(...)`, or `GROUPING SETS(...)` to identify which grouping columns are aggregated in each output row.
+
 ### Date/Time Functions
 
 | Function | SQL |

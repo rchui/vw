@@ -7,12 +7,15 @@ from vw.postgres.public import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
 from vw.postgres.public import F as F
 from vw.postgres.public import col as col
 from vw.postgres.public import cte as cte
+from vw.postgres.public import cube as cube
 from vw.postgres.public import exists as exists
 from vw.postgres.public import following as following
+from vw.postgres.public import grouping_sets as grouping_sets
 from vw.postgres.public import interval as interval
 from vw.postgres.public import param as param
 from vw.postgres.public import preceding as preceding
 from vw.postgres.public import ref as ref
+from vw.postgres.public import rollup as rollup
 from vw.postgres.public import values as values
 from vw.postgres.public import when as when
 from vw.postgres.render import render as render

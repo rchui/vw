@@ -5,7 +5,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 ## Import
 
 ```python
-from vw.postgres import ref, col, param, when, exists, cte, interval, render, F
+from vw.postgres import ref, col, param, when, exists, cte, interval, rollup, cube, grouping_sets, render, F
 ```
 
 ## Factory Functions
@@ -79,6 +79,42 @@ values("t", {"id": 1, "ts": param("now", "NOW()")}).select(col("*"))
 # SQL: SELECT * FROM (VALUES ($1, $now)) AS t(id, ts)
 ```
 
+### `rollup(*columns)`
+
+Create a ROLLUP grouping construct for hierarchical subtotals.
+
+```python
+ref("sales").select(col("region"), col("product"), F.sum(col("amount")).alias("total"))
+    .group_by(rollup(col("region"), col("product")))
+# SQL: SELECT region, product, SUM(amount) AS total FROM sales GROUP BY ROLLUP (region, product)
+```
+
+### `cube(*columns)`
+
+Create a CUBE grouping construct for all combinations of dimensions.
+
+```python
+ref("sales").select(col("region"), col("product"), F.sum(col("amount")).alias("total"))
+    .group_by(cube(col("region"), col("product")))
+# SQL: SELECT region, product, SUM(amount) AS total FROM sales GROUP BY CUBE (region, product)
+```
+
+### `grouping_sets(*sets)`
+
+Create a GROUPING SETS construct for explicit grouping combinations. Use `()` (empty tuple) for the grand total row.
+
+```python
+ref("sales").select(col("region"), col("product"), F.sum(col("amount")).alias("total"))
+    .group_by(grouping_sets(
+        (col("region"), col("product")),
+        (col("region"),),
+        (),
+    ))
+# SQL: SELECT region, product, SUM(amount) AS total
+#      FROM sales
+#      GROUP BY GROUPING SETS ((region, product), (region), ())
+```
+
 ### `interval(amount, unit)`
 
 Create a PostgreSQL `INTERVAL` literal. Use with `+` and `-` for date arithmetic.
@@ -130,6 +166,22 @@ For all core types (`INTEGER`, `VARCHAR`, `NUMERIC`, etc.) see [core types](core
 ---
 
 ## Date/Time
+
+### Grouping Functions
+
+| Function | SQL |
+|----------|-----|
+| `F.grouping(col("x"), ...)` | `GROUPING(x, ...)` |
+
+Use `F.grouping()` in SELECT to identify which columns are aggregated in each grouping set row.
+
+```python
+ref("sales").select(
+    col("region"),
+    F.sum(col("amount")).alias("total"),
+    F.grouping(col("region")).alias("is_grand_total"),
+).group_by(grouping_sets((col("region"),), ()))
+```
 
 ### PostgreSQL-specific functions
 
@@ -353,3 +405,4 @@ See [PostgreSQL Parity](../development/postgres-parity.md) for the full roadmap.
 - Conditional expressions (CASE WHEN)
 - Parameters and rendering
 - Scalar functions: string (.text), null handling, date/time (.dt)
+- Grouping constructs (ROLLUP, CUBE, GROUPING SETS) and GROUPING() function

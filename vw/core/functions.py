@@ -321,6 +321,25 @@ class Functions(FactoryT):
 
         return self.factories.expr(state=CurrentTime(), factories=self.factories)
 
+    # --- Grouping Functions (SQL:1999) ------------------------------------- #
+
+    def grouping(self, *exprs: ExprT) -> ExprT:
+        """GROUPING() function for identifying grouping level in GROUPING SETS/CUBE/ROLLUP.
+
+        Args:
+            *exprs: Column expressions to check grouping status.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Example:
+            >>> F.grouping(col("region"), col("product"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="GROUPING", args=tuple(e.state for e in exprs))
+        return self.factories.expr(state=state, factories=self.factories)
+
     # --- Null Handling Functions (SQL-92) ---------------------------------- #
 
     def coalesce(self, *exprs: ExprT) -> ExprT:

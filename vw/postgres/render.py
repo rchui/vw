@@ -17,6 +17,7 @@ from vw.core.states import (
     Case,
     Cast,
     Column,
+    Cube,
     CurrentDate,
     CurrentRow,
     CurrentTime,
@@ -28,6 +29,7 @@ from vw.core.states import (
     Following,
     FrameClause,
     Function,
+    GroupingSets,
     IsIn,
     IsNotIn,
     IsNotNull,
@@ -41,6 +43,7 @@ from vw.core.states import (
     Parameter,
     Preceding,
     Reference,
+    Rollup,
     ScalarSubquery,
     SetOperation,
     Statement,
@@ -173,6 +176,22 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return f"INTERVAL '{state.amount} {state.unit}'"
         case DateTrunc():
             return f"DATE_TRUNC('{state.unit}', {render_state(state.expr, ctx)})"
+
+        # --- Grouping Constructs --------------------------------------- #
+        case Rollup():
+            cols = ", ".join(render_state(c, ctx) for c in state.columns)
+            return f"ROLLUP ({cols})"
+        case Cube():
+            cols = ", ".join(render_state(c, ctx) for c in state.columns)
+            return f"CUBE ({cols})"
+        case GroupingSets():
+            rendered = []
+            for group in state.sets:
+                if not group:
+                    rendered.append("()")
+                else:
+                    rendered.append(f"({', '.join(render_state(e, ctx) for e in group)})")
+            return f"GROUPING SETS ({', '.join(rendered)})"
 
         # --- Functions ------------------------------------------------- #
         case Function():

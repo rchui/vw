@@ -227,6 +227,45 @@ result = render(active.select(col("id"), col("name")))
 # SELECT id, name FROM active
 ```
 
+## Grouping Sets
+
+Use `ROLLUP`, `CUBE`, and `GROUPING SETS` for multi-dimensional aggregation.
+
+```python
+from vw.postgres import ref, col, render, rollup, cube, grouping_sets, F
+
+# ROLLUP — hierarchical subtotals
+render(
+    ref("sales")
+    .select(col("region"), col("product"), F.sum(col("amount")).alias("total"))
+    .group_by(rollup(col("region"), col("product")))
+)
+# GROUP BY ROLLUP (region, product)
+
+# CUBE — all combinations
+render(
+    ref("sales")
+    .select(col("region"), col("product"), F.sum(col("amount")).alias("total"))
+    .group_by(cube(col("region"), col("product")))
+)
+# GROUP BY CUBE (region, product)
+
+# GROUPING SETS — explicit combinations (use () for grand total)
+render(
+    ref("sales")
+    .select(
+        col("region"), col("product"),
+        F.sum(col("amount")).alias("total"),
+        F.grouping(col("region")).alias("is_region_total"),
+    )
+    .group_by(grouping_sets(
+        (col("region"), col("product")),
+        (col("region"),),
+        (),
+    ))
+)
+```
+
 ## FILTER Clause
 
 ```python
