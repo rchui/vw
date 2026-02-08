@@ -68,22 +68,16 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
         >>> result.params
         {'min_age': 18}
     """
-    # Create rendering context with PostgreSQL defaults
     ctx = RenderContext(config=config or RenderConfig(param_style=ParamStyle.DOLLAR))
 
-    # Top-level Reference should render with FROM
+    # Top-level Reference renders with FROM prefix; everything else renders directly
     if isinstance(obj.state, Reference):
-        query = f"FROM {render_source(obj.state, ctx)}"
-    elif isinstance(obj.state, SetOperation):
-        # Set operations render directly without FROM prefix
-        query = render_set_operation(obj.state, ctx)
+        query = f"FROM {render_state(obj.state, ctx)}"
     else:
         query = render_state(obj.state, ctx)
 
-    # Prepend WITH clause if CTEs exist
     if ctx.ctes:
-        with_clause = render_with_clause(ctx)
-        query = f"{with_clause} {query}"
+        query = f"{render_with_clause(ctx)} {query}"
 
     return SQL(query=query, params=ctx.params)
 
@@ -154,27 +148,11 @@ def render_state(state: object, ctx: RenderContext) -> str:
         case NotLike():
             return f"{render_state(state.left, ctx)} NOT LIKE {render_state(state.right, ctx)}"
         case IsIn():
-            expr_sql = render_state(state.expr, ctx)
-            # Check if subquery (Statement) in values
-            if state.values and isinstance(state.values[0], Statement):
-                # Subquery IN (should be only value)
-                subquery_sql = render_statement(state.values[0], ctx)
-                return f"{expr_sql} IN ({subquery_sql})"
-            else:
-                # Value list IN
-                values = ", ".join(render_state(v, ctx) for v in state.values)
-                return f"{expr_sql} IN ({values})"
+            values = ", ".join(render_state(v, ctx) for v in state.values)
+            return f"{render_state(state.expr, ctx)} IN ({values})"
         case IsNotIn():
-            expr_sql = render_state(state.expr, ctx)
-            # Check if subquery (Statement) in values
-            if state.values and isinstance(state.values[0], Statement):
-                # Subquery NOT IN (should be only value)
-                subquery_sql = render_statement(state.values[0], ctx)
-                return f"{expr_sql} NOT IN ({subquery_sql})"
-            else:
-                # Value list NOT IN
-                values = ", ".join(render_state(v, ctx) for v in state.values)
-                return f"{expr_sql} NOT IN ({values})"
+            values = ", ".join(render_state(v, ctx) for v in state.values)
+            return f"{render_state(state.expr, ctx)} NOT IN ({values})"
         case Between():
             return f"{render_state(state.expr, ctx)} BETWEEN {render_state(state.lower_bound, ctx)} AND {render_state(state.upper_bound, ctx)}"
         case NotBetween():
@@ -233,6 +211,29 @@ def render_state(state: object, ctx: RenderContext) -> str:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
+def render_source(source: CTE | Statement | SetOperation | Reference, ctx: RenderContext) -> str:
+    """Render a source (CTE, Statement subquery, SetOperation, or Reference) to SQL.
+
+    For CTEs: registers the CTE body and returns the CTE name reference.
+    For Statements/SetOperations: wraps in parens as a subquery.
+    For References: renders the table/view name.
+    """
+    if isinstance(source, CTE):
+        ctx.register_cte(source.name, render_state(source, ctx), source.recursive)
+        if source.alias:
+            return f"{source.name} AS {source.alias}"
+        return source.name
+    elif isinstance(source, (Statement, SetOperation)):
+        sql = f"({render_state(source, ctx)})"
+        if source.alias:
+            return f"{sql} AS {source.alias}"
+        return sql
+    else:
+        if source.alias:
+            return f"{source.name} AS {source.alias}"
+        return source.name
+
+
 def render_cte(cte: CTE, ctx: RenderContext) -> str:
     """Render a CTE body.
 
@@ -243,11 +244,9 @@ def render_cte(cte: CTE, ctx: RenderContext) -> str:
     Returns:
         The SQL string for the CTE body.
     """
-    # If CTE source is a set operation, render just that
+    # CTE source may be a set operation (e.g. UNION) or a standard statement
     if isinstance(cte.source, SetOperation):
-        return render_set_operation(cte.source, ctx)
-
-    # Otherwise, render as a Statement (CTE extends Statement)
+        return render_state(cte.source, ctx)
     return render_statement(cte, ctx)
 
 
@@ -265,33 +264,15 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
 
     # SELECT clause (with optional DISTINCT)
     if stmt.columns:
-        select_clause = "SELECT"
         if stmt.distinct:
             select_clause = "SELECT DISTINCT"
+        else:
+            select_clause = "SELECT"
         cols = ", ".join(render_state(col.state, ctx) for col in stmt.columns)
         parts.append(f"{select_clause} {cols}")
 
-    # FROM clause (source can be Reference, Statement for subqueries, or CTE)
-    if isinstance(stmt.source, CTE):
-        # Register CTE and render as CTE reference
-        # First render the CTE body
-        cte_body = render_cte(stmt.source, ctx)
-        ctx.register_cte(stmt.source.name, cte_body, stmt.source.recursive)
-
-        # Render CTE reference with name (and alias if set)
-        if stmt.source.alias:
-            source_sql = f"{stmt.source.name} AS {stmt.source.alias}"
-        else:
-            source_sql = stmt.source.name
-    elif isinstance(stmt.source, Statement):
-        # Subquery
-        source_sql = f"({render_state(stmt.source, ctx)})"
-        if stmt.source.alias:
-            source_sql += f" AS {stmt.source.alias}"
-    else:
-        # Reference
-        source_sql = render_state(stmt.source, ctx)
-    parts.append(f"FROM {source_sql}")
+    # FROM clause
+    parts.append(f"FROM {render_source(stmt.source, ctx)}")
 
     # JOIN clauses
     for join in stmt.joins:
@@ -326,21 +307,6 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
     return " ".join(parts)
 
 
-def render_source(source: Reference, ctx: RenderContext) -> str:
-    """Render a Reference to SQL.
-
-    Args:
-        source: A Reference to render.
-        ctx: Rendering context for parameter collection.
-
-    Returns:
-        The SQL string (e.g., "users" or "users AS u").
-    """
-    if source.alias:
-        return f"{source.name} AS {source.alias}"
-    return source.name
-
-
 def render_column(col: Column) -> str:
     """Render a Column to SQL.
 
@@ -365,7 +331,6 @@ def render_parameter(param: Parameter, ctx: RenderContext) -> str:
     Returns:
         The SQL placeholder string (e.g., "$age" for PostgreSQL).
     """
-    # Add parameter to context and get placeholder
     return ctx.add_param(param.name, param.value)
 
 
@@ -379,38 +344,29 @@ def render_function(func: Function, ctx: RenderContext) -> str:
     Returns:
         The SQL string.
     """
-    # Render function arguments
     if func.args:
-        # Handle special cases for COUNT(DISTINCT ...)
         if func.name == "COUNT(DISTINCT":
-            # COUNT(DISTINCT expr) - close the DISTINCT paren
+            # COUNT(DISTINCT expr) - special name stores the opening
             args_sql = ", ".join(render_state(arg, ctx) for arg in func.args)
             sql = f"COUNT(DISTINCT {args_sql})"
         else:
-            # Normal function with args
-            # Handle integer literals (for NTILE, LAG offset, etc.)
+            # Integer literals (e.g. NTILE(4), LAG offset) render as-is
             rendered_args = []
             for arg in func.args:
                 if isinstance(arg, int):
                     rendered_args.append(str(arg))
                 else:
                     rendered_args.append(render_state(arg, ctx))
-            args_sql = ", ".join(rendered_args)
-            sql = f"{func.name}({args_sql})"
+            sql = f"{func.name}({', '.join(rendered_args)})"
     else:
-        # Function with no args
-        # Handle special case for COUNT(*)
-        if func.name == "COUNT(*)":
-            sql = "COUNT(*)"
-        elif func.name == "COUNT(DISTINCT *)":
-            sql = "COUNT(DISTINCT *)"
+        # COUNT(*) and COUNT(DISTINCT *) store the full expression in the name
+        if func.name in ("COUNT(*)", "COUNT(DISTINCT *)"):
+            sql = func.name
         else:
             sql = f"{func.name}()"
 
-    # Add FILTER clause if present
     if func.filter:
-        filter_sql = render_state(func.filter, ctx)
-        sql += f" FILTER (WHERE {filter_sql})"
+        sql += f" FILTER (WHERE {render_state(func.filter, ctx)})"
 
     return sql
 
@@ -425,10 +381,6 @@ def render_window_function(wf: WindowFunction, ctx: RenderContext) -> str:
     Returns:
         The SQL string.
     """
-    # Render the base function
-    func_sql = render_state(wf.function, ctx)
-
-    # Build OVER clause parts
     over_parts = []
 
     if wf.partition_by:
@@ -442,8 +394,7 @@ def render_window_function(wf: WindowFunction, ctx: RenderContext) -> str:
     if wf.frame:
         over_parts.append(render_state(wf.frame, ctx))
 
-    over_clause = " ".join(over_parts)
-    return f"{func_sql} OVER ({over_clause})"
+    return f"{render_state(wf.function, ctx)} OVER ({' '.join(over_parts)})"
 
 
 def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
@@ -456,16 +407,9 @@ def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
     Returns:
         The SQL string.
     """
-    # Render frame boundaries
-    start_sql = render_state(frame.start, ctx)
-    end_sql = render_state(frame.end, ctx)
-
-    sql = f"{frame.mode} BETWEEN {start_sql} AND {end_sql}"
-
-    # Add EXCLUDE clause if present
+    sql = f"{frame.mode} BETWEEN {render_state(frame.start, ctx)} AND {render_state(frame.end, ctx)}"
     if frame.exclude:
         sql += f" EXCLUDE {frame.exclude}"
-
     return sql
 
 
@@ -479,41 +423,14 @@ def render_join(join: Join, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "INNER JOIN orders AS o ON (u.id = o.user_id)").
     """
+    parts = [f"{join.jtype.value} JOIN {render_source(join.right, ctx)}"]
 
-    # Render right side (can be Reference, Statement, or CTE)
-    if isinstance(join.right, CTE):
-        # Register CTE and render as CTE reference
-        # First render the CTE body
-        cte_body = render_statement(join.right, ctx)
-        ctx.register_cte(join.right.name, cte_body, join.right.recursive)
-
-        # Render CTE reference with name (and alias if set)
-        if join.right.alias:
-            right_sql = f"{join.right.name} AS {join.right.alias}"
-        else:
-            right_sql = join.right.name
-    elif isinstance(join.right, Statement):
-        # Subquery
-        right_sql = f"({render_state(join.right, ctx)})"
-        if join.right.alias:
-            right_sql += f" AS {join.right.alias}"
-    else:
-        # Reference
-        right_sql = render_state(join.right, ctx)
-
-    # Build join clause
-    parts = [f"{join.jtype.value} JOIN {right_sql}"]
-
-    # Add ON clause if present
     if join.on:
-        on_conditions = [render_state(cond.state, ctx) for cond in join.on]
-        on_sql = " AND ".join(on_conditions)
+        on_sql = " AND ".join(render_state(cond.state, ctx) for cond in join.on)
         parts.append(f"ON ({on_sql})")
 
-    # Add USING clause if present
     if join.using:
-        using_columns = [render_state(col.state, ctx) for col in join.using]
-        using_sql = ", ".join(using_columns)
+        using_sql = ", ".join(render_state(col.state, ctx) for col in join.using)
         parts.append(f"USING ({using_sql})")
 
     return " ".join(parts)
@@ -529,11 +446,10 @@ def render_exists(exists: Exists, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "EXISTS (SELECT ...)").
     """
-    # Render subquery (can be Reference or Statement)
+    # Reference needs wrapping as a subquery; Statement/SetOperation render directly
     if isinstance(exists.subquery, Reference):
-        # Reference without SELECT - need to wrap as subquery
         subquery_sql = f"SELECT * FROM {render_state(exists.subquery, ctx)}"
-    else:  # Statement
+    else:
         subquery_sql = render_state(exists.subquery, ctx)
     return f"EXISTS ({subquery_sql})"
 
@@ -548,23 +464,15 @@ def render_set_operation(setop: SetOperation, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "(SELECT ...) UNION (SELECT ...)").
     """
-    # Render left side (Reference, Statement, or SetOperation)
+    # Reference sides need wrapping as SELECT *; Statement/SetOperation render directly
     if isinstance(setop.left, Reference):
         left_sql = f"SELECT * FROM {render_state(setop.left, ctx)}"
-    elif isinstance(setop.left, Statement):
+    else:
         left_sql = render_state(setop.left, ctx)
-    else:  # SetOperation (nested)
-        left_sql = render_state(setop.left, ctx)
-
-    # Render right side (Reference, Statement, or SetOperation)
     if isinstance(setop.right, Reference):
         right_sql = f"SELECT * FROM {render_state(setop.right, ctx)}"
-    elif isinstance(setop.right, Statement):
+    else:
         right_sql = render_state(setop.right, ctx)
-    else:  # SetOperation (nested)
-        right_sql = render_state(setop.right, ctx)
-
-    # Wrap each side in parentheses and combine
     return f"({left_sql}) {setop.operator} ({right_sql})"
 
 
@@ -577,15 +485,9 @@ def render_with_clause(ctx: RenderContext) -> str:
     Returns:
         The WITH clause SQL (e.g., "WITH RECURSIVE cte1 AS (...), cte2 AS (...)").
     """
-    if not ctx.ctes:
-        return ""
-
-    # Check if any CTE is recursive
-    has_recursive = any(cte.recursive for cte in ctx.ctes)
-
-    # Build CTE definitions
-    cte_definitions = [f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes]
-
-    # Build WITH clause
-    with_keyword = "WITH RECURSIVE" if has_recursive else "WITH"
-    return f"{with_keyword} {', '.join(cte_definitions)}"
+    if any(cte.recursive for cte in ctx.ctes):
+        with_keyword = "WITH RECURSIVE"
+    else:
+        with_keyword = "WITH"
+    cte_definitions = ", ".join(f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes)
+    return f"{with_keyword} {cte_definitions}"
