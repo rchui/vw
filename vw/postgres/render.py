@@ -10,6 +10,7 @@ from vw.core.states import (
     And,
     Asc,
     Between,
+    Case,
     Cast,
     Column,
     CurrentRow,
@@ -198,6 +199,14 @@ def render_state(state: object, ctx: RenderContext) -> str:
         # --- Joins ----------------------------------------------------- #
         case Join():
             return render_join(state, ctx)
+
+        # --- Conditional Expressions ----------------------------------- #
+        case Case():
+            whens = " ".join(
+                f"WHEN {render_state(w.condition, ctx)} THEN {render_state(w.result, ctx)}" for w in state.whens
+            )
+            else_sql = f" ELSE {render_state(state.else_result, ctx)}" if state.else_result is not None else ""
+            return f"CASE {whens}{else_sql} END"
 
         # --- Subquery Operators ---------------------------------------- #
         case Exists():

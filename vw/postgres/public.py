@@ -1,4 +1,5 @@
 from vw.core.base import Factories
+from vw.core.case import When as When
 from vw.core.frame import CURRENT_ROW as CURRENT_ROW
 from vw.core.frame import UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING
 from vw.core.frame import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
@@ -73,6 +74,29 @@ def param(name: str, value: object, /) -> Expression:
         >>> param("enabled", True)
     """
     return Expression(state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet))
+
+
+def when(condition: Expression, /) -> When[Expression, RowSet]:
+    """Start a CASE WHEN expression.
+
+    Args:
+        condition: The boolean condition to check.
+
+    Returns:
+        A When builder that must be completed with .then().
+
+    Example:
+        >>> when(col("status") == param("a", "active")).then(param("one", 1))
+        ...     .when(col("status") == param("i", "inactive")).then(param("zero", 0))
+        ...     .otherwise(param("default", -1))
+    """
+    from vw.core.case import When as WhenBuilder
+
+    return WhenBuilder(
+        condition=condition.state,
+        prior_whens=(),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
 
 
 def exists(subquery: RowSet, /) -> Expression:

@@ -241,15 +241,14 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] VALUES with column list
 
 ### Conditional Expressions
-- [ ] CASE WHEN via `when(condition).then(value).otherwise(default)`
-- [ ] Multiple WHEN clauses
-- [ ] Simple CASE (CASE expr WHEN value THEN ...)
-- [ ] Nested CASE expressions
+- ✅ CASE WHEN via `when(condition).then(value).otherwise(default)`
+- ✅ Multiple WHEN clauses
+- ✅ Nested CASE expressions
 
 ### Data Structures Needed
 - [ ] Values dataclass (row value constructor)
-- [ ] Case dataclass (CASE expression)
-- [ ] When dataclass (WHEN clause in CASE)
+- ✅ Case dataclass (CASE expression)
+- ✅ WhenThen dataclass (WHEN/THEN pair in CASE)
 
 ---
 

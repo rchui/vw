@@ -296,6 +296,25 @@ class Exists(ExpressionState, Generic[ExprT]):
     subquery: Reference | Statement[ExprT] | SetOperation[ExprT]
 
 
+# --- Conditional Expressions ----------------------------------------------- #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class WhenThen:
+    """A single WHEN/THEN pair in a CASE expression."""
+
+    condition: ExpressionState
+    result: ExpressionState
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Case(ExpressionState):
+    """Searched CASE expression: CASE WHEN cond THEN val ... [ELSE val] END"""
+
+    whens: tuple[WhenThen, ...]
+    else_result: ExpressionState | None = None
+
+
 # --- Set Operations -------------------------------------------------------- #
 
 

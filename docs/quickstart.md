@@ -1,519 +1,239 @@
 # Quickstart
 
-This guide shows practical examples of building SQL queries with vw.
+Practical examples of building SQL queries with vw.
 
-## Basic SELECT Query
+## Basic SELECT
 
 ```python
-from vw.postgres as vw, col, render
+from vw.postgres import ref, col, render
 
-users = source("users")
-query = users.select(col("id"), col("name"), col("email"))
-
-result = render(query)
-print(result.query)
+result = render(ref("users").select(col("id"), col("name"), col("email")))
 # SELECT id, name, email FROM users
 ```
 
-## SELECT with WHERE
+## WHERE Conditions
 
 ```python
-from vw.postgres as vw, col, param, render
+from vw.postgres import ref, col, param, render
 
-users = source("users")
-query = (
-    users
+result = render(
+    ref("users")
     .select(col("id"), col("name"))
     .where(col("age") >= param("min_age", 18))
     .where(col("status") == param("status", "active"))
 )
-
-result = render(query)
-print(result.query)
 # SELECT id, name FROM users WHERE age >= $min_age AND status = $status
-
-print(result.params)
-# {'min_age': 18, 'status': 'active'}
+# params: {'min_age': 18, 'status': 'active'}
 ```
 
-## Complex WHERE Conditions
+## Complex WHERE
 
 ```python
-from vw.postgres as vw, col, param, render
+from vw.postgres import ref, col, param, render
 
-users = source("users")
+users = ref("users")
 
-# AND conditions (using &)
-query = users.select(col("*")).where(
-    (col("age") >= 18) & (col("verified") == True)
+# AND / OR / NOT
+users.select(col("*")).where(
+    (col("age") >= param("a", 18)) & (col("verified") == param("v", True))
 )
-
-# OR conditions (using |)
-query = users.select(col("*")).where(
-    (col("status") == "active") | (col("status") == "pending")
+users.select(col("*")).where(
+    (col("status") == param("a", "active")) | (col("status") == param("p", "pending"))
 )
-
-# NOT conditions (using ~)
-query = users.select(col("*")).where(
-    ~col("deleted").is_null()
-)
-
-# Complex combinations
-query = users.select(col("*")).where(
-    ((col("age") >= 18) & (col("verified") == True)) |
-    (col("admin") == True)
-)
+users.select(col("*")).where(~col("deleted_at").is_null())
 ```
 
 ## Pattern Matching
 
 ```python
-from vw.postgres as vw, col, render
+from vw.postgres import ref, col, param, render
 
-users = source("users")
+users = ref("users")
 
-# LIKE
-query = users.select(col("email")).where(
-    col("email").like("%@example.com")
-)
-
-# IN
-query = users.select(col("name")).where(
-    col("id").is_in(1, 2, 3, 4, 5)
-)
-
-# BETWEEN
-query = users.select(col("name")).where(
-    col("age").between(18, 65)
-)
-
-# NULL checks
-query = users.select(col("*")).where(
-    col("deleted_at").is_null()
-)
+users.select(col("email")).where(col("email").like(param("p", "%@example.com")))
+users.select(col("name")).where(col("id").is_in(param("a", 1), param("b", 2), param("c", 3)))
+users.select(col("name")).where(col("age").between(param("lo", 18), param("hi", 65)))
+users.select(col("*")).where(col("deleted_at").is_null())
 ```
 
-## Arithmetic Operations
+## Arithmetic
 
 ```python
-from vw.postgres as vw, col, render, F
+from vw.postgres import ref, col, render
 
-orders = source("orders")
-
-# Calculate total with tax
-query = orders.select(
-    col("id"),
-    (col("subtotal") + col("tax")).alias("total")
-)
-
-# Percentage calculation
-query = orders.select(
-    col("id"),
-    ((col("discount") / col("subtotal")) * 100).alias("discount_pct")
+result = render(
+    ref("orders").select(
+        col("id"),
+        (col("subtotal") + col("tax")).alias("total"),
+        ((col("discount") / col("subtotal")) * col("hundred")).alias("discount_pct"),
+    )
 )
 ```
 
 ## Aggregation
 
 ```python
-from vw.postgres as vw, col, render, F
+from vw.postgres import ref, col, param, render, F
 
-orders = source("orders")
-
-# Simple aggregation
-query = orders.select(
-    F.count().alias("total_orders"),
-    F.sum(col("amount")).alias("total_revenue"),
-    F.avg(col("amount")).alias("avg_order_value")
-)
-
-# Aggregation with GROUP BY
-query = (
-    orders
+result = render(
+    ref("orders")
     .select(
         col("customer_id"),
         F.count().alias("order_count"),
-        F.sum(col("amount")).alias("total_spent")
+        F.sum(col("amount")).alias("total_spent"),
     )
     .group_by(col("customer_id"))
-)
-
-# Aggregation with HAVING
-query = (
-    orders
-    .select(
-        col("customer_id"),
-        F.sum(col("amount")).alias("total_spent")
-    )
-    .group_by(col("customer_id"))
-    .having(F.sum(col("amount")) > param("min_spent", 1000))
+    .having(F.sum(col("amount")) > param("min", 1000))
 )
 ```
 
 ## Window Functions
 
 ```python
-from vw.postgres as vw, col, render, F
+from vw.postgres import ref, col, render, F, UNBOUNDED_PRECEDING, CURRENT_ROW
 
-sales = source("sales")
-
-# Row number within partition
-query = sales.select(
-    col("product_id"),
-    col("sale_date"),
-    col("amount"),
-    F.row_number().over(
-        partition_by=[col("product_id")],
-        order_by=[col("sale_date").desc()]
-    ).alias("sale_rank")
-)
-
-# Running total
-query = sales.select(
-    col("sale_date"),
-    col("amount"),
-    F.sum(col("amount")).over(
-        order_by=[col("sale_date").asc()]
-    ).alias("running_total")
-)
-
-# Moving average
-from vw.core.frame import UNBOUNDED_PRECEDING, CURRENT_ROW
-
-query = sales.select(
-    col("sale_date"),
-    col("amount"),
-    F.avg(col("amount")).over(
-        order_by=[col("sale_date").asc()]
-    ).rows_between(
-        UNBOUNDED_PRECEDING,
-        CURRENT_ROW
-    ).alias("cumulative_avg")
+result = render(
+    ref("sales").select(
+        col("sale_date"),
+        col("amount"),
+        F.row_number().over(
+            partition_by=[col("product_id")],
+            order_by=[col("sale_date").desc()]
+        ).alias("rank"),
+        F.sum(col("amount")).over(
+            order_by=[col("sale_date").asc()]
+        ).rows_between(UNBOUNDED_PRECEDING, CURRENT_ROW).alias("running_total"),
+    )
 )
 ```
 
 ## Sorting and Limiting
 
 ```python
-from vw.postgres as vw, col, render
+from vw.postgres import ref, col, render
 
-users = source("users")
-
-# ORDER BY
-query = (
-    users
-    .select(col("name"), col("created_at"))
-    .order_by(col("created_at").desc())
-)
-
-# LIMIT and OFFSET
-query = (
-    users
+result = render(
+    ref("users")
     .select(col("*"))
-    .order_by(col("name").asc())
-    .limit(10)  # First 10 results
+    .order_by(col("name").asc(), col("id").desc())
+    .limit(10, offset=20)
 )
-
-query = (
-    users
-    .select(col("*"))
-    .order_by(col("name").asc())
-    .limit(10, offset=20)  # Results 21-30
-)
+# SELECT * FROM users ORDER BY name ASC, id DESC LIMIT 10 OFFSET 20
 ```
 
-## Distinct
+## Conditional Expressions (CASE)
 
 ```python
-from vw.postgres as vw, col, render
+from vw.postgres import ref, col, param, render, when
 
-orders = source("orders")
-
-# DISTINCT
-query = (
-    orders
-    .select(col("customer_id"))
-    .distinct()
+# Searched CASE with ELSE
+result = render(
+    ref("users").select(
+        col("id"),
+        when(col("age") >= param("adult", 18)).then(param("a", "adult"))
+        .when(col("age") >= param("teen", 13)).then(param("t", "teen"))
+        .otherwise(param("c", "child"))
+        .alias("age_group"),
+    )
 )
+# SELECT id, CASE WHEN age >= $adult THEN $a WHEN age >= $teen THEN $t ELSE $c END AS age_group
+# FROM users
 
-# DISTINCT with multiple columns
-query = (
-    orders
-    .select(col("customer_id"), col("product_id"))
-    .distinct()
-)
-```
-
-## Aliasing
-
-```python
-from vw.postgres as vw, col, render, F
-
-# Column aliases
-users = source("users")
-query = users.select(
-    col("id").alias("user_id"),
-    col("name").alias("full_name"),
-    col("email")
-)
-
-# Table aliases
-users_alias = source("users").alias("u")
-query = users_alias.select(
-    users_alias.col("id"),  # Renders as u.id
-    users_alias.col("name") # Renders as u.name
-)
-
-# Expression aliases
-orders = source("orders")
-query = orders.select(
-    col("id"),
-    (col("quantity") * col("price")).alias("total")
-)
+# CASE without ELSE (NULL when no branch matches)
+when(col("vip") == param("t", True)).then(param("label", "VIP")).end()
 ```
 
 ## Subqueries
 
 ```python
-from vw.postgres as vw, col, render, F
+from vw.postgres import ref, col, param, render
 
-# Subquery in FROM
-users = source("users")
 active_users = (
-    users
+    ref("users")
     .select(col("id"), col("name"))
-    .where(col("status") == "active")
+    .where(col("status") == param("s", "active"))
     .alias("active_users")
 )
-
-# Use subquery as source
-query = active_users.select(col("name"))
-
-result = render(query)
-# SELECT name FROM (SELECT id, name FROM users WHERE status = 'active') AS active_users
+result = render(active_users.select(col("name")).limit(10))
+# SELECT name FROM (SELECT id, name FROM users WHERE status = $s) AS active_users LIMIT 10
 ```
 
 ## Set Operations
 
-Combine multiple queries using set operations with intuitive operators.
-
-### UNION (deduplicates)
-
 ```python
-from vw.postgres as vw, col, render
+from vw.postgres import ref, col, render
 
-# Combine user IDs from two tables, removing duplicates
-users = source("users").select(col("id"))
-admins = source("admins").select(col("id"))
+users = ref("users").select(col("id"))
+admins = ref("admins").select(col("id"))
 
-result = render(users | admins)
-# (SELECT id FROM users) UNION (SELECT id FROM admins)
-```
-
-### UNION ALL (keeps duplicates)
-
-```python
-# Keep all rows including duplicates
-result = render(users + admins)
-# (SELECT id FROM users) UNION ALL (SELECT id FROM admins)
-```
-
-### INTERSECT
-
-```python
-# Find users who are also in banned list
-users = source("users").select(col("id"))
-banned = source("banned").select(col("user_id"))
-
-result = render(users & banned)
-# (SELECT id FROM users) INTERSECT (SELECT user_id FROM banned)
-```
-
-### EXCEPT
-
-```python
-# Find users who are NOT in banned list
-result = render(users - banned)
-# (SELECT id FROM users) EXCEPT (SELECT user_id FROM banned)
-```
-
-### Chaining
-
-```python
-# Combine users, admins, and guests
-users = source("users").select(col("id"))
-admins = source("admins").select(col("id"))
-guests = source("guests").select(col("id"))
-
-result = render((users | admins) | guests)
-# ((SELECT id FROM users) UNION (SELECT id FROM admins)) UNION (SELECT id FROM guests)
-
-# Mix different operations
-result = render((users | admins) - banned)
-# ((SELECT id FROM users) UNION (SELECT id FROM admins)) EXCEPT (SELECT user_id FROM banned)
+render(users | admins)   # UNION (deduplicates)
+render(users + admins)   # UNION ALL (keep duplicates)
+render(users & admins)   # INTERSECT
+render(users - admins)   # EXCEPT
 ```
 
 ## Joins
 
 ```python
-from vw.postgres as vw, col, param, render, F
+from vw.postgres import ref, col, param, render, F
 
-# Basic INNER JOIN
-users = source("users").alias("u")
-orders = source("orders").alias("o")
+u = ref("users").alias("u")
+o = ref("orders").alias("o")
 
-query = (
-    users
-    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-    .select(users.col("name"), orders.col("total"))
+result = render(
+    u.join.inner(o, on=[u.col("id") == o.col("user_id")])
+    .select(u.col("name"), F.count().alias("order_count"))
+    .where(o.col("status") == param("s", "completed"))
+    .group_by(u.col("id"), u.col("name"))
 )
-
-result = render(query)
-# SELECT u.name, o.total
+# SELECT u.name, COUNT(*) AS order_count
 # FROM users AS u
 # INNER JOIN orders AS o ON (u.id = o.user_id)
-
-# LEFT JOIN
-users = source("users").alias("u")
-orders = source("orders").alias("o")
-
-query = (
-    users
-    .join.left(orders, on=[users.col("id") == orders.col("user_id")])
-    .select(
-        users.col("name"),
-        F.count(orders.col("id")).alias("order_count")
-    )
-    .group_by(users.col("id"), users.col("name"))
-)
-
-result = render(query)
-# SELECT u.name, COUNT(o.id) AS order_count
-# FROM users AS u
-# LEFT JOIN orders AS o ON (u.id = o.user_id)
+# WHERE o.status = $s
 # GROUP BY u.id, u.name
+```
 
-# Multiple joins
-users = source("users").alias("u")
-orders = source("orders").alias("o")
-products = source("products").alias("p")
+## CTEs
 
-query = (
-    users
-    .join.inner(orders, on=[users.col("id") == orders.col("user_id")])
-    .join.inner(products, on=[orders.col("product_id") == products.col("id")])
-    .select(
-        users.col("name"),
-        products.col("name").alias("product"),
-        orders.col("quantity")
-    )
-    .where(orders.col("status") == param("status", "completed"))
-)
+```python
+from vw.postgres import ref, col, param, render, cte
 
-result = render(query)
-# SELECT u.name, p.name AS product, o.quantity
-# FROM users AS u
-# INNER JOIN orders AS o ON (u.id = o.user_id)
-# INNER JOIN products AS p ON (o.product_id = p.id)
-# WHERE o.status = $status
-
-# JOIN with multiple conditions (AND-combined)
-users = source("users").alias("u")
-orders = source("orders").alias("o")
-
-query = (
-    users
-    .join.inner(
-        orders,
-        on=[
-            users.col("id") == orders.col("user_id"),
-            orders.col("status") == param("status", "active")
-        ]
-    )
-    .select(users.col("name"), orders.col("total"))
-)
-
-result = render(query)
-# SELECT u.name, o.total
-# FROM users AS u
-# INNER JOIN orders AS o ON (u.id = o.user_id AND o.status = $status)
-
-# CROSS JOIN
-users = source("users").alias("u")
-tags = source("tags").alias("t")
-
-query = (
-    users
-    .join.cross(tags)
-    .select(users.col("name"), tags.col("tag"))
-)
-
-result = render(query)
-# SELECT u.name, t.tag
-# FROM users AS u
-# CROSS JOIN tags AS t
+active = cte("active", ref("users").select(col("*")).where(col("active") == param("t", True)))
+result = render(active.select(col("id"), col("name")))
+# WITH active AS (SELECT * FROM users WHERE active = $t)
+# SELECT id, name FROM active
 ```
 
 ## FILTER Clause
 
 ```python
-from vw.postgres as vw, col, param, render, F
+from vw.postgres import ref, col, param, render, F
 
-orders = source("orders")
-
-# Count with FILTER
-query = orders.select(
-    F.count().filter(col("status") == "completed").alias("completed_count"),
-    F.count().filter(col("status") == "pending").alias("pending_count"),
-    F.sum(col("amount")).filter(col("status") == "completed").alias("completed_revenue")
+result = render(
+    ref("orders").select(
+        F.count().filter(col("status") == param("c", "completed")).alias("completed"),
+        F.count().filter(col("status") == param("p", "pending")).alias("pending"),
+    )
 )
-
-result = render(query)
-# SELECT
-#   COUNT(*) FILTER (WHERE status = 'completed') AS completed_count,
-#   COUNT(*) FILTER (WHERE status = 'pending') AS pending_count,
-#   SUM(amount) FILTER (WHERE status = 'completed') AS completed_revenue
-# FROM orders
 ```
 
-## Complete Example with SQLAlchemy
+## Using with SQLAlchemy
 
 ```python
 from sqlalchemy import create_engine, text
-from vw.postgres as vw, col, param, render, F
+from vw.postgres import ref, col, param, render
 
-# Setup
 engine = create_engine("postgresql://user:pass@localhost/mydb")
+result = render(ref("users").select(col("id")).where(col("age") >= param("min", 18)))
 
-# Build query
-orders = source("orders")
-query = (
-    orders
-    .select(
-        col("customer_id"),
-        F.count().alias("order_count"),
-        F.sum(col("amount")).alias("total_spent"),
-        F.avg(col("amount")).alias("avg_order")
-    )
-    .where(col("created_at") >= param("start_date", "2024-01-01"))
-    .group_by(col("customer_id"))
-    .having(F.count() >= param("min_orders", 5))
-    .order_by(F.sum(col("amount")).desc())
-    .limit(10)
-)
-
-# Render
-result = render(query)
-
-# Execute
 with engine.connect() as conn:
     rows = conn.execute(text(result.query), result.params)
     for row in rows:
-        print(f"Customer {row.customer_id}: {row.order_count} orders, ${row.total_spent}")
+        print(row)
 ```
 
 ## Next Steps
 
-- **[Architecture](architecture.md)** - Understand how vw works
-- **[API Reference](api/index.md)** - Detailed API documentation
+- **[Architecture](architecture.md)** - How vw works
+- **[API Reference](api/core.md)** - Full API documentation
 - **[PostgreSQL API](api/postgres.md)** - PostgreSQL-specific features
