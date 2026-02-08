@@ -48,6 +48,7 @@ from vw.core.states import (
     Parameter,
     Preceding,
     Reference,
+    ScalarSubquery,
     SetOperation,
     Statement,
     Subtract,
@@ -219,6 +220,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return f"CASE {whens}{else_sql} END"
 
         # --- Subquery Operators ---------------------------------------- #
+        case ScalarSubquery():
+            return f"({render_state(state.query, ctx)})"
         case Exists():
             return render_exists(state, ctx)
 

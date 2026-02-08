@@ -29,73 +29,115 @@ class Expression(Stateful, FactoryT):
 
     def __eq__(self, other: ExprT) -> ExprT:  # type: ignore[override]
         """Create an equality comparison (=)."""
-        from vw.core.states import Equals
+        from vw.core.states import Equals, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=Equals(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Equals(left=self.state, right=right), factories=self.factories)
 
     def __ne__(self, other: ExprT) -> ExprT:  # type: ignore[override]
         """Create an inequality comparison (<>)."""
-        from vw.core.states import NotEquals
+        from vw.core.states import NotEquals, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=NotEquals(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=NotEquals(left=self.state, right=right), factories=self.factories)
 
     def __lt__(self, other: ExprT) -> ExprT:
         """Create a less than comparison (<)."""
-        from vw.core.states import LessThan
+        from vw.core.states import LessThan, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=LessThan(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=LessThan(left=self.state, right=right), factories=self.factories)
 
     def __le__(self, other: ExprT) -> ExprT:
         """Create a less than or equal comparison (<=)."""
-        from vw.core.states import LessThanOrEqual
+        from vw.core.states import LessThanOrEqual, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=LessThanOrEqual(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=LessThanOrEqual(left=self.state, right=right), factories=self.factories)
 
     def __gt__(self, other: ExprT) -> ExprT:
         """Create a greater than comparison (>)."""
-        from vw.core.states import GreaterThan
+        from vw.core.states import GreaterThan, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=GreaterThan(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=GreaterThan(left=self.state, right=right), factories=self.factories)
 
     def __ge__(self, other: ExprT) -> ExprT:
         """Create a greater than or equal comparison (>=)."""
-        from vw.core.states import GreaterThanOrEqual
+        from vw.core.states import GreaterThanOrEqual, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(
-            state=GreaterThanOrEqual(left=self.state, right=other.state), factories=self.factories
-        )
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=GreaterThanOrEqual(left=self.state, right=right), factories=self.factories)
 
     # --- Arithmetic Operators ---------------------------------------------- #
 
     def __add__(self, other: ExprT) -> ExprT:
         """Create an addition expression (+)."""
-        from vw.core.states import Add
+        from vw.core.states import Add, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=Add(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Add(left=self.state, right=right), factories=self.factories)
 
     def __sub__(self, other: ExprT) -> ExprT:
         """Create a subtraction expression (-)."""
-        from vw.core.states import Subtract
+        from vw.core.states import ScalarSubquery, SetOperation, Statement, Subtract
 
-        return self.factories.expr(state=Subtract(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Subtract(left=self.state, right=right), factories=self.factories)
 
     def __mul__(self, other: ExprT) -> ExprT:
         """Create a multiplication expression (*)."""
-        from vw.core.states import Multiply
+        from vw.core.states import Multiply, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=Multiply(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Multiply(left=self.state, right=right), factories=self.factories)
 
     def __truediv__(self, other: ExprT) -> ExprT:
         """Create a division expression (/)."""
-        from vw.core.states import Divide
+        from vw.core.states import Divide, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=Divide(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Divide(left=self.state, right=right), factories=self.factories)
 
     def __mod__(self, other: ExprT) -> ExprT:
         """Create a modulo expression (%)."""
-        from vw.core.states import Modulo
+        from vw.core.states import Modulo, ScalarSubquery, SetOperation, Statement
 
-        return self.factories.expr(state=Modulo(left=self.state, right=other.state), factories=self.factories)
+        if isinstance(other.state, (Statement, SetOperation)):
+            right = ScalarSubquery(query=other.state)
+        else:
+            right = other.state
+        return self.factories.expr(state=Modulo(left=self.state, right=right), factories=self.factories)
 
     # --- Logical Operators ------------------------------------------------- #
 
@@ -357,25 +399,37 @@ class RowSet(Stateful, FactoryT):
 
         Transforms Source → Statement if needed.
         For CTEs, creates new Statement with CTE as source.
+        RowSet arguments are automatically wrapped as scalar subqueries.
 
         Args:
-            *columns: Column expressions to select.
+            *columns: Column expressions to select. May include RowSet for scalar subqueries.
 
         Returns:
             A new RowSet with the columns added.
         """
-        from vw.core.states import CTE, Reference, Statement, Values
+        from vw.core.states import CTE, Alias, Reference, ScalarSubquery, SetOperation, Statement, Values
 
-        col_states = tuple(c.state for c in columns)
+        col_states = []
+        for c in columns:
+            if isinstance(c.state, (Statement, SetOperation)):
+                scalar = ScalarSubquery(query=c.state)
+                # Promote source-level alias to column alias (e.g. subquery.alias("x"))
+                if c.state.alias:
+                    col_states.append(Alias(expr=scalar, name=c.state.alias))
+                else:
+                    col_states.append(scalar)
+            else:
+                col_states.append(c.state)
+
         if isinstance(self.state, (Reference, Values)):
             # Transform Source → Statement
-            new_state = Statement(source=self.state, columns=col_states)
+            new_state = Statement(source=self.state, columns=tuple(col_states))
         elif isinstance(self.state, CTE):
             # CTE → new Statement with CTE as source
-            new_state = Statement(source=self.state, columns=col_states)
+            new_state = Statement(source=self.state, columns=tuple(col_states))
         else:
             # Already Statement, update columns
-            new_state = replace(self.state, columns=col_states)
+            new_state = replace(self.state, columns=tuple(col_states))
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 

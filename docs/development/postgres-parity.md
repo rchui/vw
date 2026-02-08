@@ -230,10 +230,10 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 ### Subqueries
 - ✅ Subqueries in FROM (Statement as source)
 - ✅ Subqueries in WHERE with EXISTS via `exists(subquery)`
-- [ ] Subqueries in WHERE with IN via `col("x").is_in(subquery)`
-- [ ] Scalar subqueries in SELECT via `select(subquery.alias("x"))`
-- [ ] Scalar subqueries in comparisons via `col("x") > subquery`
-- [ ] Correlated subqueries
+- ✅ Subqueries in WHERE with IN via `col("x").is_in(subquery)`
+- ✅ Scalar subqueries in SELECT via `select(subquery.alias("x"))`
+- ✅ Scalar subqueries in comparisons via `col("x") > subquery`
+- ✅ Correlated subqueries
 
 ### VALUES Clause
 - ✅ VALUES as row source via `values(alias, *rows)`

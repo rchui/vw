@@ -304,6 +304,13 @@ class Exists(Expr):
     subquery: Reference | Statement | SetOperation | Values
 
 
+@dataclass(eq=False, frozen=True, kw_only=True)
+class ScalarSubquery(Expr):
+    """Represents a subquery used as a scalar expression (e.g., in SELECT or comparisons)."""
+
+    query: Statement | SetOperation
+
+
 # --- Conditional Expressions ----------------------------------------------- #
 
 

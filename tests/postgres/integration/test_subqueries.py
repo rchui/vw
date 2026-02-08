@@ -4,6 +4,48 @@ from tests.utils import sql
 from vw.postgres import F, col, exists, param, ref, render
 
 
+def describe_scalar_subqueries():
+    def it_renders_scalar_subquery_in_select():
+        expected_sql = """
+        SELECT id, (SELECT MAX(amount) FROM orders WHERE user_id = $uid) AS max_order
+        FROM users
+        """
+
+        users = ref("users")
+        orders = ref("orders")
+        subquery = orders.select(F.max(col("amount"))).where(col("user_id") == param("uid", 1))
+
+        result = render(users.select(col("id"), subquery.alias("max_order")))
+        assert result.query == sql(expected_sql)
+        assert result.params == {"uid": 1}
+
+    def it_renders_scalar_subquery_in_comparison():
+        expected_sql = """
+        SELECT * FROM products
+        WHERE price > (SELECT AVG(price) FROM products)
+        """
+
+        products = ref("products")
+        avg_price = products.select(F.avg(col("price")))
+
+        result = render(products.select(col("*")).where(col("price") > avg_price))
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_scalar_subquery_with_parameters():
+        expected_sql = """
+        SELECT * FROM orders
+        WHERE amount > (SELECT AVG(amount) FROM orders WHERE status = $status)
+        """
+
+        orders = ref("orders")
+        avg_subquery = orders.select(F.avg(col("amount"))).where(col("status") == param("status", "complete"))
+
+        result = render(orders.select(col("*")).where(col("amount") > avg_subquery))
+        assert result.query == sql(expected_sql)
+        assert result.params == {"status": "complete"}
+
+
 def describe_exists():
     def it_builds_basic_exists():
         expected_sql = """
