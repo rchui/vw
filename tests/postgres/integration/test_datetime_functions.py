@@ -154,9 +154,15 @@ def describe_date_trunc():
         assert result.params == {}
 
     def test_in_group_by():
-        expected_sql = "SELECT DATE_TRUNC('day', created_at), COUNT(*) FROM events GROUP BY DATE_TRUNC('day', created_at)"
+        expected_sql = (
+            "SELECT DATE_TRUNC('day', created_at), COUNT(*) FROM events GROUP BY DATE_TRUNC('day', created_at)"
+        )
 
-        q = ref("events").select(col("created_at").dt.date_trunc("day"), F.count()).group_by(col("created_at").dt.date_trunc("day"))
+        q = (
+            ref("events")
+            .select(col("created_at").dt.date_trunc("day"), F.count())
+            .group_by(col("created_at").dt.date_trunc("day"))
+        )
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}
