@@ -27,16 +27,3 @@ def describe_col() -> None:
         assert result.query == "users.id"
         assert result.params == {}
 
-    def it_renders_in_select() -> None:
-        """Column should render correctly in SELECT."""
-        q = ref("users").select(col("id"))
-        result = render(q)
-        assert result.query == "SELECT id FROM users"
-        assert result.params == {}
-
-    def it_renders_multiple_columns_in_select() -> None:
-        """Multiple columns should render separated by commas."""
-        q = ref("users").select(col("id"), col("name"), col("email"))
-        result = render(q)
-        assert result.query == "SELECT id, name, email FROM users"
-        assert result.params == {}

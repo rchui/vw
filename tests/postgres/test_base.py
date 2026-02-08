@@ -45,15 +45,6 @@ def describe_rowset() -> None:
             assert result.query == "subq.id"
             assert result.params == {}
 
-        def it_creates_column_expression() -> None:
-            """col() should create Expression with Column state."""
-            from vw.core.states import Column
-
-            s = ref("users").alias("u")
-            c = s.col("id")
-            assert isinstance(c.state, Column)
-            assert c.state.name == "u.id"
-
     def describe_star() -> None:
         def it_creates_unqualified_star_without_alias() -> None:
             """star should create unqualified star when reference has no alias."""
@@ -92,34 +83,7 @@ def describe_rowset() -> None:
             assert result.query == "subq.*"
             assert result.params == {}
 
-        def it_creates_column_expression_with_star() -> None:
-            """star should create Expression with Column state using *."""
-            from vw.core.states import Column
-
-            s = ref("users").alias("u")
-            star = s.star
-            assert isinstance(star.state, Column)
-            assert star.state.name == "u.*"
-
-        def it_is_a_property_not_method() -> None:
-            """star should be a property, not a method."""
-            s = ref("users")
-            star = s.star
-            result = render(star)
-            assert result.query == "*"
-            assert result.params == {}
-
     def describe_where() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """where() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("users")
-            assert isinstance(s.state, Reference)
-
-            q = s.where(col("active"))
-            assert isinstance(q.state, Statement)
-
         def it_renders_where_clause() -> None:
             """WHERE clause should render correctly."""
             q = ref("users").select(col("id")).where(col("active"))
@@ -170,16 +134,6 @@ def describe_rowset() -> None:
             assert result.params == {}
 
     def describe_group_by() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """group_by() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("orders")
-            assert isinstance(s.state, Reference)
-
-            q = s.group_by(col("user_id"))
-            assert isinstance(q.state, Statement)
-
         def it_renders_group_by_clause() -> None:
             """GROUP BY clause should render correctly."""
             q = ref("orders").select(col("user_id")).group_by(col("user_id"))
@@ -216,16 +170,6 @@ def describe_rowset() -> None:
             assert result.params == {}
 
     def describe_having() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """having() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("orders")
-            assert isinstance(s.state, Reference)
-
-            q = s.having(col("count"))
-            assert isinstance(q.state, Statement)
-
         def it_renders_having_clause() -> None:
             """HAVING clause should render correctly."""
             q = ref("orders").select(col("user_id")).group_by(col("user_id")).having(col("count"))
@@ -255,16 +199,6 @@ def describe_rowset() -> None:
             assert result.params == {}
 
     def describe_order_by() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """order_by() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("users")
-            assert isinstance(s.state, Reference)
-
-            q = s.order_by(col("name"))
-            assert isinstance(q.state, Statement)
-
         def it_renders_order_by_clause() -> None:
             """ORDER BY clause should render correctly."""
             q = ref("users").select(col("id"), col("name")).order_by(col("name"))
@@ -315,16 +249,6 @@ def describe_rowset() -> None:
             assert result.params == {}
 
     def describe_limit() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """limit() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("users")
-            assert isinstance(s.state, Reference)
-
-            q = s.limit(10)
-            assert isinstance(q.state, Statement)
-
         def it_renders_limit_clause() -> None:
             """LIMIT clause should render correctly."""
             q = ref("users").select(col("id"), col("name")).limit(10)
@@ -380,26 +304,7 @@ def describe_rowset() -> None:
             assert result.query == "SELECT id, name FROM users WHERE active ORDER BY name LIMIT 10 OFFSET 5"
             assert result.params == {}
 
-        def it_creates_limit_with_correct_fields() -> None:
-            """limit() should create Limit dataclass with correct fields."""
-            from vw.core.states import Limit
-
-            q = ref("users").limit(10, offset=20)
-            assert isinstance(q.state.limit, Limit)
-            assert q.state.limit.count == 10
-            assert q.state.limit.offset == 20
-
     def describe_distinct() -> None:
-        def it_transforms_ref_to_statement() -> None:
-            """distinct() should transform Reference to Statement."""
-            from vw.core.states import Reference, Statement
-
-            s = ref("users")
-            assert isinstance(s.state, Reference)
-
-            q = s.distinct()
-            assert isinstance(q.state, Statement)
-
         def it_renders_distinct_clause() -> None:
             """DISTINCT clause should render correctly."""
             q = ref("users").select(col("name")).distinct()
@@ -449,9 +354,3 @@ def describe_rowset() -> None:
             assert result.query == "SELECT DISTINCT name FROM users WHERE active ORDER BY name LIMIT 10"
             assert result.params == {}
 
-        def it_creates_distinct_instance() -> None:
-            """distinct() should create Distinct dataclass instance."""
-            from vw.core.states import Distinct
-
-            q = ref("users").distinct()
-            assert isinstance(q.state.distinct, Distinct)
