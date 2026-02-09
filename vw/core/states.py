@@ -92,6 +92,7 @@ class Join:
     right: Reference | Statement | SetOperation | Values
     on: tuple[Expr, ...] = field(default_factory=tuple)
     using: tuple[Expr, ...] = field(default_factory=tuple)
+    lateral: bool = False
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

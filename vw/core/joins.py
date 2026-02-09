@@ -16,6 +16,7 @@ def add_join(
     right: RowSet[ExprT, RowSetT],
     on: list[ExprT],
     using: list[ExprT],
+    lateral: bool = False,
 ) -> RowSet[ExprT, RowSetT]:
     """Add a join to a rowset.
 
@@ -25,6 +26,7 @@ def add_join(
         right: The table/subquery to join.
         on: Join conditions (combined with AND).
         using: Column names for USING clause.
+        lateral: If True, create a LATERAL join (allows right side to reference left side).
 
     Returns:
         A new RowSet with the join added.
@@ -43,6 +45,7 @@ def add_join(
         right=right.state,
         on=tuple(c.state for c in on),
         using=tuple(c.state for c in using),
+        lateral=lateral,
     )
 
     # Accumulate join
@@ -57,7 +60,12 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
     _rowset: RowSet[ExprT, RowSetT]
 
     def inner(
-        self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
+        self,
+        right: RowSetT,
+        *,
+        on: list[ExprT] | None = None,
+        using: list[ExprT] | None = None,
+        lateral: bool = False,
     ) -> RowSet[ExprT, RowSetT]:
         """Create an INNER JOIN.
 
@@ -65,16 +73,22 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
             right: The table/subquery to join.
             on: Join conditions (combined with AND).
             using: Column names for USING clause.
+            lateral: If True, create a LATERAL join (allows right side to reference left side).
 
         Returns:
             A new RowSet with the join added.
         """
         from vw.core.states import JoinType
 
-        return add_join(self._rowset, JoinType.INNER, right, on or [], using or [])
+        return add_join(self._rowset, JoinType.INNER, right, on or [], using or [], lateral)
 
     def left(
-        self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
+        self,
+        right: RowSetT,
+        *,
+        on: list[ExprT] | None = None,
+        using: list[ExprT] | None = None,
+        lateral: bool = False,
     ) -> RowSet[ExprT, RowSetT]:
         """Create a LEFT JOIN.
 
@@ -82,16 +96,22 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
             right: The table/subquery to join.
             on: Join conditions (combined with AND).
             using: Column names for USING clause.
+            lateral: If True, create a LATERAL join (allows right side to reference left side).
 
         Returns:
             A new RowSet with the join added.
         """
         from vw.core.states import JoinType
 
-        return add_join(self._rowset, JoinType.LEFT, right, on or [], using or [])
+        return add_join(self._rowset, JoinType.LEFT, right, on or [], using or [], lateral)
 
     def right(
-        self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
+        self,
+        right: RowSetT,
+        *,
+        on: list[ExprT] | None = None,
+        using: list[ExprT] | None = None,
+        lateral: bool = False,
     ) -> RowSet[ExprT, RowSetT]:
         """Create a RIGHT JOIN.
 
@@ -99,16 +119,22 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
             right: The table/subquery to join.
             on: Join conditions (combined with AND).
             using: Column names for USING clause.
+            lateral: If True, create a LATERAL join (allows right side to reference left side).
 
         Returns:
             A new RowSet with the join added.
         """
         from vw.core.states import JoinType
 
-        return add_join(self._rowset, JoinType.RIGHT, right, on or [], using or [])
+        return add_join(self._rowset, JoinType.RIGHT, right, on or [], using or [], lateral)
 
     def full_outer(
-        self, right: RowSetT, *, on: list[ExprT] | None = None, using: list[ExprT] | None = None
+        self,
+        right: RowSetT,
+        *,
+        on: list[ExprT] | None = None,
+        using: list[ExprT] | None = None,
+        lateral: bool = False,
     ) -> RowSet[ExprT, RowSetT]:
         """Create a FULL OUTER JOIN.
 
@@ -116,23 +142,25 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
             right: The table/subquery to join.
             on: Join conditions (combined with AND).
             using: Column names for USING clause.
+            lateral: If True, create a LATERAL join (allows right side to reference left side).
 
         Returns:
             A new RowSet with the join added.
         """
         from vw.core.states import JoinType
 
-        return add_join(self._rowset, JoinType.FULL, right, on or [], using or [])
+        return add_join(self._rowset, JoinType.FULL, right, on or [], using or [], lateral)
 
-    def cross(self, right: RowSetT) -> RowSet[ExprT, RowSetT]:
+    def cross(self, right: RowSetT, *, lateral: bool = False) -> RowSet[ExprT, RowSetT]:
         """Create a CROSS JOIN.
 
         Args:
             right: The table/subquery to join.
+            lateral: If True, create a LATERAL join (allows right side to reference left side).
 
         Returns:
             A new RowSet with the join added.
         """
         from vw.core.states import JoinType
 
-        return add_join(self._rowset, JoinType.CROSS, right, [], [])
+        return add_join(self._rowset, JoinType.CROSS, right, [], [], lateral)

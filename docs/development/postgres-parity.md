@@ -165,7 +165,7 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - ✅ Both ON and USING allowed (no validation, PostgreSQL handles errors)
 
 ### PostgreSQL-Specific Joins
-- [ ] LATERAL joins via `lateral=True` parameter (deferred to Phase 5)
+- ✅ **LATERAL joins via `lateral=True` parameter**
 - [ ] NATURAL JOIN (low priority)
 
 ### Join Chaining
@@ -289,7 +289,7 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [x] SUBSTRING via `col("x").text.substring(start, length)`
 - [x] REPLACE via `col("x").text.replace(old, new)`
 - [x] CONCAT via `col("x").text.concat(*others)`
-- [ ] String concatenation operator `||` via `expr.op("||", other)` (pending .op() implementation)
+- [x] String concatenation operator `||` via `expr.op("||", other)`
 
 ### Date/Time Functions
 - [x] CURRENT_TIMESTAMP via `F.current_timestamp()`
@@ -399,7 +399,7 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 
 ### PostgreSQL Extensions
 - [x] DISTINCT ON via `.distinct(col("x"), ...)` (PostgreSQL-specific override)
-- [ ] LATERAL joins (already in Phase 4)
+- [x] **LATERAL joins** (completed - available via `lateral=True` parameter)
 - [ ] RETURNING clause (already in Phase 8)
 - [ ] INSERT ... ON CONFLICT (already in Phase 8)
 - [ ] UPDATE ... FROM (already in Phase 8)
@@ -418,9 +418,11 @@ Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
 - [ ] STRING_AGG via `F.string_agg(col("x"), separator)` (PostgreSQL syntax, not ANSI LISTAGG)
 - [ ] ARRAY_AGG via `F.array_agg(col("x"))` (ANSI SQL:2003 but deferred from Phase 3)
 - [ ] JSON functions (json_extract_path, etc.)
+- [x] JSON operators (`->`, `->>`, `@>`, `#>`, `#>>`, etc.) via `expr.op("->", other)`
 - [ ] Array functions (array_length, unnest, etc.)
-- [ ] Regex operators (`~`, `~*`, `!~`, `!~*`)
-- [ ] Full-text search (tsvector, tsquery, @@)
+- [x] Array operators (`@>`, `<@`, `&&`, `||`) via `expr.op("@>", other)`
+- [x] Regex operators (`~`, `~*`, `!~`, `!~*`) via `expr.op("~", other)`
+- [x] Full-text search `@@` operator via `expr.op("@@", other)`
 
 ### PostgreSQL Advanced Features
 - [ ] FOR UPDATE / FOR SHARE locking

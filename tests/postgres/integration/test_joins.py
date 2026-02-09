@@ -367,3 +367,278 @@ def describe_self_joins():
         result = render(query)
         assert result.query == sql(expected_sql)
         assert result.params == {}
+
+
+def describe_lateral_joins():
+    def it_builds_inner_join_lateral_basic():
+        expected_sql = """
+        SELECT u.id, o.total
+        FROM users AS u
+        INNER JOIN LATERAL orders AS o ON (u.id = o.user_id)
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+
+        query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")], lateral=True).select(
+            users.col("id"), orders.col("total")
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_left_join_lateral():
+        expected_sql = """
+        SELECT u.id, recent.created_at
+        FROM users AS u
+        LEFT JOIN LATERAL (
+            SELECT created_at
+            FROM orders
+            WHERE user_id = u.id
+            ORDER BY created_at DESC
+            LIMIT 3
+        ) AS recent ON (TRUE)
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders")
+
+        recent_orders = (
+            orders.select(orders.col("created_at"))
+            .where(orders.col("user_id") == users.col("id"))
+            .order_by(orders.col("created_at").desc())
+            .limit(3)
+            .alias("recent")
+        )
+
+        query = users.join.left(recent_orders, on=[col("TRUE")], lateral=True).select(
+            users.col("id"), recent_orders.col("created_at")
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_cross_join_lateral_with_function():
+        expected_sql = """
+        SELECT u.id, n
+        FROM users AS u
+        CROSS JOIN LATERAL generate_series(1, 5) AS n
+        """
+
+        users = ref("users").alias("u")
+        series = ref("generate_series(1, 5)").alias("n")
+
+        query = users.join.cross(series, lateral=True).select(users.col("id"), col("n"))
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_lateral_with_using_clause():
+        expected_sql = """
+        SELECT id, value
+        FROM t1
+        INNER JOIN LATERAL t2 USING (id)
+        """
+
+        t1 = ref("t1")
+        t2 = ref("t2")
+
+        query = t1.join.inner(t2, using=[col("id")], lateral=True).select(col("id"), col("value"))
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_multiple_lateral_joins():
+        expected_sql = """
+        SELECT id, value, value
+        FROM t1
+        LEFT JOIN LATERAL t2 ON (id = t1_id)
+        LEFT JOIN LATERAL t3 ON (id = t2_id)
+        """
+
+        t1 = ref("t1")
+        t2 = ref("t2")
+        t3 = ref("t3")
+
+        query = (
+            t1.join.left(t2, on=[col("id") == col("t1_id")], lateral=True)
+            .join.left(t3, on=[col("id") == col("t2_id")], lateral=True)
+            .select(col("id"), col("value"), col("value"))
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_lateral_with_parameters():
+        expected_sql = """
+        SELECT u.id, recent.total
+        FROM users AS u
+        LEFT JOIN LATERAL (
+            SELECT total
+            FROM orders
+            WHERE (user_id = u.id) AND (status = $status)
+            LIMIT 5
+        ) AS recent ON (TRUE)
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders")
+
+        recent_orders = (
+            orders.select(orders.col("total"))
+            .where((orders.col("user_id") == users.col("id")) & (orders.col("status") == param("status", "active")))
+            .limit(5)
+            .alias("recent")
+        )
+
+        query = users.join.left(recent_orders, on=[col("TRUE")], lateral=True).select(
+            users.col("id"), recent_orders.col("total")
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"status": "active"}
+
+    def it_builds_right_join_lateral():
+        expected_sql = """
+        SELECT id, value
+        FROM t1
+        RIGHT JOIN LATERAL t2 ON (id = t1_id)
+        """
+
+        t1 = ref("t1")
+        t2 = ref("t2")
+
+        query = t1.join.right(t2, on=[col("id") == col("t1_id")], lateral=True).select(col("id"), col("value"))
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_full_outer_join_lateral():
+        expected_sql = """
+        SELECT id, value
+        FROM t1
+        FULL JOIN LATERAL t2 ON (id = t1_id)
+        """
+
+        t1 = ref("t1")
+        t2 = ref("t2")
+
+        query = t1.join.full_outer(t2, on=[col("id") == col("t1_id")], lateral=True).select(col("id"), col("value"))
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_lateral_with_aggregate():
+        expected_sql = """
+        SELECT u.name, recent_stats.total_amount
+        FROM users AS u
+        LEFT JOIN LATERAL (
+            SELECT SUM(total) AS total_amount
+            FROM orders
+            WHERE user_id = u.id
+        ) AS recent_stats ON (TRUE)
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders")
+
+        recent_stats = (
+            orders.select(F.sum(orders.col("total")).alias("total_amount"))
+            .where(orders.col("user_id") == users.col("id"))
+            .alias("recent_stats")
+        )
+
+        query = users.join.left(recent_stats, on=[col("TRUE")], lateral=True).select(
+            users.col("name"), recent_stats.col("total_amount")
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_mixed_lateral_and_regular_joins():
+        expected_sql = """
+        SELECT u.id, o.total, recent.product_id
+        FROM users AS u
+        INNER JOIN orders AS o ON (u.id = o.user_id)
+        LEFT JOIN LATERAL (
+            SELECT product_id
+            FROM order_items
+            WHERE order_id = o.id
+            LIMIT 1
+        ) AS recent ON (TRUE)
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders").alias("o")
+        order_items = ref("order_items")
+
+        recent_item = (
+            order_items.select(order_items.col("product_id"))
+            .where(order_items.col("order_id") == orders.col("id"))
+            .limit(1)
+            .alias("recent")
+        )
+
+        query = (
+            users.join.inner(orders, on=[users.col("id") == orders.col("user_id")])
+            .join.left(recent_item, on=[col("TRUE")], lateral=True)
+            .select(users.col("id"), orders.col("total"), recent_item.col("product_id"))
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_lateral_without_on_clause():
+        expected_sql = """
+        SELECT u.id, n
+        FROM users AS u
+        CROSS JOIN LATERAL generate_series(1, u.id) AS n
+        """
+
+        users = ref("users").alias("u")
+        series = ref("generate_series(1, u.id)").alias("n")
+
+        query = users.join.cross(series, lateral=True).select(users.col("id"), col("n"))
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_builds_lateral_join_with_where_clause():
+        expected_sql = """
+        SELECT u.id, recent.total
+        FROM users AS u
+        LEFT JOIN LATERAL (
+            SELECT total
+            FROM orders
+            WHERE user_id = u.id
+        ) AS recent ON (TRUE)
+        WHERE u.active = $active
+        """
+
+        users = ref("users").alias("u")
+        orders = ref("orders")
+
+        recent_orders = (
+            orders.select(orders.col("total")).where(orders.col("user_id") == users.col("id")).alias("recent")
+        )
+
+        query = (
+            users.join.left(recent_orders, on=[col("TRUE")], lateral=True)
+            .select(users.col("id"), recent_orders.col("total"))
+            .where(users.col("active") == param("active", True))
+        )
+
+        result = render(query)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"active": True}

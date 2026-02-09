@@ -11,8 +11,6 @@ ALWAYS use #runSubagent. Your context window size is limited - especially the ou
 
 ALWAYS use #context7 MCP Server to read relevant documentation. Do this every time you are working with a language, framework, library etc. Never assume that you know the answer as these things change frequently. Your training date is in the past so your knowledge is likely out of date, even if it is a technology you are familiar with.
 
-Each time you complete a task or learn important information about the project, you should update the docs in `.claude/` that might be in the project to reflect any new information that you've learned or changes that require updates to these instructions files.
-
 ALWAYS check your work before returning control to the user. Run tests if available, verify builds, etc. Never return incomplete or unverified work to the user.
 
 Be a good steward of terminal instances. Try and reuse existing terminals where possible and use the VS Code API to close terminals that are no longer needed each time you open a new terminal.
@@ -84,18 +82,7 @@ uv run ty check        # Type check
 - Look for opportunities to refactor related code when making any changes.
 - Remove or simplify code whenever possible.
 
-13. Planning
-- Before starting work, the plan for the work should be written to a numbered and named plan directory under a `.plans` directory in the root of the repo.
-- Within each plan directory should contain:
-  - `research.md`: context gathered to accomplish the plan
-    - If you are unsure about a possible requirement, ask the user to clarify it.
-    - If you you need information about the codebase, search the repo for it.
-    - If you don't understand a concept or know a concept, search the internet for it.
-  - `plan.md`: the contents of the plan.
-  - `todo.md`: a list of tasks to be done to accomplish the plan.
-- For any complex or large pieces of work, you may choose to break them up into logical self contained subplans.
-
-14. Python
+13. Python
 - Favor `from <module> import <ref> as <name>` over `__all__`.
 - When importing modules, use the following hierarchy
   1. TYPE_CHECKING imports if the import is only used for type checking

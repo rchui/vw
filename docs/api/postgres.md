@@ -336,6 +336,46 @@ result = render(
 )
 ```
 
+### LATERAL Joins
+
+LATERAL joins allow the right side of a join to reference columns from the left side, enabling correlated subqueries in the FROM clause. This is useful for:
+- Computing values that depend on earlier tables in the join
+- Getting top-N records per group efficiently
+- Using set-returning functions with correlation
+
+```python
+from vw.postgres import ref, col, render, F
+
+users = ref("users").alias("u")
+orders = ref("orders")
+
+# Get top 3 most recent orders per user
+recent_orders = (
+    orders
+    .select(orders.col("id"), orders.col("total"), orders.col("created_at"))
+    .where(orders.col("user_id") == users.col("id"))  # Correlated with outer query
+    .order_by(orders.col("created_at").desc())
+    .limit(3)
+    .alias("recent")
+)
+
+result = render(
+    users
+    .join.left(recent_orders, on=[col("TRUE")], lateral=True)
+    .select(users.col("name"), recent_orders.col("total"))
+)
+# LEFT JOIN LATERAL (SELECT ...) AS recent ON (TRUE)
+
+# CROSS JOIN LATERAL with set-returning function
+series = ref("generate_series(1, 5)").alias("n")
+result = render(
+    users
+    .join.cross(series, lateral=True)
+    .select(users.col("name"), col("n"))
+)
+# CROSS JOIN LATERAL generate_series(1, 5) AS n
+```
+
 ### CASE Expression
 
 ```python

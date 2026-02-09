@@ -493,7 +493,13 @@ def render_join(join: Join, ctx: RenderContext) -> str:
     Returns:
         The SQL string (e.g., "INNER JOIN orders AS o ON (u.id = o.user_id)").
     """
-    parts = [f"{join.jtype.value} JOIN {render_source(join.right, ctx)}"]
+    right_sql = render_source(join.right, ctx)
+
+    # Handle LATERAL keyword
+    if join.lateral:
+        right_sql = f"LATERAL {right_sql}"
+
+    parts = [f"{join.jtype.value} JOIN {right_sql}"]
 
     if join.on:
         on_sql = " AND ".join(render_state(cond, ctx) for cond in join.on)

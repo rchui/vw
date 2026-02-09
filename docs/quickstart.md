@@ -216,6 +216,42 @@ result = render(
 # GROUP BY u.id, u.name
 ```
 
+## LATERAL Joins
+
+LATERAL joins allow correlated subqueries in the FROM clause. The right side can reference columns from the left side.
+
+```python
+from vw.postgres import ref, col, render
+
+users = ref("users").alias("u")
+orders = ref("orders")
+
+# Get top 3 most recent orders per user
+recent_orders = (
+    orders
+    .select(orders.col("total"), orders.col("created_at"))
+    .where(orders.col("user_id") == users.col("id"))  # References users from outer query
+    .order_by(orders.col("created_at").desc())
+    .limit(3)
+    .alias("recent")
+)
+
+result = render(
+    users
+    .join.left(recent_orders, on=[col("TRUE")], lateral=True)
+    .select(users.col("name"), recent_orders.col("total"))
+)
+# SELECT u.name, recent.total
+# FROM users AS u
+# LEFT JOIN LATERAL (
+#     SELECT total, created_at
+#     FROM orders
+#     WHERE user_id = u.id
+#     ORDER BY created_at DESC
+#     LIMIT 3
+# ) AS recent ON (TRUE)
+```
+
 ## CTEs
 
 ```python
