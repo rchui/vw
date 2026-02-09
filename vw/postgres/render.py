@@ -499,7 +499,7 @@ def render_join(join: Join, ctx: RenderContext) -> str:
     if join.lateral:
         right_sql = f"LATERAL {right_sql}"
 
-    parts = [f"{join.jtype.value} JOIN {right_sql}"]
+    parts = [f"{join.jtype} JOIN {right_sql}"]
 
     if join.on:
         on_sql = " AND ".join(render_state(cond, ctx) for cond in join.on)

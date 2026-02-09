@@ -1,22 +1,9 @@
 """Unit tests for join state construction."""
 
-from vw.core.states import Column, Join, JoinType, Statement
+import pytest
+
+from vw.core.states import Column, Join, Statement
 from vw.postgres import col, ref
-
-
-def describe_join_type_enum():
-    def it_has_correct_values():
-        """JoinType enum should have the correct values."""
-        assert JoinType.INNER == "INNER"
-        assert JoinType.LEFT == "LEFT"
-        assert JoinType.RIGHT == "RIGHT"
-        assert JoinType.FULL == "FULL"
-        assert JoinType.CROSS == "CROSS"
-
-    def it_is_string_enum():
-        """JoinType should be a string enum."""
-        assert isinstance(JoinType.INNER, str)
-        assert str(JoinType.INNER) == "INNER"
 
 
 def describe_join_dataclass():
@@ -25,12 +12,12 @@ def describe_join_dataclass():
         orders = ref("orders")
 
         join = Join(
-            jtype=JoinType.INNER,
+            jtype="INNER",
             right=orders.state,
             on=(Column(name="id"), Column(name="user_id")),
         )
 
-        assert join.jtype == JoinType.INNER
+        assert join.jtype == "INNER"
         assert join.right == orders.state
         assert len(join.on) == 2
         assert len(join.using) == 0
@@ -40,12 +27,12 @@ def describe_join_dataclass():
         orders = ref("orders")
 
         join = Join(
-            jtype=JoinType.LEFT,
+            jtype="LEFT",
             right=orders.state,
             using=(Column(name="user_id"),),
         )
 
-        assert join.jtype == JoinType.LEFT
+        assert join.jtype == "LEFT"
         assert join.right == orders.state
         assert len(join.on) == 0
         assert len(join.using) == 1
@@ -55,16 +42,13 @@ def describe_join_dataclass():
         orders = ref("orders")
 
         join = Join(
-            jtype=JoinType.INNER,
+            jtype="INNER",
             right=orders.state,
             on=(Column(name="id"),),
         )
 
-        try:
-            join.jtype = JoinType.LEFT  # type: ignore[misc]
-            raise AssertionError("Should not be able to modify frozen dataclass")
-        except Exception:
-            pass  # Expected
+        with pytest.raises(AttributeError):
+            join.jtype = "LEFT"  # type: ignore
 
 
 def describe_join_accessor():
@@ -77,7 +61,7 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.INNER
+        assert query.state.joins[0].jtype == "INNER"
 
     def it_creates_left_join_state():
         """JoinAccessor.left() should create correct state."""
@@ -88,7 +72,7 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.LEFT
+        assert query.state.joins[0].jtype == "LEFT"
 
     def it_creates_right_join_state():
         """JoinAccessor.right() should create correct state."""
@@ -99,7 +83,7 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.RIGHT
+        assert query.state.joins[0].jtype == "RIGHT"
 
     def it_creates_full_outer_join_state():
         """JoinAccessor.full_outer() should create correct state."""
@@ -110,7 +94,7 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.FULL
+        assert query.state.joins[0].jtype == "FULL"
 
     def it_creates_cross_join_state():
         """JoinAccessor.cross() should create correct state."""
@@ -121,7 +105,7 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.CROSS
+        assert query.state.joins[0].jtype == "CROSS"
         assert len(query.state.joins[0].on) == 0
         assert len(query.state.joins[0].using) == 0
 
@@ -137,8 +121,8 @@ def describe_join_accessor():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 2
-        assert query.state.joins[0].jtype == JoinType.INNER
-        assert query.state.joins[1].jtype == JoinType.LEFT
+        assert query.state.joins[0].jtype == "INNER"
+        assert query.state.joins[1].jtype == "LEFT"
 
 
 def describe_statement_joins_field():
@@ -165,7 +149,7 @@ def describe_statement_joins_field():
 
         assert isinstance(query.state, Statement)
         assert len(query.state.joins) == 1
-        assert query.state.joins[0].jtype == JoinType.INNER
+        assert query.state.joins[0].jtype == "INNER"
 
 
 def describe_join_with_using_clause():
@@ -204,7 +188,7 @@ def describe_lateral_joins():
         """Join dataclass should support lateral=True."""
         orders = ref("orders")
 
-        join = Join(jtype=JoinType.INNER, right=orders.state, on=(), lateral=True)
+        join = Join(jtype="INNER", right=orders.state, on=(), lateral=True)
 
         assert join.lateral is True
 
@@ -212,7 +196,7 @@ def describe_lateral_joins():
         """Join dataclass should default lateral to False."""
         orders = ref("orders")
 
-        join = Join(jtype=JoinType.INNER, right=orders.state, on=())
+        join = Join(jtype="INNER", right=orders.state, on=())
 
         assert join.lateral is False
 

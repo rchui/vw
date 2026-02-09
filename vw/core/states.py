@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
-from strenum import StrEnum
-
 # --- Base Classes ---------------------------------------------------------- #
 
 
@@ -74,21 +72,12 @@ class Distinct:
 # --- Joins ----------------------------------------------------------------- #
 
 
-class JoinType(StrEnum):
-    """Represents the type of SQL join."""
-
-    INNER = "INNER"
-    LEFT = "LEFT"
-    RIGHT = "RIGHT"
-    FULL = "FULL"
-    CROSS = "CROSS"
-
-
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Join:
     """Represents a SQL join clause."""
 
-    jtype: JoinType
+    jtype: str
+    "Join type (e.g., 'INNER', 'LEFT', 'RIGHT', 'FULL', 'CROSS')"
     right: Reference | Statement | SetOperation | Values
     on: tuple[Expr, ...] = field(default_factory=tuple)
     using: tuple[Expr, ...] = field(default_factory=tuple)

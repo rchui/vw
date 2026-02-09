@@ -7,12 +7,12 @@ from vw.core.base import ExprT, RowSetT
 
 if TYPE_CHECKING:
     from vw.core.base import RowSet
-    from vw.core.states import JoinType
 
 
 def add_join(
+    *,
     rowset: RowSet[ExprT, RowSetT],
-    jtype: JoinType,
+    jtype: str,
     right: RowSet[ExprT, RowSetT],
     on: list[ExprT],
     using: list[ExprT],
@@ -78,9 +78,14 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
         Returns:
             A new RowSet with the join added.
         """
-        from vw.core.states import JoinType
-
-        return add_join(self._rowset, JoinType.INNER, right, on or [], using or [], lateral)
+        return add_join(
+            rowset=self._rowset,
+            jtype="INNER",
+            right=right,
+            on=on or [],
+            using=using or [],
+            lateral=lateral,
+        )
 
     def left(
         self,
@@ -101,9 +106,14 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
         Returns:
             A new RowSet with the join added.
         """
-        from vw.core.states import JoinType
-
-        return add_join(self._rowset, JoinType.LEFT, right, on or [], using or [], lateral)
+        return add_join(
+            rowset=self._rowset,
+            jtype="LEFT",
+            right=right,
+            on=on or [],
+            using=using or [],
+            lateral=lateral,
+        )
 
     def right(
         self,
@@ -124,9 +134,14 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
         Returns:
             A new RowSet with the join added.
         """
-        from vw.core.states import JoinType
-
-        return add_join(self._rowset, JoinType.RIGHT, right, on or [], using or [], lateral)
+        return add_join(
+            rowset=self._rowset,
+            jtype="RIGHT",
+            right=right,
+            on=on or [],
+            using=using or [],
+            lateral=lateral,
+        )
 
     def full_outer(
         self,
@@ -147,9 +162,14 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
         Returns:
             A new RowSet with the join added.
         """
-        from vw.core.states import JoinType
-
-        return add_join(self._rowset, JoinType.FULL, right, on or [], using or [], lateral)
+        return add_join(
+            rowset=self._rowset,
+            jtype="FULL",
+            right=right,
+            on=on or [],
+            using=using or [],
+            lateral=lateral,
+        )
 
     def cross(self, right: RowSetT, *, lateral: bool = False) -> RowSet[ExprT, RowSetT]:
         """Create a CROSS JOIN.
@@ -161,6 +181,11 @@ class JoinAccessor(Generic[ExprT, RowSetT]):
         Returns:
             A new RowSet with the join added.
         """
-        from vw.core.states import JoinType
-
-        return add_join(self._rowset, JoinType.CROSS, right, [], [], lateral)
+        return add_join(
+            rowset=self._rowset,
+            jtype="CROSS",
+            right=right,
+            on=[],
+            using=[],
+            lateral=lateral,
+        )
