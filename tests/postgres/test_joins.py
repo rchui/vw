@@ -274,4 +274,5 @@ def describe_lateral_joins():
 
         query = users.join.inner(orders, on=[col("id") == col("user_id")])
 
+        assert isinstance(query.state, Statement)
         assert query.state.joins[0].lateral is False

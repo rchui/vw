@@ -8,8 +8,7 @@ vw provides a clean, composable API for building SQL queries.
 vw/
 ├── core/         → Dialect-agnostic abstractions
 ├── postgres/     → PostgreSQL-specific implementation
-├── duckdb/       → DuckDB-specific implementation (incomplete)
-└── reference/    → Reference implementation (not documented)
+└── duckdb/       → DuckDB-specific implementation (incomplete)
 ```
 
 ## Quick Reference

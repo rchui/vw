@@ -1,6 +1,5 @@
 # Generic
 .*
-!.plans
 
 # Python
 __pycache__/

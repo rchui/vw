@@ -1,6 +1,6 @@
 # PostgreSQL Parity Roadmap
 
-Feature parity tracking for `vw/postgres/` implementation vs `vw/reference/`.
+Feature parity tracking for `vw/postgres/` implementation.
 
 **Status:** 🚧 In Progress
 **Current Phase:** Phase 5a - Advanced Query Features (Subqueries, VALUES, CASE)

@@ -1,6 +1,6 @@
 # DuckDB Parity Roadmap
 
-Feature parity tracking for `vw/duckdb/` implementation vs `vw/reference/`.
+Feature parity tracking for `vw/duckdb/` implementation.
 
 **Status:** ❌ Not Started
 **Current Phase:** None - waiting for postgres core to stabilize
