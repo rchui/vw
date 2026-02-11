@@ -182,7 +182,7 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, Reference, SetOperation, Values
+    from vw.core.states import CTE, RawSource, Reference, SetOperation, Values
 
     state = query.state
 
@@ -204,12 +204,12 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
             distinct=stmt_state.distinct,
             joins=stmt_state.joins,
         )
-    elif isinstance(state, (SetOperation, Values)):
-        # Wrap SetOperation/Values in a CTE
+    elif isinstance(state, (SetOperation, Values, RawSource)):
+        # Wrap SetOperation/Values/RawSource in a CTE
         cte_state = CTE(
             name=name,
             recursive=recursive,
-            source=state,  # Use SetOperation as source
+            source=state,  # Use source as-is
             alias=None,
             columns=(),
             where_conditions=(),

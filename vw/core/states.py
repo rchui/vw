@@ -35,6 +35,56 @@ class Values(Source):
     rows: tuple[dict[str, object], ...]
 
 
+# --- Raw SQL Escape Hatches ------------------------------------------------ #
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class RawExpr(Expr):
+    """Raw SQL expression with named parameter substitution.
+
+    WARNING: Bypasses vw's type checking and syntax validation.
+    Only use for SQL features vw doesn't support yet.
+
+    The sql field contains a template string with {name} placeholders.
+    The params field contains (name, Expr) tuples for substitution.
+    Rendering happens at render time to support context-dependent features.
+
+    Example:
+        RawExpr(
+            sql="{x} @> {y}",
+            params=(("x", Column(name="tags")), ("y", Parameter(name="tag", value="python")))
+        )
+        # Renders to: tags @> $tag
+    """
+
+    sql: str
+    params: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class RawSource(Source):
+    """Raw SQL source/table expression with named parameter substitution.
+
+    WARNING: Bypasses vw's type checking and syntax validation.
+    Only use for SQL features vw doesn't support yet.
+
+    The sql field contains a template string with {name} placeholders.
+    The params field contains (name, Expr) tuples for substitution.
+    Rendering happens at render time to support context-dependent features.
+
+    Example:
+        RawSource(
+            sql="generate_series(1, {n})",
+            params=(("n", Parameter(name="max", value=10)),),
+            alias="t"
+        )
+        # Renders to: generate_series(1, $max) AS t
+    """
+
+    sql: str
+    params: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
+
+
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Column(Expr):
     """Represents a column reference."""
@@ -78,7 +128,7 @@ class Join:
 
     jtype: str
     "Join type (e.g., 'INNER', 'LEFT', 'RIGHT', 'FULL', 'CROSS')"
-    right: Reference | Statement | SetOperation | Values
+    right: Reference | Statement | SetOperation | Values | RawSource
     on: tuple[Expr, ...] = field(default_factory=tuple)
     using: tuple[Expr, ...] = field(default_factory=tuple)
     lateral: bool = False
@@ -88,7 +138,7 @@ class Join:
 class Statement(Source):
     """Represents a SELECT query."""
 
-    source: Reference | Statement | SetOperation | Values
+    source: Reference | Statement | SetOperation | Values | RawSource
     columns: tuple[Expr, ...] = field(default_factory=tuple)
     where_conditions: tuple[Expr, ...] = field(default_factory=tuple)
     group_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
@@ -198,7 +248,7 @@ class IsNotNull(Expr):
 class Exists(Expr):
     """Represents EXISTS subquery check."""
 
-    subquery: Reference | Statement | SetOperation | Values
+    subquery: Reference | Statement | SetOperation | Values | RawSource
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -234,9 +284,9 @@ class Case(Expr):
 class SetOperation(Source):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Reference | Statement | SetOperation | Values
+    left: Reference | Statement | SetOperation | Values | RawSource
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Reference | Statement | SetOperation | Values
+    right: Reference | Statement | SetOperation | Values | RawSource
 
 
 # --- Common Table Expressions ---------------------------------------------- #

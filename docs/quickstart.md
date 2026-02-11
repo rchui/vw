@@ -330,6 +330,27 @@ with engine.connect() as conn:
         print(row)
 ```
 
+## Unsupported SQL Features
+
+If you need a SQL feature that vw doesn't support yet, use the `raw` namespace as an escape hatch:
+
+```python
+from vw.postgres import raw, col, param, ref, render
+
+# Custom PostgreSQL function
+query = ref("sales").select(
+    raw.expr("percentile_cont({p}) WITHIN GROUP (ORDER BY {amt})",
+             p=param("pct", 0.95),
+             amt=col("amount")).alias("p95")
+)
+
+# Table function
+series = raw.rowset("generate_series(1, {n}) AS t(num)", n=param("max", 10))
+result = render(series.select(col("num")))
+```
+
+⚠️  **Warning**: Raw SQL bypasses vw's safety guarantees. Always use `param()` for user input, never f-strings. See [Raw SQL Escape Hatches](api/postgres.md#raw-sql-escape-hatches) for details.
+
 ## Next Steps
 
 - **[Architecture](architecture.md)** - How vw works

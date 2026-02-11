@@ -42,6 +42,8 @@ from vw.core.states import (
     Operator,
     Parameter,
     Preceding,
+    RawExpr,
+    RawSource,
     Reference,
     Rollup,
     ScalarSubquery,
@@ -235,17 +237,24 @@ def render_state(state: object, ctx: RenderContext) -> str:
         case SetOperation():
             return render_set_operation(state, ctx)
 
+        # --- Raw SQL Escape Hatches ------------------------------------ #
+        case RawExpr():
+            return render_raw_expr(state, ctx)
+        case RawSource():
+            return render_raw_source(state, ctx)
+
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
-def render_source(source: CTE | Statement | SetOperation | Reference | Values, ctx: RenderContext) -> str:
-    """Render a source (CTE, Statement subquery, SetOperation, Reference, or Values) to SQL.
+def render_source(source: CTE | Statement | SetOperation | Reference | Values | RawSource, ctx: RenderContext) -> str:
+    """Render a source (CTE, Statement subquery, SetOperation, Reference, Values, or RawSource) to SQL.
 
     For CTEs: registers the CTE body and returns the CTE name reference.
     For Statements/SetOperations: wraps in parens as a subquery.
     For References: renders the table/view name.
     For Values: renders the VALUES clause with alias and column list.
+    For RawSource: renders raw SQL with parameter substitution.
     """
     if isinstance(source, CTE):
         ctx.register_cte(source.name, render_state(source, ctx), source.recursive)
@@ -259,6 +268,8 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values, c
         return sql
     elif isinstance(source, Values):
         return render_values(source, ctx)
+    elif isinstance(source, RawSource):
+        return render_state(source, ctx)
     else:
         if source.alias:
             return f"{source.name} AS {source.alias}"
@@ -567,3 +578,48 @@ def render_with_clause(ctx: RenderContext) -> str:
         with_keyword = "WITH"
     cte_definitions = ", ".join(f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes)
     return f"{with_keyword} {cte_definitions}"
+
+
+def render_raw_expr(raw_expr: RawExpr, ctx: RenderContext) -> str:
+    """Render a RawExpr to SQL with named parameter substitution.
+
+    Args:
+        raw_expr: A RawExpr to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string with placeholders substituted.
+
+    Example:
+        RawExpr(sql="{x} @> {y}", params=(("x", Column("tags")), ("y", Parameter("tag", "python"))))
+        renders to: tags @> $tag
+    """
+    sql = raw_expr.sql
+    for name, expr_state in raw_expr.params:
+        rendered = render_state(expr_state, ctx)
+        sql = sql.replace(f"{{{name}}}", rendered)
+    return sql
+
+
+def render_raw_source(raw_source: RawSource, ctx: RenderContext) -> str:
+    """Render a RawSource to SQL with named parameter substitution.
+
+    Args:
+        raw_source: A RawSource to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string with placeholders substituted and optional alias.
+
+    Example:
+        RawSource(sql="generate_series(1, {n})", params=(("n", Parameter("max", 10)),), alias="t")
+        renders to: generate_series(1, $max) AS t
+    """
+    sql = raw_source.sql
+    for name, expr_state in raw_source.params:
+        rendered = render_state(expr_state, ctx)
+        sql = sql.replace(f"{{{name}}}", rendered)
+    # Add alias if present (note: alias might already be in template)
+    if raw_source.alias:
+        return f"{sql} AS {raw_source.alias}"
+    return sql

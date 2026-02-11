@@ -5,7 +5,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 ## Import
 
 ```python
-from vw.postgres import ref, col, param, when, exists, cte, interval, rollup, cube, grouping_sets, render, F
+from vw.postgres import ref, col, param, when, exists, cte, interval, rollup, cube, grouping_sets, raw, render, F
 ```
 
 ## Factory Functions
@@ -263,6 +263,119 @@ render(users + admins)   # (SELECT id FROM users) UNION ALL (SELECT id FROM admi
 PostgreSQL rendering uses **dollar-style** parameters: `$name`.
 
 Compatible with SQLAlchemy `text()`, asyncpg, and psycopg3.
+
+---
+
+## Raw SQL Escape Hatches
+
+⚠️  **WARNING**: The `raw` namespace provides escape hatches for SQL features that vw doesn't support yet. Use with caution:
+- **No syntax validation** until query execution
+- **No SQL injection protection** if you concatenate strings into templates
+- **No type checking**
+- **No dialect portability**
+
+**Best practices:**
+- Only use for features vw doesn't support yet
+- Always pass user input via `param()`, never f-strings or string concatenation
+- Use `{name}` placeholders for dependent expressions
+- Consider filing a feature request for native support
+- Add comments explaining why raw SQL is needed
+
+### `raw.expr(template, **kwargs)`
+
+Create a raw SQL expression with named parameter substitution.
+
+Use `{name}` placeholders in the template. Each kwarg provides an expression to substitute for that placeholder. Rendering happens at render time to support context-dependent features like CTEs.
+
+**Args:**
+- `template`: Raw SQL template string with `{name}` placeholders
+- `**kwargs`: Named expressions to substitute into the template
+
+**Returns:** Expression that can be used anywhere expressions are expected
+
+**Examples:**
+
+```python
+from vw.postgres import raw, col, param, ref, render
+
+# PostgreSQL-specific operators (alternatively, use .op() method)
+query = ref("posts").where(
+    raw.expr("{a} @@ {b}", a=col("tsv"), b=col("query"))
+)
+
+# Or use the existing .op() method for custom operators:
+query = ref("posts").where(
+    col("tsv").op("@@", col("query"))
+)
+
+# Custom functions
+query = ref("sales").select(
+    raw.expr("percentile_cont({p}) WITHIN GROUP (ORDER BY {amt})",
+             p=param("pct", 0.95),
+             amt=col("amount")).alias("p95")
+)
+
+# Complex expressions
+query = ref("posts").select(
+    raw.expr("ts_rank({tsv}, {q})", tsv=col("tsv"), q=col("query")).alias("rank")
+)
+
+# Use in join conditions
+buildings = ref("buildings").alias("b")
+parcels = ref("parcels").alias("p")
+query = buildings.join.inner(
+    parcels,
+    on=[raw.expr("ST_Within({a}, {b})", a=col("b.geom"), b=col("p.geom"))]
+)
+```
+
+### `raw.rowset(template, **kwargs)`
+
+Create a raw SQL source/rowset with named parameter substitution.
+
+Use `{name}` placeholders in the template. Each kwarg provides an expression to substitute for that placeholder. Rendering happens at render time to support context-dependent features like CTEs.
+
+**Args:**
+- `template`: Raw SQL source template string with `{name}` placeholders
+- `**kwargs`: Named expressions to substitute into the template
+
+**Returns:** RowSet that can be used in FROM, JOIN, or CTE contexts
+
+**Examples:**
+
+```python
+from vw.postgres import raw, col, param, render
+
+# PostgreSQL table function
+series = raw.rowset("generate_series(1, {n}) AS t(num)", n=param("max", 10))
+result = render(series.select(col("num")))
+# SQL: SELECT num FROM generate_series(1, $max) AS t(num)
+
+# LATERAL with unnest
+query = ref("arrays").join.inner(
+    raw.rowset("LATERAL unnest({arr}) AS t(elem)", arr=col("array_col")),
+    on=[]
+)
+
+# JSON table function
+query = raw.rowset(
+    "json_to_recordset({data}) AS t(id INT, name TEXT)",
+    data=col("json_data")
+).select(col("id"), col("name"))
+```
+
+**Safety example:**
+
+```python
+# ✅ Good: Using param() for user input
+user_input = request.get("value")
+expr = raw.expr("custom_func({input})", input=param("val", user_input))
+# SQL: custom_func($val)
+# Params: {'val': user_input}
+
+# ❌ Bad: String concatenation (SQL INJECTION RISK!)
+expr = raw.expr(f"custom_func({user_input})")  # NEVER DO THIS!
+```
 
 ---
 

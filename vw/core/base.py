@@ -8,7 +8,7 @@ from vw.core.protocols import Stateful
 if TYPE_CHECKING:
     from vw.core.datetime import DateTimeAccessor
     from vw.core.joins import JoinAccessor
-    from vw.core.states import Expr, Reference, SetOperation, Statement, Values
+    from vw.core.states import Expr, RawSource, Reference, SetOperation, Statement, Values
     from vw.core.text import TextAccessor
 
 ExprT = TypeVar("ExprT", bound="Expression")
@@ -361,7 +361,7 @@ class Expression(Stateful, FactoryT):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(Stateful, FactoryT):
-    state: Reference | Statement | SetOperation | Values
+    state: Reference | Statement | SetOperation | Values | RawSource
     factories: Factories[ExprT, RowSetT]
 
     def select(self, *columns: ExprT) -> RowSetT:
@@ -377,7 +377,7 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with the columns added.
         """
-        from vw.core.states import CTE, Alias, Reference, ScalarSubquery, SetOperation, Statement, Values
+        from vw.core.states import CTE, Alias, RawSource, Reference, ScalarSubquery, SetOperation, Statement, Values
 
         col_states = []
         for c in columns:
@@ -391,7 +391,7 @@ class RowSet(Stateful, FactoryT):
             else:
                 col_states.append(c.state)
 
-        if isinstance(self.state, (Reference, Values)):
+        if isinstance(self.state, (Reference, Values, RawSource)):
             # Transform Source → Statement
             new_state = Statement(source=self.state, columns=tuple(col_states))
         elif isinstance(self.state, CTE):
@@ -430,10 +430,10 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with WHERE conditions added.
         """
-        from vw.core.states import Reference, SetOperation, Statement, Values
+        from vw.core.states import RawSource, Reference, SetOperation, Statement, Values
 
         cond_states = tuple(c.state for c in conditions)
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, where_conditions=cond_states)
         else:
             new_state = replace(
@@ -455,10 +455,10 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with GROUP BY set.
         """
-        from vw.core.states import Reference, SetOperation, Statement, Values
+        from vw.core.states import RawSource, Reference, SetOperation, Statement, Values
 
         col_states = tuple(c.state for c in columns)
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, group_by_columns=col_states)
         else:
             new_state = replace(self.state, group_by_columns=col_states)
@@ -477,10 +477,10 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with HAVING conditions added.
         """
-        from vw.core.states import Reference, SetOperation, Statement, Values
+        from vw.core.states import RawSource, Reference, SetOperation, Statement, Values
 
         cond_states = tuple(c.state for c in conditions)
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, having_conditions=cond_states)
         else:
             new_state = replace(
@@ -502,10 +502,10 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with ORDER BY set.
         """
-        from vw.core.states import Reference, SetOperation, Statement, Values
+        from vw.core.states import RawSource, Reference, SetOperation, Statement, Values
 
         col_states = tuple(c.state for c in columns)
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, order_by_columns=col_states)
         else:
             new_state = replace(self.state, order_by_columns=col_states)
@@ -525,9 +525,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with LIMIT set.
         """
-        from vw.core.states import Limit, Reference, SetOperation, Statement, Values
+        from vw.core.states import Limit, RawSource, Reference, SetOperation, Statement, Values
 
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, limit=Limit(count=count, offset=offset))
         else:
             new_state = replace(self.state, limit=Limit(count=count, offset=offset))
@@ -542,9 +542,9 @@ class RowSet(Stateful, FactoryT):
         Returns:
             A new RowSet with DISTINCT set.
         """
-        from vw.core.states import Distinct, Reference, SetOperation, Statement, Values
+        from vw.core.states import Distinct, RawSource, Reference, SetOperation, Statement, Values
 
-        if isinstance(self.state, (Reference, SetOperation, Values)):
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
             new_state = Statement(source=self.state, distinct=Distinct())
         else:
             new_state = replace(self.state, distinct=Distinct())

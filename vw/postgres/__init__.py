@@ -18,4 +18,5 @@ from vw.postgres.public import ref as ref
 from vw.postgres.public import rollup as rollup
 from vw.postgres.public import values as values
 from vw.postgres.public import when as when
+from vw.postgres.raw import raw as raw
 from vw.postgres.render import render as render
