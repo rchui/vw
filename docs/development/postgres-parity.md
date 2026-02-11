@@ -18,8 +18,16 @@ Feature parity tracking for `vw/postgres/` implementation.
 - ✅ HAVING via `.having(*conditions)` (accumulates with AND)
 - ✅ ORDER BY via `.order_by(*columns)`
 - ✅ LIMIT via `.limit(count)`
-- ✅ OFFSET via `.limit(count, offset=n)`
+- ✅ OFFSET via `.offset(count)`
+- ✅ FETCH FIRST/NEXT via `.fetch(count, with_ties=False)` (SQL:2008 standard)
 - ✅ DISTINCT via `.distinct()`
+
+### Query Modifiers
+- ✅ Generic modifiers via `.modifiers(*exprs)` (table and statement level)
+- ✅ Row-level locking: FOR UPDATE, FOR SHARE, FOR NO KEY UPDATE, FOR KEY SHARE
+- ✅ Lock options: SKIP LOCKED, NOWAIT
+- ✅ Table sampling: TABLESAMPLE SYSTEM, TABLESAMPLE BERNOULLI
+- ✅ Partition selection (PostgreSQL)
 
 ### Column References
 - ✅ Unqualified columns via `col("name")`
@@ -29,10 +37,11 @@ Feature parity tracking for `vw/postgres/` implementation.
 - ✅ Subquery aliasing via `statement.alias("name")`
 
 ### Core Infrastructure
-- ✅ Source dataclass (table/view reference)
-- ✅ Statement dataclass (SELECT query)
+- ✅ Source dataclass (table/view reference with modifiers support)
+- ✅ Statement dataclass (SELECT query with offset, fetch, qualify)
 - ✅ Column dataclass (column reference)
-- ✅ Limit dataclass (LIMIT/OFFSET)
+- ✅ Limit dataclass (LIMIT only, offset moved to Statement)
+- ✅ FetchClause dataclass (FETCH FIRST n ROWS [ONLY | WITH TIES])
 - ✅ Distinct dataclass (DISTINCT flag)
 - ✅ Immutable dataclass pattern (frozen=True, replace())
 - ✅ Factory pattern for type safety
@@ -425,11 +434,13 @@ Feature parity tracking for `vw/postgres/` implementation.
 - [x] Full-text search `@@` operator via `expr.op("@@", other)`
 
 ### PostgreSQL Advanced Features
-- [ ] FOR UPDATE / FOR SHARE locking
+- [x] FOR UPDATE / FOR SHARE locking (via `.modifiers()`)
+- [x] Table sampling (TABLESAMPLE via `.modifiers()`)
 - [x] GROUPING SETS
 - [x] CUBE
 - [x] ROLLUP
-- [ ] FILTER clause (already in Phase 3)
+- [x] FILTER clause (completed in Phase 3)
+- [x] FETCH FIRST/NEXT (SQL:2008 standard)
 
 ---
 

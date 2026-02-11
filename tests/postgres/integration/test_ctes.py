@@ -312,7 +312,7 @@ def describe_complex_scenarios():
 
         active_users = cte("active_users", ref("users").select(col("*")).where(col("active") == param("active", True)))
 
-        query = active_users.select(col("id"), col("name")).limit(10, offset=5)
+        query = active_users.select(col("id"), col("name")).offset(5).limit(10)
 
         result = render(query)
         assert result.query == sql(expected_sql)

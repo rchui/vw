@@ -258,6 +258,127 @@ render(users + admins)   # (SELECT id FROM users) UNION ALL (SELECT id FROM admi
 
 ---
 
+## Query Modifiers
+
+### `.offset(count)`
+
+Skip the first `count` rows from the result set. Use with `.order_by()` for deterministic pagination.
+
+```python
+ref("users").select(col("id"), col("name"))
+    .order_by(col("id"))
+    .offset(20)
+    .limit(10)
+# SQL: SELECT id, name FROM users ORDER BY id LIMIT 10 OFFSET 20
+```
+
+**Migration Note:** In earlier versions, offset was a parameter of `.limit(count, offset=n)`. This has been changed to a separate method for better composability:
+
+```python
+# Old (deprecated):
+query.limit(10, offset=20)
+
+# New:
+query.offset(20).limit(10)
+```
+
+### `.fetch(count, *, with_ties=False)`
+
+Use SQL standard `FETCH FIRST` clause for pagination. An alternative to `LIMIT` with additional support for `WITH TIES` to include rows that tie with the last row in the ordering.
+
+```python
+# Basic fetch
+ref("users").select(col("id"), col("name"))
+    .order_by(col("created_at"))
+    .fetch(10)
+# SQL: SELECT id, name FROM users ORDER BY created_at FETCH FIRST 10 ROWS ONLY
+
+# With ties - include all rows that tie with the last row
+ref("leaderboard").select(col("player"), col("score"))
+    .order_by(col("score").desc())
+    .fetch(5, with_ties=True)
+# SQL: SELECT player, score FROM leaderboard ORDER BY score DESC FETCH FIRST 5 ROWS WITH TIES
+
+# Combine with offset
+ref("products").select(col("id"), col("name"))
+    .order_by(col("name"))
+    .offset(20)
+    .fetch(10)
+# SQL: SELECT id, name FROM products ORDER BY name OFFSET 20 FETCH FIRST 10 ROWS ONLY
+```
+
+### `.modifiers(*modifiers)`
+
+Add modifiers to queries or tables. Modifiers are rendered after the main query (for statement-level modifiers) or after the table name (for table-level modifiers).
+
+Common use cases:
+- **Row-level locking**: `FOR UPDATE`, `FOR SHARE`, `FOR NO KEY UPDATE`, `FOR KEY SHARE`
+- **Table sampling**: `TABLESAMPLE SYSTEM(n)`, `TABLESAMPLE BERNOULLI(n)`
+- **Lock options**: `SKIP LOCKED`, `NOWAIT`
+
+⚠️ **Security Warning:** Modifiers use `raw.expr()` which has no SQL injection protection. Never use string concatenation or f-strings with user input. Always use `param()` for dynamic values.
+
+**Statement-level modifiers:**
+
+```python
+from vw.postgres import raw, ref, col, param, render
+
+# Row-level locking for updates
+ref("accounts").select(col("*"))
+    .where(col("id") == param("account_id", 123))
+    .modifiers(raw.expr("FOR UPDATE"))
+# SQL: SELECT * FROM accounts WHERE id = $account_id FOR UPDATE
+
+# Job queue pattern - skip locked rows
+ref("jobs").select(col("*"))
+    .where(col("status") == param("status", "pending"))
+    .order_by(col("priority").desc())
+    .limit(1)
+    .modifiers(raw.expr("FOR UPDATE SKIP LOCKED"))
+# SQL: SELECT * FROM jobs WHERE status = $status ORDER BY priority DESC LIMIT 1 FOR UPDATE SKIP LOCKED
+
+# Shared lock with nowait
+ref("users").select(col("*"))
+    .where(col("active"))
+    .modifiers(raw.expr("FOR SHARE NOWAIT"))
+# SQL: SELECT * FROM users WHERE active FOR SHARE NOWAIT
+```
+
+**Table-level modifiers:**
+
+```python
+# Random sampling
+ref("events").modifiers(raw.expr("TABLESAMPLE SYSTEM(5)"))
+    .select(col("*"))
+    .where(col("event_type") == param("event_type", "click"))
+# SQL: SELECT * FROM events TABLESAMPLE SYSTEM(5) WHERE event_type = $event_type
+
+# Partition selection (if table is partitioned)
+ref("logs").modifiers(raw.expr("PARTITION (p2024_01)"))
+    .select(col("*"))
+    .where(col("level") == param("level", "ERROR"))
+# SQL: SELECT * FROM logs PARTITION (p2024_01) WHERE level = $level
+```
+
+**Multiple modifiers:**
+
+Modifiers accumulate - you can call `.modifiers()` multiple times or pass multiple modifiers:
+
+```python
+# Multiple calls accumulate
+query = ref("users").select(col("*"))
+query = query.modifiers(raw.expr("FOR UPDATE"))
+query = query.modifiers(raw.expr("SKIP LOCKED"))
+# SQL: SELECT * FROM users FOR UPDATE SKIP LOCKED
+
+# Or pass multiple modifiers at once
+query = ref("users").select(col("*"))
+    .modifiers(raw.expr("FOR UPDATE"), raw.expr("SKIP LOCKED"))
+# SQL: SELECT * FROM users FOR UPDATE SKIP LOCKED
+```
+
+---
+
 ## Parameter Style
 
 PostgreSQL rendering uses **dollar-style** parameters: `$name`.
@@ -559,3 +680,4 @@ See [PostgreSQL Parity](../development/postgres-parity.md) for the full roadmap.
 - Parameters and rendering
 - Scalar functions: string (.text), null handling, date/time (.dt)
 - Grouping constructs (ROLLUP, CUBE, GROUPING SETS) and GROUPING() function
+- Query modifiers (FETCH, row-level locking, table sampling via .modifiers())

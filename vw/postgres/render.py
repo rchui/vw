@@ -271,9 +271,17 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values | 
     elif isinstance(source, RawSource):
         return render_state(source, ctx)
     else:
+        # Reference: render name, modifiers, then alias
+        parts = [source.name]
+
+        # Modifiers between name and alias (e.g., TABLESAMPLE, PARTITION)
+        for modifier in source.modifiers:
+            parts.append(render_state(modifier, ctx))
+
         if source.alias:
-            return f"{source.name} AS {source.alias}"
-        return source.name
+            parts.append(f"AS {source.alias}")
+
+        return " ".join(parts)
 
 
 def render_values(values_src: Values, ctx: RenderContext) -> str:
@@ -309,7 +317,18 @@ def render_values(values_src: Values, ctx: RenderContext) -> str:
 
     values_sql = f"VALUES {', '.join(row_sqls)}"
     col_list = ", ".join(columns)
-    return f"({values_sql}) AS {values_src.alias}({col_list})"
+
+    # Build result with modifiers between VALUES and alias
+    parts = [f"({values_sql})"]
+
+    # Modifiers (rare for VALUES but supported for consistency)
+    for modifier in values_src.modifiers:
+        parts.append(render_state(modifier, ctx))
+
+    # Alias and column list
+    parts.append(f"AS {values_src.alias}({col_list})")
+
+    return " ".join(parts)
 
 
 def render_cte(cte: CTE, ctx: RenderContext) -> str:
@@ -379,11 +398,22 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
         cols = ", ".join(render_state(col, ctx) for col in stmt.order_by_columns)
         parts.append(f"ORDER BY {cols}")
 
-    # LIMIT/OFFSET clause
+    # LIMIT clause
     if stmt.limit:
         parts.append(f"LIMIT {stmt.limit.count}")
-        if stmt.limit.offset:
-            parts.append(f"OFFSET {stmt.limit.offset}")
+
+    # OFFSET clause
+    if stmt.offset is not None:
+        parts.append(f"OFFSET {stmt.offset}")
+
+    # FETCH clause
+    if stmt.fetch:
+        ties = "WITH TIES" if stmt.fetch.with_ties else "ONLY"
+        parts.append(f"FETCH FIRST {stmt.fetch.count} ROWS {ties}")
+
+    # Modifiers (FOR UPDATE, FOR SHARE, etc.) - rendered at the end
+    for modifier in stmt.modifiers:
+        parts.append(render_state(modifier, ctx))
 
     return " ".join(parts)
 

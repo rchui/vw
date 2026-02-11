@@ -12,9 +12,15 @@ class Expr:
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Source:
-    """Base class for table-like sources."""
+    """Base class for table-like sources.
+
+    Attributes:
+        alias: Optional alias for the source.
+        modifiers: Dialect-specific modifiers (e.g., TABLESAMPLE, FOR UPDATE).
+    """
 
     alias: str | None = None
+    modifiers: tuple[Expr, ...] = field(default_factory=tuple)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -103,10 +109,17 @@ class Parameter(Expr):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class Limit:
-    """Represents LIMIT and optional OFFSET for pagination."""
+    """Represents LIMIT clause."""
 
     count: int
-    offset: int | None = None
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class Fetch:
+    """Represents FETCH FIRST n ROWS [ONLY | WITH TIES] clause."""
+
+    count: int
+    with_ties: bool = False
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -143,8 +156,11 @@ class Statement(Source):
     where_conditions: tuple[Expr, ...] = field(default_factory=tuple)
     group_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
     having_conditions: tuple[Expr, ...] = field(default_factory=tuple)
+    qualify_conditions: tuple[Expr, ...] = field(default_factory=tuple)
     order_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
+    offset: int | None = None
     limit: Limit | None = None
+    fetch: Fetch | None = None
     distinct: Distinct | None = None
     joins: tuple[Join, ...] = field(default_factory=tuple)
 

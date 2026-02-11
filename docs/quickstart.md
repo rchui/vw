@@ -116,7 +116,8 @@ result = render(
     ref("users")
     .select(col("*"))
     .order_by(col("name").asc(), col("id").desc())
-    .limit(10, offset=20)
+    .offset(20)
+    .limit(10)
 )
 # SELECT * FROM users ORDER BY name ASC, id DESC LIMIT 10 OFFSET 20
 ```

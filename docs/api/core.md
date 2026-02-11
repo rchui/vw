@@ -248,12 +248,21 @@ Add ORDER BY clause (replaces previous).
 # SQL: ORDER BY name ASC, id DESC
 ```
 
-### `.limit(count, *, offset=None)`
+### `.limit(count)`
 
-Add LIMIT and optional OFFSET clause.
+Add LIMIT clause to restrict number of rows.
 
 ```python
-.limit(10, offset=20)
+.limit(10)
+# SQL: LIMIT 10
+```
+
+### `.offset(count)`
+
+Add OFFSET clause to skip rows. Use with `.order_by()` for deterministic pagination.
+
+```python
+.offset(20).limit(10)
 # SQL: LIMIT 10 OFFSET 20
 ```
 

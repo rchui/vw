@@ -295,7 +295,7 @@ def describe_render_statement() -> None:
         assert result.query == "SELECT id FROM users LIMIT 10"
 
     def it_renders_limit_with_offset(ctx: RenderContext) -> None:
-        result = render(ref("users").select(col("id")).limit(10, offset=20))
+        result = render(ref("users").select(col("id")).offset(20).limit(10))
         assert result.query == "SELECT id FROM users LIMIT 10 OFFSET 20"
 
 

@@ -194,7 +194,7 @@ query = users.select(col("*")).order_by(
 query = users.select(col("*")).limit(10)
 
 # LIMIT with OFFSET
-query = users.select(col("*")).limit(10, offset=20)
+query = users.select(col("*")).offset(20).limit(10)
 ```
 
 ## Type Reference

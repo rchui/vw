@@ -512,25 +512,94 @@ class RowSet(Stateful, FactoryT):
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 
-    def limit(self, count: int, /, *, offset: int | None = None) -> RowSetT:
-        """Add LIMIT and optional OFFSET clause.
+    def offset(self, count: int, /) -> RowSetT:
+        """Add OFFSET clause to skip rows.
+
+        Can be combined with either .limit() or .fetch().
+        OFFSET is independent and renders before LIMIT/FETCH.
+
+        Transforms Reference or SetOperation → Statement if needed.
+        Multiple calls replace previous OFFSET (last wins).
+
+        Args:
+            count: Number of rows to skip.
+
+        Returns:
+            A new RowSet with OFFSET set.
+
+        Example:
+            >>> source("users").offset(20).limit(10)
+            >>> source("users").offset(20).fetch(10)
+            >>> source("users").offset(100)  # Skip first 100 rows, return all remaining
+        """
+        from vw.core.states import RawSource, Reference, SetOperation, Statement, Values
+
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
+            new_state = Statement(source=self.state, offset=count)
+        else:
+            new_state = replace(self.state, offset=count)
+
+        return self.factories.rowset(state=new_state, factories=self.factories)
+
+    def limit(self, count: int, /) -> RowSetT:
+        """Add LIMIT clause.
 
         Transforms Reference or SetOperation → Statement if needed.
         Multiple calls replace previous LIMIT (last wins).
 
         Args:
             count: Maximum number of rows to return.
-            offset: Number of rows to skip (optional).
 
         Returns:
             A new RowSet with LIMIT set.
+
+        Example:
+            >>> source("users").limit(10)
+            >>> source("users").offset(20).limit(10)  # Preferred over .limit(10, offset=20)
         """
         from vw.core.states import Limit, RawSource, Reference, SetOperation, Statement, Values
 
         if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
-            new_state = Statement(source=self.state, limit=Limit(count=count, offset=offset))
+            new_state = Statement(source=self.state, limit=Limit(count=count))
         else:
-            new_state = replace(self.state, limit=Limit(count=count, offset=offset))
+            new_state = replace(self.state, limit=Limit(count=count))
+
+        return self.factories.rowset(state=new_state, factories=self.factories)
+
+    def fetch(self, count: int, /, *, with_ties: bool = False) -> RowSetT:
+        """Add FETCH FIRST n ROWS clause (SQL:2008 standard).
+
+        Use .offset() separately if you need to skip rows.
+        Generic implementation that dialects can override for extensions.
+
+        Transforms Reference or SetOperation → Statement if needed.
+        Multiple calls replace previous FETCH (last wins).
+
+        Args:
+            count: Number of rows to fetch.
+            with_ties: Include rows tied with the last row (requires ORDER BY).
+
+        Returns:
+            A new RowSet with FETCH clause set.
+
+        Example:
+            >>> source("users").fetch(10)
+            >>> source("users").order_by(col("score").desc()).fetch(5, with_ties=True)
+            >>> source("users").offset(20).fetch(10)  # Combine with offset
+
+        Note:
+            - OFFSET is separate - use .offset(n).fetch(m)
+            - Supported by: PostgreSQL, Oracle, SQL Server, DuckDB, SQLite 3.35+
+            - Not supported by: MySQL/MariaDB (use .limit() instead)
+            - Cannot combine with .limit() - they are mutually exclusive
+            - Dialects can override this method for extensions
+        """
+        from vw.core.states import Fetch, RawSource, Reference, SetOperation, Statement, Values
+
+        if isinstance(self.state, (Reference, SetOperation, Values, RawSource)):
+            new_state = Statement(source=self.state, fetch=Fetch(count=count, with_ties=with_ties))
+        else:
+            new_state = replace(self.state, fetch=Fetch(count=count, with_ties=with_ties))
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 
@@ -549,6 +618,36 @@ class RowSet(Stateful, FactoryT):
         else:
             new_state = replace(self.state, distinct=Distinct())
 
+        return self.factories.rowset(state=new_state, factories=self.factories)
+
+    def modifiers(self, *modifiers: ExprT) -> RowSetT:
+        """Add modifiers to the source or statement.
+
+        Modifiers are dialect-specific clauses that extend SQL syntax:
+        - Table-level: TABLESAMPLE, PARTITION, WITH hints (rendered after table name)
+        - Statement-level: FOR UPDATE, FOR SHARE, RETURNING (rendered after LIMIT/FETCH)
+
+        Multiple calls accumulate modifiers in order.
+
+        Args:
+            *modifiers: Expression modifiers (typically raw.expr() for dialect features).
+
+        Returns:
+            A new RowSet with modifiers added.
+
+        Example:
+            >>> # Table-level: TABLESAMPLE
+            >>> source("users").modifiers(raw.expr("TABLESAMPLE SYSTEM({pct})", pct=param("p", 5)))
+            >>> # Renders: FROM users TABLESAMPLE SYSTEM($p)
+            >>>
+            >>> # Statement-level: FOR UPDATE
+            >>> source("users").select(col("*")).modifiers(raw.expr("FOR UPDATE NOWAIT"))
+            >>> # Renders: SELECT * FROM users FOR UPDATE NOWAIT
+            >>>
+            >>> # Multiple modifiers
+            >>> query.modifiers(raw.expr("FOR UPDATE"), raw.expr("SKIP LOCKED"))
+        """
+        new_state = replace(self.state, modifiers=self.state.modifiers + tuple(m.state for m in modifiers))
         return self.factories.rowset(state=new_state, factories=self.factories)
 
     def col(self, name: str, /) -> ExprT:
