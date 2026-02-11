@@ -30,6 +30,7 @@ from vw.core.states import (
     FrameClause,
     Function,
     GroupingSets,
+    ILike,
     IsIn,
     IsNotIn,
     IsNotNull,
@@ -38,6 +39,7 @@ from vw.core.states import (
     Like,
     Not,
     NotBetween,
+    NotILike,
     NotLike,
     Operator,
     Parameter,
@@ -135,6 +137,10 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return f"{render_state(state.left, ctx)} LIKE {render_state(state.right, ctx)}"
         case NotLike():
             return f"{render_state(state.left, ctx)} NOT LIKE {render_state(state.right, ctx)}"
+        case ILike():
+            return f"{render_state(state.left, ctx)} ILIKE {render_state(state.right, ctx)}"
+        case NotILike():
+            return f"{render_state(state.left, ctx)} NOT ILIKE {render_state(state.right, ctx)}"
         case IsIn():
             values = ", ".join(render_state(v, ctx) for v in state.values)
             return f"{render_state(state.expr, ctx)} IN ({values})"

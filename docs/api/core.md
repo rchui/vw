@@ -67,6 +67,18 @@ col("email").like(param("p", "%@example.com"))
 # SQL: email LIKE $p
 ```
 
+#### `.ilike(pattern)` / `.not_ilike(pattern)`
+
+Case-insensitive pattern matching (PostgreSQL-specific).
+
+```python
+col("email").ilike(param("p", "%@EXAMPLE.COM"))
+# SQL: email ILIKE $p
+
+col("name").not_ilike(param("p", "TEST%"))
+# SQL: name NOT ILIKE $p
+```
+
 #### `.is_in(*values)` / `.is_not_in(*values)`
 
 ```python

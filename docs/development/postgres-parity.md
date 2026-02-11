@@ -77,8 +77,8 @@ Feature parity tracking for `vw/postgres/` implementation.
 ### Pattern Matching & Membership
 - ✅ LIKE via `col("x").like(pattern)`
 - ✅ NOT LIKE via `col("x").not_like(pattern)`
-- ⏭️ ILIKE via `col("x").ilike(pattern)` (PostgreSQL case-insensitive) - deferred
-- ⏭️ NOT ILIKE via `col("x").not_ilike(pattern)` - deferred
+- ✅ ILIKE via `col("x").ilike(pattern)` (PostgreSQL case-insensitive)
+- ✅ NOT ILIKE via `col("x").not_ilike(pattern)`
 - ✅ IN via `col("x").is_in(*values)`
 - ✅ NOT IN via `col("x").is_not_in(*values)`
 - ✅ BETWEEN via `col("x").between(low, high)`
@@ -331,88 +331,11 @@ Feature parity tracking for `vw/postgres/` implementation.
 
 ---
 
-## 📋 Phase 8: DML Statements
-
-### INSERT
-- [ ] INSERT with VALUES via `source("table").insert(values(...))`
-- [ ] INSERT from SELECT via `source("table").insert(query)`
-- [ ] INSERT with column list via `source("table").insert(..., columns=[...])`
-- [ ] RETURNING clause via `.returning(*columns)`
-- [ ] ON CONFLICT DO NOTHING via `.on_conflict().do_nothing()`
-- [ ] ON CONFLICT DO UPDATE (upsert) via `.on_conflict().do_update(...)`
-
-### UPDATE
-- [ ] Basic UPDATE via `source("table").update()`
-- [ ] SET clause via `.set(col("x"), value)` or `.set({col: value})`
-- [ ] WHERE clause via `.where(*conditions)`
-- [ ] FROM clause (PostgreSQL) via `.from_(...)`
-- [ ] RETURNING clause via `.returning(*columns)`
-
-### DELETE
-- [ ] Basic DELETE via `source("table").delete()`
-- [ ] WHERE clause via `.where(*conditions)`
-- [ ] USING clause (PostgreSQL) via `.using(*rowsets)`
-- [ ] RETURNING clause via `.returning(*columns)`
-
-### Data Structures Needed
-- [ ] Insert dataclass
-- [ ] Update dataclass
-- [ ] Delete dataclass
-- [ ] Returning dataclass
-- [ ] OnConflict dataclass
-
----
-
-## 📋 Phase 9: DDL Statements
-
-### Table Operations
-- [ ] CREATE TABLE via `source("table").table.create()`
-- [ ] Column definitions via `.add_column(name, dtype, ...)`
-- [ ] Primary key via `.primary_key([...])`
-- [ ] Foreign key via `.foreign_key(...)`
-- [ ] CREATE IF NOT EXISTS via `.if_not_exists()`
-- [ ] CREATE OR REPLACE via `.or_replace()`
-- [ ] CREATE TEMPORARY via `.temporary()`
-- [ ] CREATE TABLE AS SELECT via `.as_select(query)`
-- [ ] DROP TABLE via `source("table").table.drop()`
-- [ ] DROP IF EXISTS via `.if_exists()`
-- [ ] DROP CASCADE via `.cascade()`
-
-### View Operations
-- [ ] CREATE VIEW via `source("view").view.create(query)`
-- [ ] CREATE OR REPLACE VIEW via `.or_replace()`
-- [ ] CREATE MATERIALIZED VIEW (PostgreSQL)
-- [ ] DROP VIEW via `source("view").view.drop()`
-- [ ] DROP IF EXISTS via `.if_exists()`
-- [ ] DROP CASCADE via `.cascade()`
-
-### Index Operations
-- [ ] CREATE INDEX via `source("table").index.create(name, columns)`
-- [ ] CREATE UNIQUE INDEX via `.unique()`
-- [ ] DROP INDEX via `source("table").index.drop(name)`
-
-### Data Structures Needed
-- [ ] CreateTable dataclass
-- [ ] ColumnDef dataclass
-- [ ] Constraint dataclass
-- [ ] DropTable dataclass
-- [ ] CreateView dataclass
-- [ ] DropView dataclass
-- [ ] TableAccessor class
-- [ ] ViewAccessor class
-- [ ] IndexAccessor class
-
----
-
-## 📋 Phase 10: PostgreSQL-Specific Features
+## 📋 Phase 8: PostgreSQL-Specific Features
 
 ### PostgreSQL Extensions
 - [x] DISTINCT ON via `.distinct(col("x"), ...)` (PostgreSQL-specific override)
 - [x] **LATERAL joins** (completed - available via `lateral=True` parameter)
-- [ ] RETURNING clause (already in Phase 8)
-- [ ] INSERT ... ON CONFLICT (already in Phase 8)
-- [ ] UPDATE ... FROM (already in Phase 8)
-- [ ] DELETE ... USING (already in Phase 8)
 
 ### PostgreSQL Data Types
 - [ ] JSONB support
@@ -471,8 +394,6 @@ Each phase should include:
 
 **Remaining:**
 - Phase 7: Scalar Functions
-- Phase 8: DML Statements
-- Phase 9: DDL Statements
-- Phase 10: PostgreSQL-Specific Features
+- Phase 8: PostgreSQL-Specific Features
 
-**Total Progress:** ~60% complete (7/12 phases, with 5a partially complete)
+**Total Progress:** ~70% complete (7/10 phases, with 5a partially complete)

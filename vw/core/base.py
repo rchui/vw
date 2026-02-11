@@ -119,6 +119,18 @@ class Expression(Stateful, FactoryT):
 
         return self.factories.expr(state=NotLike(left=self.state, right=pattern.state), factories=self.factories)
 
+    def ilike(self, pattern: ExprT, /) -> ExprT:
+        """Create an ILIKE pattern match expression (case-insensitive)."""
+        from vw.core.states import ILike
+
+        return self.factories.expr(state=ILike(left=self.state, right=pattern.state), factories=self.factories)
+
+    def not_ilike(self, pattern: ExprT, /) -> ExprT:
+        """Create a NOT ILIKE pattern match expression (case-insensitive)."""
+        from vw.core.states import NotILike
+
+        return self.factories.expr(state=NotILike(left=self.state, right=pattern.state), factories=self.factories)
+
     def is_in(self, *values: ExprT) -> ExprT:
         """Create an IN expression checking membership in a list of values."""
         from vw.core.states import IsIn

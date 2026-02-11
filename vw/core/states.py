@@ -207,6 +207,22 @@ class NotLike(Expr):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
+class ILike(Expr):
+    """Represents an ILIKE pattern match (case-insensitive)."""
+
+    left: Expr
+    right: Expr
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
+class NotILike(Expr):
+    """Represents a NOT ILIKE pattern match (case-insensitive)."""
+
+    left: Expr
+    right: Expr
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
 class IsIn(Expr):
     """Represents an IN expression."""
 

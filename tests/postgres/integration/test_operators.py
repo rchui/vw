@@ -242,6 +242,30 @@ def describe_pattern_matching() -> None:
         assert result.query == sql(expected_sql)
         assert result.params == {"pattern": "test%"}
 
+    def it_renders_ilike() -> None:
+        expected_sql = """
+            SELECT id
+            FROM users
+            WHERE email ILIKE $pattern
+        """
+
+        q = ref("users").select(col("id")).where(col("email").ilike(param("pattern", "%@EXAMPLE.COM")))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"pattern": "%@EXAMPLE.COM"}
+
+    def it_renders_not_ilike() -> None:
+        expected_sql = """
+            SELECT id
+            FROM users
+            WHERE name NOT ILIKE $pattern
+        """
+
+        q = ref("users").select(col("id")).where(col("name").not_ilike(param("pattern", "TEST%")))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"pattern": "TEST%"}
+
     def it_renders_in_with_params() -> None:
         expected_sql = """
             SELECT id
