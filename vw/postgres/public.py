@@ -24,6 +24,107 @@ class Functions(CoreFunctions):
 
         return self.factories.expr(state=Now(), factories=self.factories)
 
+    def gen_random_uuid(self) -> Expression:
+        """GEN_RANDOM_UUID() — generate a random UUID v4.
+
+        Example:
+            >>> ref("users").select(F.gen_random_uuid().alias("id"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="GEN_RANDOM_UUID", args=())
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def array_agg(
+        self, expr: Expression, *, distinct: bool = False, order_by: list[Expression] | None = None
+    ) -> Expression:
+        """ARRAY_AGG() — aggregate values into an array.
+
+        Args:
+            expr: Expression to aggregate.
+            distinct: Whether to aggregate distinct values only.
+            order_by: Optional ORDER BY expressions (inside function).
+
+        Examples:
+            >>> F.array_agg(col("name"))
+            >>> F.array_agg(col("name"), distinct=True)
+            >>> F.array_agg(col("name"), order_by=[col("name").asc()])
+            >>> F.array_agg(col("tag"), distinct=True, order_by=[col("tag")])
+        """
+        from vw.core.states import Function
+
+        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
+        state = Function(name="ARRAY_AGG", args=(expr.state,), distinct=distinct, order_by=order_by_tuple)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def string_agg(
+        self, expr: Expression, separator: Expression, *, order_by: list[Expression] | None = None
+    ) -> Expression:
+        """STRING_AGG() — concatenate values with separator.
+
+        Args:
+            expr: Expression to aggregate.
+            separator: Separator string (typically lit() for constants).
+            order_by: Optional ORDER BY expressions (inside function).
+
+        Examples:
+            >>> F.string_agg(col("name"), lit(", "))
+            >>> F.string_agg(col("name"), lit(", "), order_by=[col("name")])
+        """
+        from vw.core.states import Function
+
+        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
+        state = Function(name="STRING_AGG", args=(expr.state, separator.state), order_by=order_by_tuple)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_build_object(self, *args: Expression) -> Expression:
+        """JSON_BUILD_OBJECT() — build JSON object from key/value pairs.
+
+        Args:
+            *args: Alternating key and value expressions.
+                  Use lit() for string keys.
+
+        Example:
+            >>> F.json_build_object(
+            ...     lit("id"), col("id"),
+            ...     lit("name"), col("name")
+            ... )
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_BUILD_OBJECT", args=tuple(a.state for a in args))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_agg(self, expr: Expression, *, order_by: list[Expression] | None = None) -> Expression:
+        """JSON_AGG() — aggregate values into a JSON array.
+
+        Args:
+            expr: Expression to aggregate.
+            order_by: Optional ORDER BY expressions (inside function).
+
+        Example:
+            >>> F.json_agg(col("data"), order_by=[col("created_at")])
+        """
+        from vw.core.states import Function
+
+        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
+        state = Function(name="JSON_AGG", args=(expr.state,), order_by=order_by_tuple)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def unnest(self, array: Expression) -> Expression:
+        """UNNEST() — expand array to set of rows.
+
+        Can be used in SELECT clause. For FROM clause usage, use raw.rowset().
+
+        Example:
+            >>> ref("data").select(F.unnest(col("array_col")))
+            >>> # For FROM: raw.rowset("unnest({arr}) AS t(elem)", arr=...)
+        """
+        from vw.core.states import Function
+
+        state = Function(name="UNNEST", args=(array.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
 
 # Instantiate with PostgreSQL factories
 F = Functions(factories=Factories(expr=Expression, rowset=RowSet))
@@ -79,6 +180,32 @@ def param(name: str, value: object, /) -> Expression:
         >>> param("enabled", True)
     """
     return Expression(state=Parameter(name=name, value=value), factories=Factories(expr=Expression, rowset=RowSet))
+
+
+def lit(value: object, /) -> Expression:
+    """Create a literal value expression.
+
+    Literals are compile-time constants rendered as auto-generated parameters
+    for SQL injection safety. The database driver handles escaping.
+
+    Use lit() for: JSON keys, separators, status strings, magic numbers.
+    Use param() for: user input, runtime values (self-documenting).
+
+    Args:
+        value: The literal value (any type the driver can handle).
+
+    Returns:
+        An Expression wrapping a Literal state.
+
+    Examples:
+        >>> F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
+        >>> F.string_agg(col("tag"), lit(", "))
+        >>> col("status") == lit("active")
+        >>> col("priority") > lit(5)
+    """
+    from vw.core.states import Literal
+
+    return Expression(state=Literal(value=value), factories=Factories(expr=Expression, rowset=RowSet))
 
 
 def when(condition: Expression, /) -> When[Expression, RowSet]:

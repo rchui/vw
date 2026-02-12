@@ -5,7 +5,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 ## Import
 
 ```python
-from vw.postgres import ref, col, param, when, exists, cte, interval, rollup, cube, grouping_sets, raw, render, F
+from vw.postgres import ref, col, param, lit, when, exists, cte, interval, rollup, cube, grouping_sets, raw, render, F
 ```
 
 ## Factory Functions
@@ -38,6 +38,23 @@ param("status", "active")  # $status → {'status': 'active'}
 ```
 
 Supported types: `str`, `int`, `float`, `bool`, `None`.
+
+### `lit(value)`
+
+Create a literal value expression. Literals are compile-time constants rendered as auto-generated parameters for SQL injection safety.
+
+```python
+# Use lit() for constants in SQL
+F.string_agg(col("name"), lit(", "))  # STRING_AGG(name, $_lit_0)
+F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
+col("status") == lit("active")  # status = $_lit_0
+
+# Use param() for user input (self-documenting)
+col("age") > param("min_age", 18)  # age > $min_age
+```
+
+Use `lit()` for: JSON keys, separators, status strings, magic numbers.
+Use `param()` for: user input, runtime values (self-documenting).
 
 ### `when(condition)`
 
@@ -199,6 +216,171 @@ col("ts").dt.date_trunc("year")           # DATE_TRUNC('year', ts)
 ```
 
 For ANSI SQL `EXTRACT`, see [Date/Time Accessor](core.md#datetime-accessor) in the core docs.
+
+---
+
+## PostgreSQL Convenience Functions
+
+High-value convenience wrappers for extremely common PostgreSQL functions. For other PostgreSQL functions, use `raw.func()` or `raw.expr()`.
+
+### UUID Functions
+
+#### `F.gen_random_uuid()`
+
+Generate a random UUID v4 (requires pgcrypto extension or PostgreSQL 13+).
+
+```python
+ref("users").select(F.gen_random_uuid().alias("id"), col("name"))
+# SQL: SELECT GEN_RANDOM_UUID() AS id, name FROM users
+```
+
+### Array Aggregate Functions
+
+#### `F.array_agg(expr, *, distinct=False, order_by=None)`
+
+Aggregate values into an array. Supports DISTINCT and ORDER BY inside the function.
+
+```python
+# Basic usage
+F.array_agg(col("name"))
+# SQL: ARRAY_AGG(name)
+
+# With ORDER BY
+F.array_agg(col("name"), order_by=[col("name").asc()])
+# SQL: ARRAY_AGG(name ORDER BY name ASC)
+
+# With DISTINCT
+F.array_agg(col("tag"), distinct=True)
+# SQL: ARRAY_AGG(DISTINCT tag)
+
+# Combined
+F.array_agg(col("tag"), distinct=True, order_by=[col("tag")])
+# SQL: ARRAY_AGG(DISTINCT tag ORDER BY tag)
+
+# With GROUP BY
+ref("posts").select(
+    col("user_id"),
+    F.array_agg(col("tag"), order_by=[col("tag")]).alias("tags")
+).group_by(col("user_id"))
+```
+
+#### `F.string_agg(expr, separator, *, order_by=None)`
+
+Concatenate values into a string with a separator. Supports ORDER BY inside the function.
+
+```python
+# Basic usage
+F.string_agg(col("name"), lit(", "))
+# SQL: STRING_AGG(name, $_lit_0)  -- separator as literal parameter
+
+# With ORDER BY
+F.string_agg(col("name"), lit(", "), order_by=[col("name")])
+# SQL: STRING_AGG(name, $_lit_0 ORDER BY name)
+
+# With GROUP BY
+ref("users").select(
+    col("department"),
+    F.string_agg(col("name"), lit(", "), order_by=[col("name")]).alias("names")
+).group_by(col("department"))
+```
+
+### JSON Functions
+
+#### `F.json_build_object(*args)`
+
+Build a JSON object from alternating key/value pairs. Use `lit()` for string keys.
+
+```python
+# Basic usage
+F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
+# SQL: JSON_BUILD_OBJECT($_lit_0, id, $_lit_1, name)
+
+# Many fields
+F.json_build_object(
+    lit("id"), col("id"),
+    lit("name"), col("name"),
+    lit("email"), col("email"),
+    lit("status"), col("status")
+)
+```
+
+#### `F.json_agg(expr, *, order_by=None)`
+
+Aggregate values into a JSON array. Supports ORDER BY inside the function.
+
+```python
+# Basic usage
+F.json_agg(col("data"))
+# SQL: JSON_AGG(data)
+
+# With ORDER BY
+F.json_agg(col("data"), order_by=[col("created_at")])
+# SQL: JSON_AGG(data ORDER BY created_at)
+
+# Wrapping json_build_object
+json_obj = F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
+F.json_agg(json_obj, order_by=[col("name")])
+# SQL: JSON_AGG(JSON_BUILD_OBJECT($_lit_0, id, $_lit_1, name) ORDER BY name)
+```
+
+### Array Functions
+
+#### `F.unnest(array)`
+
+Expand an array to a set of rows. Can be used in SELECT clause.
+
+```python
+# In SELECT
+ref("posts").select(F.unnest(col("tags")).alias("tag"))
+# SQL: SELECT UNNEST(tags) AS tag FROM posts
+
+# For FROM clause usage, use raw.rowset()
+raw.rowset("unnest({arr}) AS t(elem)", arr=col("array_col"))
+```
+
+### Combining with FILTER
+
+All aggregate functions support the `.filter()` method for conditional aggregation:
+
+```python
+# array_agg with FILTER and ORDER BY
+F.array_agg(col("name"), order_by=[col("name")]).filter(col("active") == param("t", True))
+# SQL: ARRAY_AGG(name ORDER BY name) FILTER (WHERE active = $t)
+
+# string_agg with FILTER and ORDER BY
+F.string_agg(col("name"), lit(", "), order_by=[col("name")]).filter(col("active") == param("t", True))
+# SQL: STRING_AGG(name, $_lit_0 ORDER BY name) FILTER (WHERE active = $t)
+```
+
+---
+
+## Raw SQL API
+
+For PostgreSQL features not yet wrapped by vw, use the raw SQL API:
+
+### `raw.func(name, *args)`
+
+Convenience method for simple function calls. For functions with special syntax (WITHIN GROUP, complex ORDER BY), use `raw.expr()` instead.
+
+```python
+# Zero arguments
+raw.func("random")
+# SQL: RANDOM()
+
+# With arguments
+raw.func("custom_hash", col("email"))
+# SQL: CUSTOM_HASH(email)
+
+# Multiple arguments
+raw.func("my_func", col("a"), col("b"), param("c", 42))
+# SQL: MY_FUNC(a, b, $c)
+```
+
+Function names are automatically uppercased.
+
+### `raw.expr(template, **kwargs)` and `raw.rowset(template, **kwargs)`
+
+For complex PostgreSQL expressions and table functions. See [Raw SQL API](../development/postgres-parity.md#raw-sql-api-enhancements) for full documentation.
 
 ---
 

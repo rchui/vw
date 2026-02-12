@@ -37,6 +37,7 @@ from vw.core.states import (
     IsNull,
     Join,
     Like,
+    Literal,
     Not,
     NotBetween,
     NotILike,
@@ -119,6 +120,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_column(state)
         case Parameter():
             return render_parameter(state, ctx)
+        case Literal():
+            return render_literal(state, ctx)
 
         # --- Binary Operators ------------------------------------------ #
         case Operator():
@@ -451,6 +454,19 @@ def render_parameter(param: Parameter, ctx: RenderContext) -> str:
     return ctx.add_param(param.name, param.value)
 
 
+def render_literal(lit: Literal, ctx: RenderContext) -> str:
+    """Render a Literal as auto-generated parameter.
+
+    Args:
+        lit: A Literal to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The parameter placeholder string.
+    """
+    return ctx.add_literal(lit.value)
+
+
 def render_function(func: Function, ctx: RenderContext) -> str:
     """Render a Function to SQL.
 
@@ -462,26 +478,33 @@ def render_function(func: Function, ctx: RenderContext) -> str:
         The SQL string.
     """
     if func.args:
-        if func.name == "COUNT(DISTINCT":
-            # COUNT(DISTINCT expr) - special name stores the opening
-            args_sql = ", ".join(render_state(arg, ctx) for arg in func.args)
-            sql = f"COUNT(DISTINCT {args_sql})"
-        else:
-            # Integer literals (e.g. NTILE(4), LAG offset) render as-is
-            rendered_args = []
-            for arg in func.args:
-                if isinstance(arg, int):
-                    rendered_args.append(str(arg))
-                else:
-                    rendered_args.append(render_state(arg, ctx))
-            sql = f"{func.name}({', '.join(rendered_args)})"
-    else:
-        # COUNT(*) and COUNT(DISTINCT *) store the full expression in the name
-        if func.name in ("COUNT(*)", "COUNT(DISTINCT *)"):
-            sql = func.name
-        else:
-            sql = f"{func.name}()"
+        # Render arguments
+        rendered_args = []
+        for arg in func.args:
+            if isinstance(arg, int):
+                rendered_args.append(str(arg))
+            else:
+                rendered_args.append(render_state(arg, ctx))
 
+        args_str = ", ".join(rendered_args)
+
+        # Handle DISTINCT
+        if func.distinct:
+            sql = f"{func.name}(DISTINCT {args_str}"
+        else:
+            sql = f"{func.name}({args_str}"
+
+        # Add ORDER BY if present (before closing paren)
+        if func.order_by:
+            order_cols = ", ".join(render_state(col, ctx) for col in func.order_by)
+            sql += f" ORDER BY {order_cols}"
+
+        sql += ")"
+    else:
+        # No args
+        sql = f"{func.name}()"
+
+    # Add FILTER clause if present
     if func.filter:
         sql += f" FILTER (WHERE {render_state(func.filter, ctx)})"
 

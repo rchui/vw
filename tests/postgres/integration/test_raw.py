@@ -383,3 +383,61 @@ def describe_raw_edge_cases() -> None:
         assert result2.query == sql(expected_sql)
         assert result1.params == {}
         assert result2.params == {}
+
+
+def describe_raw_func() -> None:
+    """Test raw.func() convenience method."""
+
+    def it_renders_zero_args() -> None:
+        """Test function with zero arguments."""
+        expected_sql = """SELECT RANDOM() FROM data"""
+
+        q = ref("data").select(raw.func("random"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_one_arg() -> None:
+        """Test function with one argument."""
+        expected_sql = """SELECT UPPER(name) FROM users"""
+
+        q = ref("users").select(raw.func("upper", col("name")))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_multiple_args() -> None:
+        """Test function with multiple arguments."""
+        expected_sql = """SELECT CUSTOM_FUNC(id, $val) FROM data"""
+
+        q = ref("data").select(raw.func("custom_func", col("id"), param("val", 42)))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"val": 42}
+
+    def it_renders_with_alias() -> None:
+        """Test function with alias."""
+        expected_sql = """SELECT CUSTOM_HASH(email) AS hash FROM users"""
+
+        q = ref("users").select(raw.func("custom_hash", col("email")).alias("hash"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_in_where() -> None:
+        """Test function in WHERE clause."""
+        expected_sql = """SELECT id FROM users WHERE CUSTOM_CHECK(status, $active)"""
+
+        q = ref("users").select(col("id")).where(raw.func("custom_check", col("status"), param("active", True)))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {"active": True}
+
+    def it_uppercases_function_name() -> None:
+        """Test that function names are uppercased."""
+        expected_sql = """SELECT MY_FUNC(x) FROM data"""
+
+        q = ref("data").select(raw.func("my_func", col("x")))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}

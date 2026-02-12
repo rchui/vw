@@ -301,13 +301,11 @@ def describe_render_statement() -> None:
 
 def describe_render_function() -> None:
     def it_renders_count_star(ctx: RenderContext) -> None:
-        assert render_function(Function(name="COUNT(*)"), ctx) == "COUNT(*)"
-
-    def it_renders_count_distinct_star(ctx: RenderContext) -> None:
-        assert render_function(Function(name="COUNT(DISTINCT *)"), ctx) == "COUNT(DISTINCT *)"
+        func = Function(name="COUNT", args=(Column(name="*"),))
+        assert render_function(func, ctx) == "COUNT(*)"
 
     def it_renders_count_distinct_expr(ctx: RenderContext) -> None:
-        func = Function(name="COUNT(DISTINCT", args=(Column(name="id"),))
+        func = Function(name="COUNT", args=(Column(name="id"),), distinct=True)
         assert render_function(func, ctx) == "COUNT(DISTINCT id)"
 
     def it_renders_function_with_args(ctx: RenderContext) -> None:
@@ -322,7 +320,7 @@ def describe_render_function() -> None:
         assert render_function(Function(name="NOW"), ctx) == "NOW()"
 
     def it_renders_filter_clause(ctx: RenderContext) -> None:
-        func = Function(name="COUNT(*)", filter=Column(name="active"))
+        func = Function(name="COUNT", args=(Column(name="*"),), filter=Column(name="active"))
         assert render_function(func, ctx) == "COUNT(*) FILTER (WHERE active)"
 
 

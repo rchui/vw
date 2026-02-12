@@ -12,6 +12,7 @@ from vw.postgres.public import exists as exists
 from vw.postgres.public import following as following
 from vw.postgres.public import grouping_sets as grouping_sets
 from vw.postgres.public import interval as interval
+from vw.postgres.public import lit as lit
 from vw.postgres.public import param as param
 from vw.postgres.public import preceding as preceding
 from vw.postgres.public import ref as ref

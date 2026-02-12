@@ -49,17 +49,14 @@ class Functions(FactoryT):
             >>> F.count(col("id"))  # COUNT(id)
             >>> F.count(col("id"), distinct=True)  # COUNT(DISTINCT id)
         """
-        from vw.core.states import Function
+        from vw.core.states import Column, Function
 
         if expr is None:
-            # COUNT(*)
-            state = Function(name="COUNT(*)" if not distinct else "COUNT(DISTINCT *)", args=())
-        elif distinct:
-            # COUNT(DISTINCT expr)
-            state = Function(name="COUNT(DISTINCT", args=(expr.state,))
+            # COUNT(*) - use Column("*") for consistency
+            state = Function(name="COUNT", args=(Column(name="*"),), distinct=distinct)
         else:
-            # COUNT(expr)
-            state = Function(name="COUNT", args=(expr.state,))
+            # COUNT(expr) or COUNT(DISTINCT expr)
+            state = Function(name="COUNT", args=(expr.state,), distinct=distinct)
 
         return self.factories.expr(state=state, factories=self.factories)
 

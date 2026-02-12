@@ -108,6 +108,20 @@ class Parameter(Expr):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
+class Literal(Expr):
+    """Literal value (string, number, boolean, null).
+
+    Rendered as auto-generated parameter for SQL injection safety.
+    Database driver handles all escaping.
+
+    Use lit() factory to create literals.
+    Use param() for user input (self-documenting).
+    """
+
+    value: object
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
 class Limit:
     """Represents LIMIT clause."""
 
@@ -428,7 +442,9 @@ class Function(Expr):
 
     name: str
     args: tuple[object, ...] = field(default_factory=tuple)
+    distinct: bool = False
     filter: object | None = None
+    order_by: tuple[object, ...] = field(default_factory=tuple)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)

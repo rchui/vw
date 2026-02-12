@@ -47,6 +47,7 @@ class RenderContext:
     config: RenderConfig
     params: dict[str, Any] = field(default_factory=dict)
     ctes: list[RegisteredCTE] = field(default_factory=list)
+    literal_counter: int = 0
 
     def add_param(self, name: str, value: Any) -> str:
         """Add a parameter to the context and return its placeholder.
@@ -72,6 +73,19 @@ class RenderContext:
             return f"%({name})s"
         else:
             raise ValueError(f"Unsupported parameter style: {param_style}")
+
+    def add_literal(self, value: Any) -> str:
+        """Add literal value as auto-generated parameter.
+
+        Args:
+            value: The literal value to add.
+
+        Returns:
+            The parameter placeholder string.
+        """
+        param_name = f"_lit_{self.literal_counter}"
+        self.literal_counter += 1
+        return self.add_param(param_name, value)
 
     def register_cte(self, name: str, body_sql: str, recursive: bool) -> None:
         """Register a CTE with its rendered body SQL.

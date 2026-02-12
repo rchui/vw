@@ -150,7 +150,8 @@ Feature parity tracking for `vw/postgres/` implementation.
 - ✅ FILTER (WHERE ...) for window functions via `.filter(condition)`
 
 ### Data Structures
-- ✅ Function dataclass (name, args, filter)
+- ✅ Function dataclass (name, args, distinct, filter, order_by) - extended with DISTINCT and ORDER BY support
+- ✅ Literal dataclass - literal values rendered as auto-generated parameters
 - ✅ WindowFunction dataclass (function, partition_by, order_by, frame)
 - ✅ FrameClause dataclass (mode, start, end, exclude)
 - ✅ FrameBoundary dataclasses (UnboundedPreceding, UnboundedFollowing, CurrentRow, Preceding, Following)
@@ -333,28 +334,61 @@ Feature parity tracking for `vw/postgres/` implementation.
 
 ## 📋 Phase 8: PostgreSQL-Specific Features
 
+### Strategy: Raw SQL API + High-Value Conveniences
+
+**Philosophy**: Use `raw.expr()` and `raw.rowset()` for most PostgreSQL-specific features instead of wrapping everything. Only add convenience wrappers for extremely common patterns that improve ergonomics significantly.
+
+**Already available via raw SQL API:**
+- ✅ `raw.expr(template, **kwargs)` - raw SQL expressions with safe parameter substitution
+- ✅ `raw.rowset(template, **kwargs)` - raw SQL sources/table expressions
+- ✅ All operators via `expr.op("->", other)` - works for any infix operator
+- ✅ Documentation: See `/Users/ryan/github/vw/vw/core/raw.py` for examples
+
 ### PostgreSQL Extensions
 - [x] DISTINCT ON via `.distinct(col("x"), ...)` (PostgreSQL-specific override)
 - [x] **LATERAL joins** (completed - available via `lateral=True` parameter)
 
-### PostgreSQL Data Types
-- [ ] JSONB support
-- [ ] JSON operators (`->`, `->>`, `@>`, etc.)
-- [ ] ARRAY types and literals
-- [ ] Array operators and functions
-- [ ] UUID type
-- [ ] HSTORE type
-- [ ] Geometric types (POINT, LINE, etc.)
+### Raw SQL API Enhancements
+- ✅ `raw.func(name, *args)` - convenience for function calls
+- [ ] PostgreSQL Cookbook documentation showing common raw.expr() patterns
 
-### PostgreSQL Functions
-- [ ] STRING_AGG via `F.string_agg(col("x"), separator)` (PostgreSQL syntax, not ANSI LISTAGG)
-- [ ] ARRAY_AGG via `F.array_agg(col("x"))` (ANSI SQL:2003 but deferred from Phase 3)
-- [ ] JSON functions (json_extract_path, etc.)
-- [x] JSON operators (`->`, `->>`, `@>`, `#>`, `#>>`, etc.) via `expr.op("->", other)`
-- [ ] Array functions (array_length, unnest, etc.)
-- [x] Array operators (`@>`, `<@`, `&&`, `||`) via `expr.op("@>", other)`
-- [x] Regex operators (`~`, `~*`, `!~`, `!~*`) via `expr.op("~", other)`
-- [x] Full-text search `@@` operator via `expr.op("@@", other)`
+### PostgreSQL Data Types & Functions
+
+**All available via raw.expr()** - no wrappers needed:
+- ✅ JSONB literals: `raw.expr("'{...}'::jsonb")`
+- ✅ JSON functions: `raw.expr("jsonb_build_object({k}, {v})", ...)`
+- [x] JSON operators: via `expr.op("->", other)` (already completed)
+- ✅ ARRAY literals: `raw.expr("ARRAY[{a}, {b}]", ...)`
+- ✅ Array functions: `raw.expr("unnest({arr})", ...)`
+- [x] Array operators: via `expr.op("@>", other)` (already completed)
+- ✅ UUID functions: `raw.expr("gen_random_uuid()")`
+- ✅ Text search: `raw.expr("to_tsvector({text})", ...)`
+- [x] Text search operator: via `expr.op("@@", other)` (already completed)
+- [x] Regex operators: via `expr.op("~", other)` (already completed)
+- ✅ Geometric types: `raw.expr("ST_Distance({a}, {b})", ...)`
+- ✅ Any PostgreSQL function or type
+
+**High-value convenience wrappers (Tier 1 & 2):**
+- ✅ `lit(value)` - literal values rendered as auto-generated parameters
+- ✅ `raw.func(name, *args)` - ergonomic shorthand for simple function calls
+- ✅ `F.gen_random_uuid()` - UUID generation (ubiquitous, zero-config)
+- ✅ `F.array_agg(expr, order_by=None, distinct=False)` - array aggregation with ORDER BY support
+- ✅ `F.string_agg(expr, separator, order_by=None)` - string aggregation with ORDER BY support
+- ✅ `F.json_build_object(*args)` - JSON object construction (variadic args much cleaner)
+- ✅ `F.json_agg(expr, order_by=None)` - JSON array aggregation with ORDER BY support
+- ✅ `F.unnest(array)` - expand arrays to rows (common in SELECT clause)
+
+**Future convenience wrappers to consider:**
+- [ ] `F.to_tsvector(config, text)` - full-text search foundation
+- [ ] `F.to_tsquery(config, query)` - full-text search foundation
+
+**Not needed** (use raw.expr() instead):
+- ❌ Dozens of JSON functions (json_extract_path, jsonb_set, jsonb_insert, etc.)
+- ❌ Dozens of array functions (array_length, array_position, array_append, etc.)
+- ❌ Geometric functions (better served by PostGIS extension patterns)
+- ❌ HSTORE functions (legacy, superseded by JSONB)
+- ❌ Network type functions (niche use case)
+- ❌ Hundreds of other PostgreSQL-specific functions
 
 ### PostgreSQL Advanced Features
 - [x] FOR UPDATE / FOR SHARE locking (via `.modifiers()`)

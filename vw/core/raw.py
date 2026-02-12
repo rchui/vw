@@ -113,3 +113,27 @@ class RawAPI:
         # Store template and named parameters for lazy rendering
         params_tuple = tuple((k, v.state) for k, v in kwargs.items())
         return self.factories.rowset(state=RawSource(sql=template, params=params_tuple), factories=self.factories)
+
+    def func(self, name: str, /, *args: Expression) -> Expression:
+        """Create a function call with the given name and arguments.
+
+        Use this for database-specific functions not yet supported by vw.
+        For functions requiring special syntax (WITHIN GROUP, FILTER, etc.),
+        use raw.expr() instead.
+
+        Args:
+            name: The function name (e.g., "custom_func", "my_agg").
+            *args: Positional arguments to pass to the function.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Example:
+            >>> raw.func("gen_random_uuid")
+            >>> raw.func("custom_hash", col("email"))
+            >>> raw.func("percentile_cont", param("pct", 0.95))
+        """
+        from vw.core.states import Function
+
+        args_tuple = tuple(arg.state for arg in args)
+        return self.factories.expr(state=Function(name=name.upper(), args=args_tuple), factories=self.factories)
