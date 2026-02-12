@@ -125,6 +125,86 @@ class Functions(CoreFunctions):
         state = Function(name="UNNEST", args=(array.state,))
         return self.factories.expr(state=state, factories=self.factories)
 
+    def bit_and(self, expr: Expression) -> Expression:
+        """BIT_AND(expr) — Bitwise AND aggregate.
+
+        Computes the bitwise AND of all non-null input values.
+
+        Args:
+            expr: Expression to aggregate (typically an integer column).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.bit_and(col("flags"))  # BIT_AND(flags)
+            >>> F.bit_and(col("permissions")).alias("combined_perms")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="BIT_AND", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def bit_or(self, expr: Expression) -> Expression:
+        """BIT_OR(expr) — Bitwise OR aggregate.
+
+        Computes the bitwise OR of all non-null input values.
+
+        Args:
+            expr: Expression to aggregate (typically an integer column).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.bit_or(col("flags"))  # BIT_OR(flags)
+            >>> F.bit_or(col("permissions")).alias("combined_perms")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="BIT_OR", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def bool_and(self, expr: Expression) -> Expression:
+        """BOOL_AND(expr) — Boolean AND aggregate (also known as EVERY).
+
+        Returns true if all input values are true, otherwise false.
+
+        Args:
+            expr: Expression to aggregate (boolean expression or column).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.bool_and(col("is_active"))  # BOOL_AND(is_active)
+            >>> F.bool_and(col("verified")).alias("all_verified")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="BOOL_AND", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def bool_or(self, expr: Expression) -> Expression:
+        """BOOL_OR(expr) — Boolean OR aggregate.
+
+        Returns true if at least one input value is true, otherwise false.
+
+        Args:
+            expr: Expression to aggregate (boolean expression or column).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.bool_or(col("needs_review"))  # BOOL_OR(needs_review)
+            >>> F.bool_or(col("has_error")).alias("any_errors")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="BOOL_OR", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
 
 # Instantiate with PostgreSQL factories
 F = Functions(factories=Factories(expr=Expression, rowset=RowSet))

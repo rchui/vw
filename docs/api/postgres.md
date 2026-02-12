@@ -345,6 +345,68 @@ ref("posts").select(F.unnest(col("tags")).alias("tag"))
 raw.rowset("unnest({arr}) AS t(elem)", arr=col("array_col"))
 ```
 
+### Boolean and Bitwise Aggregate Functions
+
+#### `F.bool_and(expr)`
+
+Boolean AND aggregate (also known as EVERY). Returns true if all input values are true, otherwise false.
+
+```python
+# Check if all users in a group are active
+ref("users").select(
+    col("group_id"),
+    F.bool_and(col("is_active")).alias("all_active")
+).group_by(col("group_id"))
+# SQL: SELECT group_id, BOOL_AND(is_active) AS all_active FROM users GROUP BY group_id
+
+# With FILTER
+F.bool_and(col("is_active")).filter(col("role") == param("role", "admin")).alias("admins_active")
+# SQL: BOOL_AND(is_active) FILTER (WHERE role = $role) AS admins_active
+```
+
+#### `F.bool_or(expr)`
+
+Boolean OR aggregate. Returns true if at least one input value is true, otherwise false.
+
+```python
+# Check if any order needs review
+ref("orders").select(
+    col("customer_id"),
+    F.bool_or(col("needs_review")).alias("any_need_review")
+).group_by(col("customer_id"))
+# SQL: SELECT customer_id, BOOL_OR(needs_review) AS any_need_review FROM orders GROUP BY customer_id
+
+# With FILTER
+F.bool_or(col("has_error")).filter(col("priority") == param("priority", "high")).alias("high_priority_errors")
+# SQL: BOOL_OR(has_error) FILTER (WHERE priority = $priority) AS high_priority_errors
+```
+
+#### `F.bit_and(expr)`
+
+Bitwise AND aggregate. Computes the bitwise AND of all non-null integer input values.
+
+```python
+# Combine permission flags across role memberships
+ref("user_roles").select(
+    col("user_id"),
+    F.bit_and(col("permissions")).alias("required_perms")
+).group_by(col("user_id"))
+# SQL: SELECT user_id, BIT_AND(permissions) AS required_perms FROM user_roles GROUP BY user_id
+```
+
+#### `F.bit_or(expr)`
+
+Bitwise OR aggregate. Computes the bitwise OR of all non-null integer input values.
+
+```python
+# Combine all permission flags a user has
+ref("user_roles").select(
+    col("user_id"),
+    F.bit_or(col("permissions")).alias("all_perms")
+).group_by(col("user_id"))
+# SQL: SELECT user_id, BIT_OR(permissions) AS all_perms FROM user_roles GROUP BY user_id
+```
+
 ### Combining with FILTER
 
 All aggregate functions support the `.filter()` method for conditional aggregation:

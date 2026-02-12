@@ -54,13 +54,13 @@ Feature parity tracking for `vw/postgres/` implementation.
 - ✅ 84 unit tests in test_base.py (describe_rowset hierarchy)
 - ✅ 16 integration tests in test_query_building.py
 - ✅ 37 integration tests in test_operators.py
-- ✅ 16 integration tests in test_aggregate_functions.py
+- ✅ 36 integration tests in test_aggregate_functions.py (includes bit_and, bit_or, bool_and, bool_or)
 - ✅ 27 integration tests in test_window_functions.py
 - ✅ 13 integration tests in test_window_frames.py
 - ✅ 13 integration tests in test_filter_clause.py
 - ✅ 10 method chaining tests
 - ✅ 12 existing tests (source, column, render)
-- ✅ Total: 218 tests, all passing
+- ✅ Total: 238 tests, all passing
 
 ---
 
@@ -377,6 +377,10 @@ Feature parity tracking for `vw/postgres/` implementation.
 - ✅ `F.json_build_object(*args)` - JSON object construction (variadic args much cleaner)
 - ✅ `F.json_agg(expr, order_by=None)` - JSON array aggregation with ORDER BY support
 - ✅ `F.unnest(array)` - expand arrays to rows (common in SELECT clause)
+- ✅ `F.bit_and(expr)` - bitwise AND aggregate for permission flags
+- ✅ `F.bit_or(expr)` - bitwise OR aggregate for permission flags
+- ✅ `F.bool_and(expr)` - boolean AND aggregate (EVERY)
+- ✅ `F.bool_or(expr)` - boolean OR aggregate
 
 **Future convenience wrappers to consider:**
 - [ ] `F.to_tsvector(config, text)` - full-text search foundation
