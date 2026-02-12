@@ -2,9 +2,9 @@
 
 Feature parity tracking for `vw/postgres/` implementation.
 
-**Status:** 🚧 In Progress
-**Current Phase:** Phase 5a - Advanced Query Features (Subqueries, VALUES, CASE)
-**Recently Completed:** Phase 5b (Set Operations), Phase 5c (CTEs)
+**Status:** ✅ Complete
+**Current Phase:** All core phases complete
+**Recently Completed:** Phase 7 (Scalar Functions), Phase 8 (PostgreSQL-Specific Features)
 
 ---
 
@@ -235,7 +235,7 @@ Feature parity tracking for `vw/postgres/` implementation.
 
 ---
 
-## 📋 Phase 5a: Advanced Query Features (In Progress)
+## ✅ Phase 5a: Advanced Query Features
 
 ### Subqueries
 - ✅ Subqueries in FROM (Statement as source)
@@ -287,7 +287,7 @@ Feature parity tracking for `vw/postgres/` implementation.
 
 ---
 
-## 📋 Phase 7: Scalar Functions
+## ✅ Phase 7: Scalar Functions
 
 ### String Functions
 - [x] UPPER via `col("x").text.upper()`
@@ -332,7 +332,7 @@ Feature parity tracking for `vw/postgres/` implementation.
 
 ---
 
-## 📋 Phase 8: PostgreSQL-Specific Features
+## ✅ Phase 8: PostgreSQL-Specific Features
 
 ### Strategy: Raw SQL API + High-Value Conveniences
 
@@ -423,15 +423,13 @@ Each phase should include:
 - Phase 2: Operators & Expressions ✅
 - Phase 3: Aggregate & Window Functions ✅
 - Phase 4: Joins ✅
+- Phase 5a: Advanced Query Features ✅
 - Phase 5b: Set Operations ✅
 - Phase 5c: CTEs (Common Table Expressions) ✅
 - Phase 6: Parameters & Rendering ✅
+- Phase 7: Scalar Functions ✅
+- Phase 8: PostgreSQL-Specific Features ✅
 
-**In Progress:**
-- Phase 5a: Advanced Query Features (Subqueries, VALUES, CASE)
+**Total Progress:** ✅ 100% complete (all core phases complete)
 
-**Remaining:**
-- Phase 7: Scalar Functions
-- Phase 8: PostgreSQL-Specific Features
-
-**Total Progress:** ~70% complete (7/10 phases, with 5a partially complete)
+**Note:** Future enhancements (additional convenience functions like `F.to_tsvector()`) can be added as needed. The raw SQL API (`raw.expr()`, `raw.rowset()`, `raw.func()`) provides escape hatches for any PostgreSQL features not yet wrapped.
