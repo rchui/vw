@@ -220,18 +220,9 @@ uv run ty check        # Type check
 ### Development Roadmaps
 - PostgreSQL feature roadmap → `docs/development/postgres-parity.md`
 - PostgreSQL completed features → `docs/development/postgres-parity.md` (Completed Features)
-- PostgreSQL Phase 1: Core Query Building → `docs/development/postgres-parity.md` (Phase 1)
-- PostgreSQL Phase 2: Operators & Expressions → `docs/development/postgres-parity.md` (Phase 2)
-- PostgreSQL Phase 3: Aggregate & Window Functions → `docs/development/postgres-parity.md` (Phase 3)
-- PostgreSQL Phase 4: Joins (planned) → `docs/development/postgres-parity.md` (Phase 4)
-- PostgreSQL Phase 5: Advanced Query Features (planned) → `docs/development/postgres-parity.md` (Phase 5)
-- PostgreSQL Phase 6: Parameters & Rendering → `docs/development/postgres-parity.md` (Phase 6)
-- PostgreSQL Phase 7: Scalar Functions (planned) → `docs/development/postgres-parity.md` (Phase 7)
-- PostgreSQL Phase 8: DML Statements (planned) → `docs/development/postgres-parity.md` (Phase 8)
-- PostgreSQL Phase 9: DDL Statements (planned) → `docs/development/postgres-parity.md` (Phase 9)
-- PostgreSQL Phase 10: PostgreSQL-Specific Features (planned) → `docs/development/postgres-parity.md` (Phase 10)
 - DuckDB feature roadmap → `docs/development/duckdb-parity.md`
 - DuckDB implementation strategy → `docs/development/duckdb-parity.md` (Strategy, Implementation Strategy)
 - DuckDB prerequisites → `docs/development/duckdb-parity.md` (Prerequisites)
 - DuckDB star extensions (planned) → `docs/development/duckdb-parity.md` (Phase 2: Star Extensions)
-- DuckDB file I/O (planned) → `docs/development/duckdb-parity.md` (Phase 3: DuckDB Data Import/Export)
+- DuckDB file I/O (planned) → `docs/development/duckdb-parity.md` (Phase 3: File I/O)
+- DuckDB key differences from PostgreSQL → `docs/development/duckdb-parity.md` (Key Differences from PostgreSQL)
