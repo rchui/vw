@@ -221,8 +221,11 @@ uv run ty check        # Type check
 - PostgreSQL feature roadmap → `docs/development/postgres-parity.md`
 - PostgreSQL completed features → `docs/development/postgres-parity.md` (Completed Features)
 - DuckDB feature roadmap → `docs/development/duckdb-parity.md`
-- DuckDB implementation strategy → `docs/development/duckdb-parity.md` (Strategy, Implementation Strategy)
-- DuckDB prerequisites → `docs/development/duckdb-parity.md` (Prerequisites)
 - DuckDB star extensions (planned) → `docs/development/duckdb-parity.md` (Phase 2: Star Extensions)
 - DuckDB file I/O (planned) → `docs/development/duckdb-parity.md` (Phase 3: File I/O)
-- DuckDB key differences from PostgreSQL → `docs/development/duckdb-parity.md` (Key Differences from PostgreSQL)
+- Snowflake feature roadmap → `docs/development/snowflake-parity.md`
+- MySQL feature roadmap → `docs/development/mysql-parity.md`
+- SQL Server feature roadmap → `docs/development/sqlserver-parity.md`
+- SQLite feature roadmap → `docs/development/sqlite-parity.md`
+- Oracle feature roadmap → `docs/development/oracle-parity.md`
+- ClickHouse feature roadmap → `docs/development/clickhouse-parity.md`
