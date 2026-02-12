@@ -185,8 +185,9 @@ def param(name: str, value: object, /) -> Expression:
 def lit(value: object, /) -> Expression:
     """Create a literal value expression.
 
-    Literals are compile-time constants rendered as auto-generated parameters
-    for SQL injection safety. The database driver handles escaping.
+    Literals are compile-time constants rendered directly in SQL with proper
+    escaping for SQL injection safety. Strings are quoted and escaped ('active'),
+    numbers rendered as-is (42), booleans as TRUE/FALSE, None as NULL.
 
     Use lit() for: JSON keys, separators, status strings, magic numbers.
     Use param() for: user input, runtime values (self-documenting).

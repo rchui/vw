@@ -8,7 +8,19 @@ from vw.core.protocols import Stateful
 if TYPE_CHECKING:
     from vw.core.datetime import DateTimeAccessor
     from vw.core.joins import JoinAccessor
-    from vw.core.states import Expr, RawSource, Reference, SetOperation, Statement, Values
+    from vw.core.states import (
+        CurrentRow,
+        Expr,
+        Following,
+        Preceding,
+        RawSource,
+        Reference,
+        SetOperation,
+        Statement,
+        UnboundedFollowing,
+        UnboundedPreceding,
+        Values,
+    )
     from vw.core.text import TextAccessor
 
 ExprT = TypeVar("ExprT", bound="Expression")
@@ -252,7 +264,12 @@ class Expression(Stateful, FactoryT):
         state = replace(self.state, filter=condition.state)
         return self.factories.expr(state=state, factories=self.factories)
 
-    def rows_between(self, start: object, end: object, /) -> ExprT:
+    def rows_between(
+        self,
+        start: UnboundedPreceding | CurrentRow | Preceding | Following | None,
+        end: UnboundedFollowing | CurrentRow | Preceding | Following | None,
+        /,
+    ) -> ExprT:
         """Add ROWS BETWEEN frame clause to window function.
 
         Args:
@@ -283,7 +300,12 @@ class Expression(Stateful, FactoryT):
         state = replace(self.state, frame=frame)
         return self.factories.expr(state=state, factories=self.factories)
 
-    def range_between(self, start: object, end: object, /) -> ExprT:
+    def range_between(
+        self,
+        start: UnboundedPreceding | CurrentRow | Preceding | Following | None,
+        end: UnboundedFollowing | CurrentRow | Preceding | Following | None,
+        /,
+    ) -> ExprT:
         """Add RANGE BETWEEN frame clause to window function.
 
         Args:

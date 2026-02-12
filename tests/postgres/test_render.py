@@ -21,6 +21,7 @@ from vw.core.states import (
     IsNotNull,
     IsNull,
     Like,
+    Literal,
     Not,
     NotBetween,
     NotLike,
@@ -312,8 +313,8 @@ def describe_render_function() -> None:
         func = Function(name="SUM", args=(Column(name="amount"),))
         assert render_function(func, ctx) == "SUM(amount)"
 
-    def it_renders_function_with_int_args(ctx: RenderContext) -> None:
-        func = Function(name="NTILE", args=(4,))
+    def it_renders_function_with_literal_args(ctx: RenderContext) -> None:
+        func = Function(name="NTILE", args=(Literal(value=4),))
         assert render_function(func, ctx) == "NTILE(4)"
 
     def it_renders_no_arg_function(ctx: RenderContext) -> None:

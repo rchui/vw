@@ -112,27 +112,25 @@ def describe_tier1_functions() -> None:
 
         def it_renders_basic_usage() -> None:
             """Test basic string_agg."""
-            expected_sql = """SELECT STRING_AGG(name, $_lit_0) FROM users"""
+            expected_sql = """SELECT STRING_AGG(name, ', ') FROM users"""
 
             q = ref("users").select(F.string_agg(col("name"), lit(", ")))
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": ", "}
+            assert result.params == {}
 
         def it_renders_with_order_by() -> None:
             """Test string_agg with ORDER BY."""
-            expected_sql = """SELECT STRING_AGG(name, $_lit_0 ORDER BY name) FROM users"""
+            expected_sql = """SELECT STRING_AGG(name, ', ' ORDER BY name) FROM users"""
 
             q = ref("users").select(F.string_agg(col("name"), lit(", "), order_by=[col("name")]))
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": ", "}
+            assert result.params == {}
 
         def it_renders_with_group_by() -> None:
             """Test string_agg with GROUP BY."""
-            expected_sql = (
-                """SELECT department, STRING_AGG(name, $_lit_0 ORDER BY name) FROM users GROUP BY department"""
-            )
+            expected_sql = """SELECT department, STRING_AGG(name, ', ' ORDER BY name) FROM users GROUP BY department"""
 
             q = (
                 ref("users")
@@ -141,7 +139,7 @@ def describe_tier1_functions() -> None:
             )
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": ", "}
+            assert result.params == {}
 
 
 def describe_tier2_functions() -> None:
@@ -152,17 +150,17 @@ def describe_tier2_functions() -> None:
 
         def it_renders_basic_usage() -> None:
             """Test basic json_build_object."""
-            expected_sql = """SELECT JSON_BUILD_OBJECT($_lit_0, id, $_lit_1, name) FROM users"""
+            expected_sql = """SELECT JSON_BUILD_OBJECT('id', id, 'name', name) FROM users"""
 
             q = ref("users").select(F.json_build_object(lit("id"), col("id"), lit("name"), col("name")))
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": "id", "_lit_1": "name"}
+            assert result.params == {}
 
         def it_renders_many_fields() -> None:
             """Test json_build_object with many fields."""
             expected_sql = (
-                """SELECT JSON_BUILD_OBJECT($_lit_0, id, $_lit_1, name, $_lit_2, email, $_lit_3, status) FROM users"""
+                """SELECT JSON_BUILD_OBJECT('id', id, 'name', name, 'email', email, 'status', status) FROM users"""
             )
 
             q = ref("users").select(
@@ -179,7 +177,7 @@ def describe_tier2_functions() -> None:
             )
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": "id", "_lit_1": "name", "_lit_2": "email", "_lit_3": "status"}
+            assert result.params == {}
 
     def describe_json_agg() -> None:
         """Test JSON_AGG function."""
@@ -204,13 +202,13 @@ def describe_tier2_functions() -> None:
 
         def it_renders_with_json_build_object() -> None:
             """Test json_agg wrapping json_build_object."""
-            expected_sql = """SELECT JSON_AGG(JSON_BUILD_OBJECT($_lit_0, id, $_lit_1, name) ORDER BY name) FROM users"""
+            expected_sql = """SELECT JSON_AGG(JSON_BUILD_OBJECT('id', id, 'name', name) ORDER BY name) FROM users"""
 
             json_obj = F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
             q = ref("users").select(F.json_agg(json_obj, order_by=[col("name")]))
             result = render(q)
             assert result.query == sql(expected_sql)
-            assert result.params == {"_lit_0": "id", "_lit_1": "name"}
+            assert result.params == {}
 
         def it_renders_with_group_by() -> None:
             """Test json_agg with GROUP BY."""
@@ -262,7 +260,7 @@ def describe_order_by_with_filter() -> None:
 
     def it_renders_string_agg_with_filter_and_order() -> None:
         """Test string_agg with both FILTER and ORDER BY."""
-        expected_sql = """SELECT STRING_AGG(name, $_lit_0 ORDER BY name) FILTER (WHERE active = $status) FROM users"""
+        expected_sql = """SELECT STRING_AGG(name, ', ' ORDER BY name) FILTER (WHERE active = $status) FROM users"""
 
         agg = F.string_agg(col("name"), lit(", "), order_by=[col("name")]).filter(
             col("active") == param("status", True)
@@ -270,4 +268,62 @@ def describe_order_by_with_filter() -> None:
         q = ref("users").select(agg)
         result = render(q)
         assert result.query == sql(expected_sql)
-        assert result.params == {"_lit_0": ", ", "status": True}
+        assert result.params == {"status": True}
+
+
+def describe_literal_escaping() -> None:
+    """Test literal escaping for SQL injection safety."""
+
+    def it_escapes_single_quotes_in_strings() -> None:
+        """Test that single quotes are escaped by doubling."""
+        expected_sql = """SELECT status = 'user''s choice' FROM data"""
+
+        q = ref("data").select(col("status") == lit("user's choice"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_escapes_multiple_quotes_in_strings() -> None:
+        """Test that multiple single quotes are all escaped."""
+        expected_sql = """SELECT name = 'it''s a ''test''' FROM data"""
+
+        q = ref("data").select(col("name") == lit("it's a 'test'"))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_numbers_directly() -> None:
+        """Test that numbers are rendered without quotes."""
+        expected_sql = """SELECT id = 42, price = 19.99 FROM products"""
+
+        q = ref("products").select(col("id") == lit(42), col("price") == lit(19.99))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_booleans_as_true_false() -> None:
+        """Test that booleans render as TRUE/FALSE."""
+        expected_sql = """SELECT active = TRUE, deleted = FALSE FROM users"""
+
+        q = ref("users").select(col("active") == lit(True), col("deleted") == lit(False))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_none_as_null() -> None:
+        """Test that None renders as NULL."""
+        expected_sql = """SELECT name = NULL FROM users"""
+
+        q = ref("users").select(col("name") == lit(None))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}
+
+    def it_renders_empty_string_with_quotes() -> None:
+        """Test that empty strings are properly quoted."""
+        expected_sql = """SELECT name = '' FROM users"""
+
+        q = ref("users").select(col("name") == lit(""))
+        result = render(q)
+        assert result.query == sql(expected_sql)
+        assert result.params == {}

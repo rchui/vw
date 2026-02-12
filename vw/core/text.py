@@ -69,12 +69,12 @@ class TextAccessor(Generic[ExprT, RowSetT]):
             start: 1-based start position.
             length: Number of characters to extract (optional).
         """
-        from vw.core.states import Function
+        from vw.core.states import Function, Literal
 
         if length is None:
-            state = Function(name="SUBSTRING", args=(self.expr.state, start))
+            state = Function(name="SUBSTRING", args=(self.expr.state, Literal(value=start)))
         else:
-            state = Function(name="SUBSTRING", args=(self.expr.state, start, length))
+            state = Function(name="SUBSTRING", args=(self.expr.state, Literal(value=start), Literal(value=length)))
         return self.expr.factories.expr(state=state, factories=self.expr.factories)
 
     def replace(self, old: ExprT, new: ExprT) -> ExprT:

@@ -111,8 +111,10 @@ class Parameter(Expr):
 class Literal(Expr):
     """Literal value (string, number, boolean, null).
 
-    Rendered as auto-generated parameter for SQL injection safety.
-    Database driver handles all escaping.
+    Rendered directly in SQL with proper escaping for SQL injection safety.
+    Strings are quoted and escaped, numbers are rendered as-is.
+
+    Examples: 'active', 42, TRUE, NULL
 
     Use lit() factory to create literals.
     Use param() for user input (self-documenting).
@@ -441,20 +443,20 @@ class Function(Expr):
     """Represents a SQL function (aggregate, window-only, or scalar)."""
 
     name: str
-    args: tuple[object, ...] = field(default_factory=tuple)
+    args: tuple[Expr, ...] = field(default_factory=tuple)
     distinct: bool = False
-    filter: object | None = None
-    order_by: tuple[object, ...] = field(default_factory=tuple)
+    filter: Expr | None = None
+    order_by: tuple[Expr, ...] = field(default_factory=tuple)
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class WindowFunction(Expr):
     """Represents a window function with OVER clause."""
 
-    function: object
-    partition_by: tuple[object, ...] = field(default_factory=tuple)
-    order_by: tuple[object, ...] = field(default_factory=tuple)
-    frame: object | None = None
+    function: Expr
+    partition_by: tuple[Expr, ...] = field(default_factory=tuple)
+    order_by: tuple[Expr, ...] = field(default_factory=tuple)
+    frame: FrameClause | None = None
 
 
 # --- Window Frame Clauses -------------------------------------------------- #
@@ -462,11 +464,14 @@ class WindowFunction(Expr):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class FrameClause:
-    """Represents a window frame clause (ROWS/RANGE BETWEEN)."""
+    """Represents a window frame clause (ROWS/RANGE BETWEEN).
+
+    When start or end is None, the renderer will apply appropriate defaults.
+    """
 
     mode: str  # "ROWS" or "RANGE"
-    start: object
-    end: object
+    start: UnboundedPreceding | CurrentRow | Preceding | Following | None
+    end: UnboundedFollowing | CurrentRow | Preceding | Following | None
     exclude: str | None = None  # "CURRENT ROW", "GROUP", "TIES", "NO OTHERS"
 
 

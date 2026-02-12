@@ -41,17 +41,24 @@ Supported types: `str`, `int`, `float`, `bool`, `None`.
 
 ### `lit(value)`
 
-Create a literal value expression. Literals are compile-time constants rendered as auto-generated parameters for SQL injection safety.
+Create a literal value expression. Literals are compile-time constants rendered directly in SQL with proper escaping for SQL injection safety.
 
 ```python
 # Use lit() for constants in SQL
-F.string_agg(col("name"), lit(", "))  # STRING_AGG(name, $_lit_0)
-F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))
-col("status") == lit("active")  # status = $_lit_0
+F.string_agg(col("name"), lit(", "))  # STRING_AGG(name, ', ')
+F.json_build_object(lit("id"), col("id"), lit("name"), col("name"))  # JSON_BUILD_OBJECT('id', id, 'name', name)
+col("status") == lit("active")  # status = 'active'
+col("priority") > lit(5)  # priority > 5
 
 # Use param() for user input (self-documenting)
 col("age") > param("min_age", 18)  # age > $min_age
 ```
+
+Literal rendering:
+- Strings: quoted and escaped (`'active'`, `'user''s choice'`)
+- Numbers: rendered as-is (`42`, `19.99`)
+- Booleans: `TRUE` / `FALSE`
+- None: `NULL`
 
 Use `lit()` for: JSON keys, separators, status strings, magic numbers.
 Use `param()` for: user input, runtime values (self-documenting).

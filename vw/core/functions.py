@@ -192,10 +192,10 @@ class Functions(FactoryT):
         Example:
             >>> F.ntile(4).over(order_by=[col("salary").desc()])
         """
-        from vw.core.states import Function
+        from vw.core.states import Function, Literal
 
-        # Store n as an integer argument
-        state = Function(name="NTILE", args=(n,))
+        # Store n as a literal argument
+        state = Function(name="NTILE", args=(Literal(value=n),))
         return self.factories.expr(state=state, factories=self.factories)
 
     # --- Offset Functions (SQL:2003) --------------------------------------- #
@@ -218,12 +218,12 @@ class Functions(FactoryT):
             >>> F.lag(col("price"), 2).over(order_by=[col("date")])
             >>> F.lag(col("price"), 1, param("default", 0)).over(order_by=[col("date")])
         """
-        from vw.core.states import Function
+        from vw.core.states import Expr, Function, Literal
 
         # LAG(expr, offset, default)
-        args: list[object] = [expr.state]
+        args: list[Expr] = [expr.state]
         if offset != 1 or default is not None:
-            args.append(offset)
+            args.append(Literal(value=offset))
         if default is not None:
             args.append(default.state)
 
@@ -248,12 +248,12 @@ class Functions(FactoryT):
             >>> F.lead(col("price"), 2).over(order_by=[col("date")])
             >>> F.lead(col("price"), 1, param("default", 0)).over(order_by=[col("date")])
         """
-        from vw.core.states import Function
+        from vw.core.states import Expr, Function, Literal
 
         # LEAD(expr, offset, default)
-        args: list[object] = [expr.state]
+        args: list[Expr] = [expr.state]
         if offset != 1 or default is not None:
-            args.append(offset)
+            args.append(Literal(value=offset))
         if default is not None:
             args.append(default.state)
 

@@ -455,16 +455,30 @@ def render_parameter(param: Parameter, ctx: RenderContext) -> str:
 
 
 def render_literal(lit: Literal, ctx: RenderContext) -> str:
-    """Render a Literal as auto-generated parameter.
+    """Render a Literal directly in SQL with proper escaping.
 
     Args:
         lit: A Literal to render.
-        ctx: Rendering context for parameter collection.
+        ctx: Rendering context (unused, kept for signature consistency).
 
     Returns:
-        The parameter placeholder string.
+        The SQL literal string.
     """
-    return ctx.add_literal(lit.value)
+
+    if lit.value is None:
+        return "NULL"
+    elif isinstance(lit.value, bool):
+        return "TRUE" if lit.value else "FALSE"
+    elif isinstance(lit.value, str):
+        # SQL standard: escape single quotes by doubling them
+        escaped = lit.value.replace("'", "''")
+        return f"'{escaped}'"
+    elif isinstance(lit.value, (int, float)):
+        # int, float, or other numeric types
+        return str(lit.value)
+    else:
+        context = {"type": type(lit.value), "value": lit.value}
+        raise ValueError(f"Unsupported literal: {context}")
 
 
 def render_function(func: Function, ctx: RenderContext) -> str:
@@ -479,13 +493,7 @@ def render_function(func: Function, ctx: RenderContext) -> str:
     """
     if func.args:
         # Render arguments
-        rendered_args = []
-        for arg in func.args:
-            if isinstance(arg, int):
-                rendered_args.append(str(arg))
-            else:
-                rendered_args.append(render_state(arg, ctx))
-
+        rendered_args = [render_state(arg, ctx) for arg in func.args]
         args_str = ", ".join(rendered_args)
 
         # Handle DISTINCT
@@ -540,6 +548,10 @@ def render_window_function(wf: WindowFunction, ctx: RenderContext) -> str:
 def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
     """Render a FrameClause to SQL.
 
+    When start or end is None, applies appropriate defaults:
+    - start defaults to UNBOUNDED PRECEDING
+    - end defaults to CURRENT ROW
+
     Args:
         frame: A FrameClause to render.
         ctx: Rendering context for parameter collection.
@@ -547,7 +559,18 @@ def render_frame_clause(frame: FrameClause, ctx: RenderContext) -> str:
     Returns:
         The SQL string.
     """
-    sql = f"{frame.mode} BETWEEN {render_state(frame.start, ctx)} AND {render_state(frame.end, ctx)}"
+    # Apply defaults when None
+    if frame.start is None:
+        start_sql = "UNBOUNDED PRECEDING"
+    else:
+        start_sql = render_state(frame.start, ctx)
+
+    if frame.end is None:
+        end_sql = "CURRENT ROW"
+    else:
+        end_sql = render_state(frame.end, ctx)
+
+    sql = f"{frame.mode} BETWEEN {start_sql} AND {end_sql}"
     if frame.exclude:
         sql += f" EXCLUDE {frame.exclude}"
     return sql
