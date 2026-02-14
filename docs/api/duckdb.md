@@ -2,46 +2,131 @@
 
 The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 
-**Status:** ⚠️ **Incomplete** - Basic structure only, full implementation pending.
+**Status:** ✅ **Core Features Complete** - Basic DuckDB support is now available. DuckDB-specific features (star extensions, file I/O) are pending.
 
 ## Module Import
 
 ```python
-from vw.duckdb import source
+from vw.duckdb import ref, col, param, lit, render, F
 ```
 
 ## Factory Functions
 
-### `source(name)`
+### `ref(name)`
 
-Create a DuckDB table or view source.
+Create a reference to a table or view.
 
 ```python
-users = source("users")
+users = ref("users")
 # Represents: users table
 ```
 
 **Parameters:**
 - `name` (str) - Table or view name
 
-**Returns:** RowSet wrapping Source state
+**Returns:** RowSet wrapping Reference state
 
 **Status:** ✅ Available
 
-## Missing Features
+### `col(name)`
 
-The following features are not yet implemented for DuckDB:
+Create a column reference.
 
-### Factory Functions
-- ❌ `col(name)` - Column reference factory
-- ❌ `param(name, value)` - Parameter factory
-- ❌ `render(rowset)` - SQL rendering function
-- ❌ `F` - Functions instance
+```python
+col("name")
+col("users.id")
+col("*")  # SELECT * syntax
+```
+
+**Parameters:**
+- `name` (str) - Column name (can include table qualifier)
+
+**Returns:** Expression wrapping Column state
+
+**Status:** ✅ Available
+
+### `param(name, value)`
+
+Create a parameter for parameterized queries.
+
+```python
+param("min_age", 18)
+ref("users").where(col("age") >= param("min_age", 18))
+```
+
+**Parameters:**
+- `name` (str) - Parameter name (will be rendered as $name in DuckDB)
+- `value` (Any) - Parameter value
+
+**Returns:** Expression wrapping Parameter state
+
+**Status:** ✅ Available
+
+### `lit(value)`
+
+Create a literal value (rendered directly in SQL).
+
+```python
+lit(42)
+lit("hello")
+lit(True)
+lit(None)  # NULL
+```
+
+**Parameters:**
+- `value` (Any) - The literal value (int, float, str, bool, None)
+
+**Returns:** Expression wrapping Literal state
+
+**Status:** ✅ Available
+
+### `render(rowset)`
+
+Render a RowSet or Expression to DuckDB SQL.
+
+```python
+query = ref("users").select(col("id"), col("name"))
+result = render(query)
+# result.query: "SELECT id, name FROM users"
+# result.params: {}
+```
+
+**Parameters:**
+- `rowset` (RowSet | Expression) - Query to render
+- `config` (RenderConfig | None) - Optional rendering configuration
+
+**Returns:** SQL result with query string and parameters dict
+
+**Status:** ✅ Available
+
+## Core Features
 
 ### Rendering
-- ❌ `vw/duckdb/render.py` - DuckDB SQL rendering logic
-- ❌ Parameter style configuration
-- ❌ DuckDB-specific syntax handling
+- ✅ `vw/duckdb/render.py` - DuckDB SQL rendering logic
+- ✅ Parameter style configuration (DOLLAR: `$1`, `$2`)
+- ✅ DuckDB-specific syntax handling
+- ✅ Identifier quoting (double quotes)
+
+### Functions
+- ✅ `F` - Functions instance with all ANSI SQL standard functions
+- ✅ Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
+- ✅ Window functions (ROW_NUMBER, RANK, DENSE_RANK, LAG, LEAD, etc.)
+- ✅ Date/time functions (CURRENT_TIMESTAMP, CURRENT_DATE, EXTRACT)
+- ✅ String functions (UPPER, LOWER, TRIM, LENGTH, SUBSTRING, etc.)
+- ✅ Null handling (COALESCE, NULLIF, GREATEST, LEAST)
+
+### Query Building
+- ✅ SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY
+- ✅ LIMIT, OFFSET, FETCH, DISTINCT
+- ✅ Joins (INNER, LEFT, RIGHT, FULL, CROSS)
+- ✅ Subqueries, CTEs, VALUES clause
+- ✅ Set operations (UNION, INTERSECT, EXCEPT)
+- ✅ CASE WHEN expressions
+- ✅ Window functions with PARTITION BY, ORDER BY, frames
+
+## Pending DuckDB-Specific Features
+
+The following features are not yet implemented for DuckDB:
 
 ### DuckDB-Specific Features (Planned)
 
