@@ -288,6 +288,78 @@ min_age: Expression = param("min_age", 18)
 - **Dialect tests** - Separate test suites for each dialect
 - **Assertion style** - Assert entire SQL strings, not fragments
 
+## Test Organization
+
+The test suite is organized to separate ANSI SQL standard functionality from dialect-specific extensions.
+
+### Directory Structure
+
+```
+tests/
+├── core/                           # ANSI SQL standard tests
+│   ├── test_base.py                # Core RowSet methods
+│   ├── test_column.py              # col() factory function
+│   ├── test_joins.py               # ANSI SQL joins
+│   ├── test_render.py              # Core state rendering
+│   ├── test_set_operations.py      # UNION/INTERSECT/EXCEPT states
+│   ├── test_source.py              # ref() factory function
+│   ├── test_subqueries.py          # Subquery states
+│   └── test_values.py              # VALUES clause
+│
+└── postgres/                       # PostgreSQL-specific tests
+    ├── test_base.py                # PostgreSQL RowSet extensions
+    ├── test_grouping.py            # ROLLUP/CUBE/GROUPING SETS
+    ├── test_joins.py               # LATERAL joins
+    ├── test_raw.py                 # Raw SQL API
+    ├── test_render.py              # PostgreSQL-specific rendering
+    ├── test_source.py              # PostgreSQL ref() extensions
+    ├── test_types.py               # PostgreSQL type system
+    └── integration/                # Full-stack PostgreSQL tests
+        ├── test_aggregate_functions.py
+        ├── test_case.py
+        ├── test_ctes.py
+        ├── test_datetime_functions.py
+        ├── test_filter_clause.py
+        ├── test_joins.py
+        ├── test_null_handling_functions.py
+        ├── test_operators.py
+        ├── test_postgres_functions.py
+        ├── test_query_building.py
+        ├── test_raw.py
+        ├── test_set_operations.py
+        ├── test_subqueries.py
+        ├── test_text.py
+        └── test_window_functions.py
+```
+
+### Classification Criteria
+
+**tests/core** - ANSI SQL standard features:
+- Features from SQL-92, SQL:1999, SQL:2003, SQL:2008 standards
+- Should work identically across all SQL dialects
+- Examples: `=`, `<`, `>`, `COUNT`, `SUM`, `INNER JOIN`, `CASE/WHEN`, `CTEs`, `UNION`
+- Core tests use `vw.postgres` for rendering (PostgreSQL is the reference dialect)
+
+**tests/postgres** - PostgreSQL-specific features:
+- PostgreSQL extensions or unique syntax
+- Examples: `ILIKE`, `ROLLUP`/`CUBE`/`GROUPING SETS`, `DISTINCT ON`, `LATERAL`, `DATE_TRUNC`, `NOW()`, `ARRAY_AGG`, JSON functions, `FOR UPDATE`, `FETCH WITH TIES`
+
+### Rendering Strategy
+
+Core tests import from `vw.postgres` for rendering:
+
+```python
+from vw.postgres import col, param, ref, render  # Core tests use postgres render()
+```
+
+This is pragmatic: the core module contains only state objects and abstract classes—rendering is dialect-specific. Tests verify both state construction AND SQL output.
+
+### Test Coverage
+
+- **Core tests**: ~183 tests covering ANSI SQL standard functionality
+- **PostgreSQL tests**: ~437 tests covering PostgreSQL-specific features
+- **Total**: ~620 tests with full coverage of both standard and dialect-specific features
+
 ## Next Steps
 
 - **[API Reference](api/index.md)** - Detailed API documentation
