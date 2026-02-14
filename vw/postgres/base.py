@@ -27,6 +27,19 @@ class Expression(CoreExpression):
 
 @dataclass(eq=False, frozen=True, kw_only=True)
 class RowSet(CoreRowSet):
+    def star(self) -> ExprT:
+        """Create a star expression qualified with this rowset's source.
+
+        Returns:
+            An Expression with qualified star.
+
+        Example:
+            >>> users.star()  # SELECT users.*
+        """
+        from vw.core.states import Star
+
+        return self.factories.expr(state=Star(source=self.state), factories=self.factories)
+
     def distinct(self, *on: ExprT) -> RowSetT:
         """Add DISTINCT or DISTINCT ON clause.
 

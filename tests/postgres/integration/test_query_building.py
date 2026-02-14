@@ -223,7 +223,7 @@ def describe_aliased_queries() -> None:
         """
 
         s = ref("products").alias("p")
-        q = s.select(s.star).where(s.col("active")).limit(10)
+        q = s.select(s.star()).where(s.col("active")).limit(10)
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {}

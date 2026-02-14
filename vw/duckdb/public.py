@@ -11,13 +11,13 @@ from vw.core.frame import following as following
 from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
 from vw.core.states import (
-    Column,
     Exists,
     Literal,
     Parameter,
     Reference,
 )
 from vw.duckdb.base import Expression, RowSet
+from vw.duckdb.states import Column
 
 
 class Functions(CoreFunctions):
@@ -195,12 +195,14 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
     from vw.core.states import CTE, RawSource, Reference, SetOperation, Values
+    from vw.duckdb.states import Star
 
     state = query.state
 
     # Handle Reference - convenience wrapper (convert to SELECT *)
     if isinstance(state, Reference):
-        stmt = query.select(col("*"))
+        star_expr = Expression(state=Star(source=state), factories=query.factories)
+        stmt = query.select(star_expr)
         stmt_state = stmt.state
         cte_state = CTE(
             name=name,

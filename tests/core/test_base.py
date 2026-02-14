@@ -46,40 +46,40 @@ def describe_rowset() -> None:
             assert result.params == {}
 
     def describe_star() -> None:
-        def it_creates_unqualified_star_without_alias() -> None:
-            """star should create unqualified star when reference has no alias."""
+        def it_creates_qualified_star_without_alias() -> None:
+            """star property always qualifies with source (table name if no alias)."""
             s = ref("users")
-            result = render(s.star)
-            assert result.query == "*"
+            result = render(s.star())
+            assert result.query == "users.*"
             assert result.params == {}
 
         def it_creates_qualified_star_with_alias() -> None:
             """star should create qualified star when reference has alias."""
             s = ref("users").alias("u")
-            result = render(s.star)
+            result = render(s.star())
             assert result.query == "u.*"
             assert result.params == {}
 
         def it_works_in_select() -> None:
-            """RowSet.star should work in select()."""
+            """RowSet.star() should work in select()."""
             s = ref("users").alias("u")
-            q = s.select(s.star)
+            q = s.select(s.star())
             result = render(q)
             assert result.query == "SELECT u.* FROM users AS u"
             assert result.params == {}
 
         def it_works_without_alias_in_select() -> None:
-            """RowSet.star should work in select without alias."""
+            """RowSet.star() should work in select without alias."""
             s = ref("users")
-            q = s.select(s.star)
+            q = s.select(s.star())
             result = render(q)
-            assert result.query == "SELECT * FROM users"
+            assert result.query == "SELECT users.* FROM users"
             assert result.params == {}
 
         def it_works_with_statement_alias() -> None:
             """star should use Statement alias when available."""
             s = ref("users").select(col("id")).alias("subq")
-            result = render(s.star)
+            result = render(s.star())
             assert result.query == "subq.*"
             assert result.params == {}
 

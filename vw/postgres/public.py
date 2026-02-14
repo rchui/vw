@@ -390,13 +390,14 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, RawSource, Reference, SetOperation, Values
+    from vw.core.states import CTE, RawSource, Reference, SetOperation, Star, Values
 
     state = query.state
 
     # Handle Reference - convenience wrapper (convert to SELECT *)
     if isinstance(state, Reference):
-        stmt = query.select(col("*"))
+        star_expr = Expression(state=Star(source=state), factories=query.factories)
+        stmt = query.select(star_expr)
         stmt_state = stmt.state
         cte_state = CTE(
             name=name,

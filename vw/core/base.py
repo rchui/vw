@@ -708,23 +708,14 @@ class RowSet(Stateful, FactoryT):
 
     @property
     def star(self) -> ExprT:
-        """Create a star expression qualified with this rowset's alias or CTE name.
-
-        Preference: alias > CTE name > unqualified
+        """Create a star expression qualified with this rowset's source.
 
         Returns:
             An Expression with qualified or unqualified star.
         """
-        from vw.core.states import CTE, Column
+        from vw.core.states import Star
 
-        if self.state.alias:
-            star_name = f"{self.state.alias}.*"
-        elif isinstance(self.state, CTE):
-            star_name = f"{self.state.name}.*"
-        else:
-            star_name = "*"
-
-        return self.factories.expr(state=Column(name=star_name), factories=self.factories)
+        return self.factories.expr(state=Star(source=self.state), factories=self.factories)
 
     @property
     def join(self) -> JoinAccessor[ExprT, RowSetT]:

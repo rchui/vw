@@ -51,6 +51,7 @@ from vw.core.states import (
     Rollup,
     ScalarSubquery,
     SetOperation,
+    Star,
     Statement,
     UnboundedFollowing,
     UnboundedPreceding,
@@ -118,6 +119,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_values(state, ctx)
         case Column():
             return render_column(state)
+        case Star():
+            return render_star(state)
         case Parameter():
             return render_parameter(state, ctx)
         case Literal():
@@ -439,6 +442,40 @@ def render_column(col: Column) -> str:
     if col.alias:
         return f"{col.name} AS {col.alias}"
     return col.name
+
+
+def render_star(star: Star) -> str:
+    """Render a Star expression.
+
+    Args:
+        star: A Star to render.
+
+    Returns:
+        The SQL string (e.g., "*" or "table.*").
+
+    Raises:
+        TypeError: If the source type is unsupported.
+    """
+    if star.source:
+        # Extract the name to qualify the star
+        # Note: Check CTE before Statement since CTE is a subclass of Statement
+        if isinstance(star.source, Reference):
+            source_name = star.source.alias if star.source.alias else star.source.name
+        elif isinstance(star.source, CTE):
+            source_name = star.source.name
+        elif isinstance(star.source, Statement):
+            source_name = star.source.alias
+        else:
+            msg = f"Unsupported Star source type: {type(star.source).__name__}"
+            raise TypeError(msg)
+
+        base = f"{source_name}.*"
+    else:
+        base = "*"
+
+    if star.alias:
+        return f"{base} AS {star.alias}"
+    return base
 
 
 def render_parameter(param: Parameter, ctx: RenderContext) -> str:

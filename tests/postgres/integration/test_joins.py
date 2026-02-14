@@ -342,7 +342,9 @@ def describe_joins_with_qualified_stars():
         users = ref("users").alias("u")
         orders = ref("orders").alias("o")
 
-        query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")]).select(users.star, orders.star)
+        query = users.join.inner(orders, on=[users.col("id") == orders.col("user_id")]).select(
+            users.star(), orders.star()
+        )
 
         result = render(query)
         assert result.query == sql(expected_sql)

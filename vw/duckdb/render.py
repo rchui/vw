@@ -56,6 +56,7 @@ from vw.core.states import (
     WindowFunction,
 )
 from vw.duckdb.base import RowSet
+from vw.duckdb.states import Star
 
 
 def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> SQL:
@@ -115,6 +116,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_values(state, ctx)
         case Column():
             return render_column(state)
+        case Star():
+            return render_star(state, ctx)
         case Parameter():
             return render_parameter(state, ctx)
         case Literal():
@@ -426,6 +429,62 @@ def render_column(col: Column) -> str:
     if col.alias:
         return f"{col.name} AS {col.alias}"
     return col.name
+
+
+def render_star(star: Star, ctx: RenderContext) -> str:
+    """Render a DuckDB Star expression with optional EXCLUDE/REPLACE.
+
+    Args:
+        star: A Star to render.
+        ctx: Rendering context.
+
+    Returns:
+        The SQL string with DuckDB extensions.
+
+    Raises:
+        TypeError: If the source type or modifier type is unsupported.
+    """
+    from vw.duckdb.states import StarExclude, StarReplace
+
+    # Base star
+    if star.source:
+        # Extract the name to qualify the star
+        # Note: Check CTE before Statement since CTE is a subclass of Statement
+        if isinstance(star.source, Reference):
+            source_name = star.source.alias if star.source.alias else star.source.name
+        elif isinstance(star.source, CTE):
+            source_name = star.source.name
+        elif isinstance(star.source, Statement):
+            source_name = star.source.alias
+        else:
+            msg = f"Unsupported Star source type: {type(star.source).__name__}"
+            raise TypeError(msg)
+
+        base = f"{source_name}.*"
+    else:
+        base = "*"
+
+    # Apply modifiers in order
+    parts = [base]
+
+    for modifier in star.modifiers:
+        if isinstance(modifier, StarExclude):
+            excluded = ", ".join(render_state(e, ctx) for e in modifier.columns)
+            parts.append(f"EXCLUDE ({excluded})")
+        elif isinstance(modifier, StarReplace):
+            replacements = ", ".join(
+                f"{render_state(expr, ctx)} AS {name}" for name, expr in modifier.replacements.items()
+            )
+            parts.append(f"REPLACE ({replacements})")
+        else:
+            msg = f"Unsupported Star modifier type: {type(modifier).__name__}"
+            raise TypeError(msg)
+
+    result = " ".join(parts)
+
+    if star.alias:
+        return f"{result} AS {star.alias}"
+    return result
 
 
 def render_parameter(param: Parameter, ctx: RenderContext) -> str:

@@ -100,6 +100,19 @@ class Column(Expr):
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
+class Star(Expr):
+    """Represents a star (*) expression for selecting all columns.
+
+    Attributes:
+        source: Optional source reference (None for *, source object for source.*)
+        alias: Optional alias for the star expression
+    """
+
+    source: Source | None = None
+    alias: str | None = None
+
+
+@dataclass(eq=False, frozen=True, kw_only=True)
 class Parameter(Expr):
     """Represents a query parameter."""
 

@@ -234,7 +234,7 @@ def describe_recursive_ctes():
 
         # Recursive part: join items with tree (self-reference via ref)
         items = ref("items").alias("i")
-        recursive_part = items.select(items.star).join.inner(
+        recursive_part = items.select(items.star()).join.inner(
             ref("tree").alias("t"), on=[items.col("parent_id") == col("t.id")]
         )
 
