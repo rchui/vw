@@ -1,19 +1,4 @@
-"""Tests for core ANSI SQL RowSet methods.
-
-This file tests the core RowSet methods that work across all SQL dialects:
-- col() - column references
-- star - star selection
-- where() - WHERE clause
-- group_by() - GROUP BY clause
-- having() - HAVING clause
-- order_by() - ORDER BY clause
-- limit() - LIMIT clause
-- offset() - OFFSET clause
-- distinct() - DISTINCT modifier
-
-PostgreSQL-specific features (fetch with WITH TIES, modifiers for row-level locking)
-are tested in tests/postgres/test_base.py.
-"""
+"""Tests for core ANSI SQL RowSet methods."""
 
 from vw.postgres import col, ref, render
 

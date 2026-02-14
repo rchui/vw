@@ -1,8 +1,4 @@
-"""Tests for ANSI SQL rendering in vw/core.
-
-This file tests the rendering of core ANSI SQL states and expressions that are
-database-agnostic. PostgreSQL-specific rendering tests are in tests/postgres/test_render.py.
-"""
+"""Tests for ANSI SQL rendering in vw/core."""
 
 import pytest
 
