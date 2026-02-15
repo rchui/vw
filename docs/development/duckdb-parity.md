@@ -2,9 +2,9 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ❌ Not Started
-**Current Phase:** None - waiting for core infrastructure from postgres
-**Prerequisites:** Most PostgreSQL phases must be completed first
+**Status:** ✅ Phase 1, 2, & 3a Complete - Core infrastructure, Star Extensions, and File Reading implemented
+**Current Phase:** Phase 5 - List/Array Functions (next priority)
+**Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
 ---
 
@@ -87,162 +87,302 @@ These phases from PostgreSQL will be automatically available in DuckDB:
 
 ---
 
-## 📋 Phase 1: Core DuckDB Implementation
+## ✅ Phase 1: Core DuckDB Implementation
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 
 ### Infrastructure Setup
-- [ ] Create `vw/duckdb/` directory
-- [ ] Create `vw/duckdb/base.py` with DuckDB-specific classes
-- [ ] Create `vw/duckdb/public.py` for public API
-- [ ] Create `vw/duckdb/render.py` for DuckDB SQL rendering
-- [ ] Set up `vw/duckdb/__init__.py` exports
-- [ ] Create `tests/duckdb/` directory structure
+- [x] Create `vw/duckdb/` directory
+- [x] Create `vw/duckdb/base.py` with DuckDB-specific classes
+- [x] Create `vw/duckdb/public.py` for public API
+- [x] Create `vw/duckdb/render.py` for DuckDB SQL rendering
+- [x] Set up `vw/duckdb/__init__.py` exports
+- [x] Create `tests/duckdb/` directory structure
 
 ### DuckDB-Specific Rendering
-- [ ] Handle DuckDB identifier quoting (double quotes)
-- [ ] DuckDB parameter style (default: `$1`, `$2`, etc.) - same as PostgreSQL
-- [ ] Type name differences from PostgreSQL
-- [ ] Function name variations (if any)
-- [ ] Override PostgreSQL-specific features that don't apply to DuckDB
+- [x] Handle DuckDB identifier quoting (double quotes)
+- [x] DuckDB parameter style (default: `$1`, `$2`, etc.) - same as PostgreSQL
+- [x] Type name differences from PostgreSQL
+- [x] Function name variations (if any)
+- [x] Override PostgreSQL-specific features that don't apply to DuckDB
 
 ### Testing Setup
-- [ ] Set up test database fixtures (DuckDB in-memory)
-- [ ] Port relevant postgres tests to duckdb
-- [ ] Create DuckDB-specific test utilities
-- [ ] Verify all inherited features work correctly
+- [x] Set up test database fixtures (DuckDB in-memory)
+- [x] Port relevant postgres tests to duckdb
+- [x] Create DuckDB-specific test utilities
+- [x] Verify all inherited features work correctly
 
 ### Data Structures Needed
-- [ ] DuckDB dialect classes inheriting from postgres
-- [ ] Override classes for DuckDB-specific behavior
+- [x] DuckDB dialect classes inheriting from postgres
+- [x] Override classes for DuckDB-specific behavior
+
+### Implementation Notes
+- Successfully inherited core query building from `vw/core` and `vw/postgres`
+- DuckDB-specific rendering implemented with proper identifier quoting
+- All ANSI SQL features working: SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET
+- Joins (INNER, LEFT, RIGHT, FULL, CROSS), subqueries, CTEs, and set operations all functional
+- Aggregate and window functions working correctly
+- Parameter support using dollar-style (`$1`, `$2`) matching DuckDB conventions
 
 ### Examples
 ```python
-from vw.duckdb import source, col, render
+from vw.duckdb import ref, col, render
 
 # Basic query (inherited from postgres/core)
-query = source("users").select(col("name"), col("email"))
+query = ref("users").select(col("name"), col("email"))
 sql = render(query)
 # Renders: SELECT name, email FROM users
+
+# Complex query with joins and aggregates
+from vw.duckdb import F
+
+query = (
+    ref("users").alias("u")
+    .select(col("u.name"), F.count(col("o.id")).alias("order_count"))
+    .join.inner(ref("orders").alias("o"), on=[(col("u.id") == col("o.user_id"))])
+    .group_by(col("u.name"))
+    .having(F.count(col("o.id")) > 5)
+)
+sql = render(query)
+# Full SQL with proper DuckDB syntax
 ```
 
 ---
 
-## 📋 Phase 2: Star Extensions (DuckDB-Specific)
+## ✅ Phase 2: Star Extensions (DuckDB-Specific)
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** HIGH - This is a key DuckDB feature
 
 ### Star EXCLUDE
-- [ ] `SELECT * EXCLUDE (col1, col2) FROM table`
-- [ ] Via `source.star.exclude("col1", "col2")`
-- [ ] Rendering with EXCLUDE clause
-- [ ] Type checking and validation
+- [x] `SELECT * EXCLUDE (col1, col2) FROM table`
+- [x] Via `rowset.star.exclude(col("col1"), col("col2"))`
+- [x] Rendering with EXCLUDE clause
+- [x] Type checking and validation
 
 ### Star REPLACE
-- [ ] `SELECT * REPLACE (expr AS col) FROM table`
-- [ ] Via `source.star.replace(col=expr)`
-- [ ] Multiple replacements
-- [ ] Works with qualified stars: `source.star.replace(...)`
+- [x] `SELECT * REPLACE (expr AS col) FROM table`
+- [x] Via `rowset.star.replace(col=expr)`
+- [x] Multiple replacements
+- [x] Works with qualified stars: `rowset.star.replace(...)`
 
 ### Star RENAME
-- [ ] `SELECT * RENAME (old AS new) FROM table` (if DuckDB supports)
-- [ ] Via `source.star.rename(old="new")`
-- [ ] Research: verify DuckDB supports RENAME or use REPLACE workaround
+- ❌ Not implemented - DuckDB doesn't support RENAME in star expressions (can use REPLACE as workaround)
 
 ### Data Structures Needed
-- [ ] StarExclude dataclass (columns to exclude)
-- [ ] StarReplace dataclass (column replacements as dict)
-- [ ] StarRename dataclass (column renames as dict)
-- [ ] Enhanced Star dataclass with modifiers
-- [ ] StarAccessor class for fluent API on source.star
+- [x] StarExclude dataclass (columns to exclude)
+- [x] StarReplace dataclass (column replacements as dict)
+- [x] Enhanced Star dataclass with modifiers
+- [x] StarAccessor class for fluent API on rowset.star
+
+### Implementation Notes
+- Implemented in `vw/duckdb/states.py` (Star, StarExclude, StarReplace)
+- StarAccessor in `vw/duckdb/star.py` provides fluent API
+- Rendering in `vw/duckdb/render.py` handles all modifier combinations
+- Supports both qualified (`table.*`) and aliased (`alias.*`) stars
+- Modifiers can be combined: `EXCLUDE (...) REPLACE (...)`
+- Modifier order is preserved (useful for semantic control)
+- Works seamlessly in SELECT, with JOINs, and alongside other columns
 
 ### Examples
 ```python
+from vw.duckdb import ref, col, F, render
+
 # EXCLUDE
-source("users").select(
-    source.star.exclude("password", "ssn")
-)
-# Renders: SELECT * EXCLUDE (password, ssn) FROM users
+users = ref("users")
+query = users.select(users.star(users.star.exclude(col("password"), col("ssn"))))
+result = render(query)
+# Renders: SELECT users.* EXCLUDE (password, ssn) FROM users
 
 # REPLACE
-source("users").select(
-    source.star.replace(
-        name=F.upper(col("name")),
-        age=col("age") + 1
+query = users.select(
+    users.star(
+        users.star.replace(
+            name=F.upper(col("name")),
+            age=col("age") + 1
+        )
     )
 )
-# Renders: SELECT * REPLACE (UPPER(name) AS name, age + 1 AS age) FROM users
+result = render(query)
+# Renders: SELECT users.* REPLACE (UPPER(name) AS name, age + 1 AS age) FROM users
 
-# RENAME
-source("users").select(
-    source.star.rename(old_name="new_name")
+# Combined EXCLUDE and REPLACE
+u = ref("users").alias("u")
+query = u.select(
+    u.star(
+        u.star.exclude(col("password"), col("secret")),
+        u.star.replace(name=col("full_name"))
+    )
 )
-# Renders: SELECT * RENAME (old_name AS new_name) FROM users
+result = render(query)
+# Renders: SELECT u.* EXCLUDE (password, secret) REPLACE (full_name AS name) FROM users AS u
+
+# With JOINs
+users = ref("users").alias("u")
+orders = ref("orders").alias("o")
+query = (
+    users
+    .select(
+        users.star(users.star.exclude(col("password"))),
+        col("o.total")
+    )
+    .join.inner(orders, on=[(col("u.id") == col("o.user_id"))])
+)
+result = render(query)
+# Renders: SELECT u.* EXCLUDE (password), o.total FROM users AS u INNER JOIN orders AS o ON (u.id = o.user_id)
 ```
 
 ### Testing
-- [ ] Unit tests for star modifiers
-- [ ] Integration tests with real DuckDB
-- [ ] Test combinations (EXCLUDE + REPLACE)
-- [ ] Test with joins and qualified columns
+- [x] Unit tests for star modifiers in `tests/duckdb/test_star.py`
+- [x] Integration tests with DuckDB rendering
+- [x] Test combinations (EXCLUDE + REPLACE in both orders)
+- [x] Test with joins and qualified columns
+- [x] Test with aliases and CTEs
+- [x] Error handling for unsupported source/modifier types
 
 ---
 
-## 📋 Phase 3: File I/O (DuckDB-Specific)
+## ✅ Phase 3a: File Reading (DuckDB-Specific)
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** HIGH - Core DuckDB value proposition
 
 ### READ Functions
-- [ ] `read_csv(path, **options)` - read CSV as row source
-- [ ] `read_parquet(path, **options)` - read Parquet as row source
-- [ ] `read_json(path, **options)` - read JSON as row source
-- [ ] Support for S3/HTTP URLs (if DuckDB supports)
-- [ ] Options: header, delimiter, null_string, compression, etc.
-- [ ] Use as row source: `read_csv(...).select(...)`
+- [x] `read_csv(path, **options)` - read CSV as row source via `file(path, format=CSV(...))`
+- [x] `read_parquet(path, **options)` - read Parquet as row source via `file(path, format=Parquet(...))`
+- [x] `read_json(path, **options)` - read JSON as row source via `file(path, format=JSON(...))`
+- [x] `read_json(path, format='newline_delimited', **options)` - read JSONL via `file(path, format=JSONL(...))`
+- [x] Multiple file paths and wildcards supported
+- [x] Comprehensive options for each format (22 CSV options, 6 Parquet, 7 JSON/JSONL)
+- [x] Use as row source: `file(...).select(...)`, joins, CTEs, etc.
+- [ ] Support for S3/HTTP URLs (deferred - DuckDB supports, but not yet wrapped)
+
+### Data Structures Implemented
+- [x] `File` state in `vw/core/states.py` (generic file reading concept)
+- [x] `CSV` format modifier in `vw/duckdb/files.py` with 22 options
+- [x] `Parquet` format modifier with 6 options
+- [x] `JSON` format modifier with 7 options
+- [x] `JSONL` format modifier (renders with `format='newline_delimited'`)
+- [x] `file(*paths, format)` factory function
+- [x] Rendering in `vw/duckdb/render.py` with helper functions
+- [x] Error handling with `RenderError` for unsupported sources
+
+### Implementation Notes
+- File state moved to core for reusability, format modifiers kept dialect-specific
+- Pattern matching on format type to determine DuckDB function (read_csv, read_parquet, read_json)
+- Helper functions for rendering different option types (boolean, string, integer, dict, list)
+- Works seamlessly with SELECT, WHERE, JOIN, CTEs, and all query operations
+- Postgres render explicitly rejects File (raises RenderError) to enforce dialect separation
+- File is automatically transformed to Statement when .select() or other query methods are called
+
+### Examples
+```python
+from vw.duckdb import file, CSV, Parquet, JSON, JSONL, col, F, render
+
+# Read CSV as source
+query = file("users.csv", format=CSV(header=True)).select(col("name"), col("email"))
+result = render(query)
+# Renders: SELECT name, email FROM read_csv('users.csv', header = TRUE)
+
+# With multiple options
+query = file("data.csv", format=CSV(header=True, delim="|", skip=1, all_varchar=True))
+# Renders: FROM read_csv('data.csv', header = TRUE, delim = '|', skip = 1, all_varchar = TRUE)
+
+# Read Parquet
+query = file("data.parquet", format=Parquet(filename=True))
+# Renders: FROM read_parquet('data.parquet', filename = TRUE)
+
+# Read JSON
+query = file("data.json", format=JSON(ignore_errors=True, compression="gzip"))
+# Renders: FROM read_json('data.json', ignore_errors = TRUE, compression = 'gzip')
+
+# Read JSONL (newline-delimited JSON)
+query = file("events.jsonl", format=JSONL()).select(col("event_type"))
+# Renders: SELECT event_type FROM read_json('events.jsonl', format = 'newline_delimited')
+
+# Multiple files
+query = file("f1.csv", "f2.csv", format=CSV(header=True))
+# Renders: FROM read_csv(['f1.csv', 'f2.csv'], header = TRUE)
+
+# Wildcards
+query = file("data/*.csv", format=CSV(header=True, union_by_name=True))
+# Renders: FROM read_csv('data/*.csv', header = TRUE, union_by_name = TRUE)
+
+# With joins
+from vw.duckdb import ref
+users = ref("users").alias("u")
+scores = file("scores.csv", format=CSV(header=True)).alias("f")
+query = users.select(users.col("name"), scores.col("score")).join.inner(
+    scores, on=[users.col("id") == scores.col("user_id")]
+)
+# Renders: SELECT u.name, f.score FROM users AS u INNER JOIN read_csv('scores.csv', header = TRUE) AS f ON (u.id = f.user_id)
+
+# With CTEs
+from vw.duckdb import cte, lit
+high_scores = cte(
+    "user_scores",
+    file("scores.csv", format=CSV(header=True))
+    .select(col("name"), col("score"))
+    .where(col("score") > lit(90))
+)
+query = high_scores.select(col("name"), col("score")).order_by(col("score").desc())
+# Renders: WITH user_scores AS (SELECT name, score FROM read_csv('scores.csv', header = TRUE) WHERE score > 90) SELECT name, score FROM user_scores ORDER BY score DESC
+```
+
+### Testing
+- [x] 54 unit tests in `tests/duckdb/test_files.py` (all passing)
+  - File factory tests
+  - CSV rendering (basic, string, boolean, integer, complex options)
+  - Parquet, JSON, JSONL format tests
+  - Multiple files tests
+  - Integration with SELECT, WHERE, aggregation, ORDER BY, LIMIT, alias
+- [x] 17 integration tests in `tests/duckdb/integration/test_file_reading.py` (all passing)
+  - CSV reading with various options
+  - Parquet reading
+  - JSON and JSONL reading
+  - Multiple file reading with wildcards
+  - File reading with joins and CTEs
+- [x] All quality checks passing (ruff, type checking)
+- [x] Full test suite passing (1312 tests)
+
+---
+
+## 📋 Phase 3b: COPY Statements (DuckDB-Specific)
+
+**Status:** ❌ Not Started (Deferred)
+**Priority:** MEDIUM - Useful but not core workflow
 
 ### COPY FROM
-- [ ] `COPY table FROM 'file.csv'` via `source("table").copy_from(path)`
+- [ ] `COPY table FROM 'file.csv'` via `ref("table").copy_from(path)`
 - [ ] Format options (CSV, Parquet, JSON)
 - [ ] Column list specification
 - [ ] Options (header, delimiter, null_string, etc.)
 
 ### COPY TO
-- [ ] `COPY table TO 'file.csv'` via `source("table").copy_to(path)`
+- [ ] `COPY table TO 'file.csv'` via `ref("table").copy_to(path)`
 - [ ] `COPY query TO 'file.csv'` via `query.copy_to(path)`
 - [ ] Format options (CSV, Parquet, JSON)
 - [ ] Compression options (gzip, snappy, zstd)
 
 ### Data Structures Needed
-- [ ] ReadFunction dataclass (extends RowSet)
 - [ ] CopyFrom dataclass (statement type)
 - [ ] CopyTo dataclass (statement type)
-- [ ] FormatOptions dataclass (or dict)
 
 ### Examples
 ```python
-# Read CSV as source
-read_csv("users.csv").select(col("name"), col("email"))
-# Renders: SELECT name, email FROM read_csv('users.csv')
-
-# With options
-read_csv("users.csv", header=True, delimiter=",").where(col("age") > 18)
-
-# Copy from file
-source("users").copy_from("users.csv", format="csv", header=True)
+# Copy from file (future API)
+ref("users").copy_from("users.csv", format="csv", header=True)
 # Renders: COPY users FROM 'users.csv' (FORMAT CSV, HEADER)
 
-# Copy query results to file
-source("users").select(col("name")).copy_to("names.csv")
+# Copy query results to file (future API)
+ref("users").select(col("name")).copy_to("names.csv")
 # Renders: COPY (SELECT name FROM users) TO 'names.csv'
 ```
 
 ### Testing
-- [ ] Unit tests for data structures
-- [ ] Integration tests with actual file I/O
-- [ ] Test various formats (CSV, Parquet, JSON)
-- [ ] Test options and error handling
+- [ ] Unit tests for COPY statements
+- [ ] Integration tests with file I/O
+- [ ] Test various formats and options
 
 ---
 
@@ -627,9 +767,11 @@ def source(name: str, **kwargs):
 ## Current Status Summary
 
 **Completed:**
-- None yet ❌ (waiting on PostgreSQL completion)
+- ✅ Phase 1: Core DuckDB Implementation (infrastructure complete)
+- ✅ Phase 2: Star Extensions (EXCLUDE, REPLACE) 🌟
+- ✅ Phase 3a: File Reading (read_csv, read_parquet, read_json, read_jsonl) 🌟
 
-**Inherited from PostgreSQL (when available):**
+**Inherited from PostgreSQL:**
 - ✅ Phase 1: Core Query Building
 - ✅ Phase 2: Operators & Expressions
 - ✅ Phase 3: Aggregate & Window Functions
@@ -638,23 +780,22 @@ def source(name: str, **kwargs):
 - ✅ Phase 6: Parameters & Rendering
 - ✅ Phase 7: Scalar Functions
 
-**DuckDB-Specific (to be implemented):**
-- ❌ Phase 1: Core DuckDB Implementation (infrastructure)
-- ❌ Phase 2: Star Extensions (EXCLUDE, REPLACE, RENAME) 🌟 HIGH PRIORITY
-- ❌ Phase 3: File I/O (read_csv, read_parquet, COPY) 🌟 HIGH PRIORITY
+**DuckDB-Specific (remaining work):**
+- ⏸️ Phase 3b: COPY Statements (deferred) - can use raw SQL until needed
 - ❌ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, UNION)
-- ❌ Phase 5: List/Array Functions
+- ❌ Phase 5: List/Array Functions 🌟 MEDIUM-HIGH PRIORITY - NEXT
 - ❌ Phase 6: Struct Operations
 - ❌ Phase 7: Sampling (USING SAMPLE)
 - ❌ Phase 8: DuckDB-Specific Functions
 - ❌ Phase 9: DuckDB Advanced Features (CTAS, Extensions, etc.)
 - ❌ Phase 10: DuckDB Operators
 
-**Estimated Start:**
-- After PostgreSQL Phase 7 complete (~80% of postgres features)
-- DuckDB can share most infrastructure via inheritance
+**Total Progress:** 30% complete (3 of 10 DuckDB-specific phases complete, 1 deferred)
 
-**Total Progress:** 0% complete (waiting on postgres infrastructure)
+**Next Steps:**
+- Phase 5: List/Array Functions (list operations, list_agg) - high value for DuckDB users
+- Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP) - needed for proper type handling
+- Focus on HIGH and MEDIUM priority features that provide unique DuckDB value
 
 ---
 

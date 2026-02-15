@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from vw.core.exceptions import RenderError
 from vw.core.render import SQL, ParamStyle, RenderConfig, RenderContext
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ from vw.core.states import (
     Exists,
     Expr,
     Extract,
+    File,
     Following,
     FrameClause,
     Function,
@@ -56,6 +58,7 @@ from vw.core.states import (
     WindowFunction,
 )
 from vw.duckdb.base import RowSet
+from vw.duckdb.files import CSV, JSON, JSONL, Parquet
 from vw.duckdb.states import Star
 
 
@@ -79,8 +82,8 @@ def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> S
     """
     ctx = RenderContext(config=config or RenderConfig(param_style=ParamStyle.DOLLAR))
 
-    # Top-level Reference and Values render with FROM prefix; everything else renders directly
-    if isinstance(obj.state, (Reference, Values)):
+    # Top-level Reference, Values, and File render with FROM prefix; everything else renders directly
+    if isinstance(obj.state, (Reference, Values, File)):
         query = f"FROM {render_state(obj.state, ctx)}"
     else:
         query = render_state(obj.state, ctx)
@@ -114,6 +117,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_source(state, ctx)
         case Values():
             return render_values(state, ctx)
+        case File():
+            return render_file(state, ctx)
         case Column():
             return render_column(state)
         case Star():
@@ -246,13 +251,16 @@ def render_state(state: object, ctx: RenderContext) -> str:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
-def render_source(source: CTE | Statement | SetOperation | Reference | Values | RawSource, ctx: RenderContext) -> str:
-    """Render a source (CTE, Statement subquery, SetOperation, Reference, Values, or RawSource) to SQL.
+def render_source(
+    source: CTE | Statement | SetOperation | Reference | Values | File | RawSource, ctx: RenderContext
+) -> str:
+    """Render a source (CTE, Statement subquery, SetOperation, Reference, Values, File, or RawSource) to SQL.
 
     For CTEs: registers the CTE body and returns the CTE name reference.
     For Statements/SetOperations: wraps in parens as a subquery.
     For References: renders the table/view name.
     For Values: renders the VALUES clause with alias and column list.
+    For File: renders file reading function (read_csv, read_parquet, etc.).
     For RawSource: renders raw SQL with parameter substitution.
     """
     if isinstance(source, CTE):
@@ -267,9 +275,11 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values | 
         return sql
     elif isinstance(source, Values):
         return render_values(source, ctx)
+    elif isinstance(source, File):
+        return render_file(source, ctx)
     elif isinstance(source, RawSource):
         return render_state(source, ctx)
-    else:
+    elif isinstance(source, Reference):
         # Reference: render name, modifiers, then alias
         parts = [source.name]
 
@@ -281,6 +291,258 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values | 
             parts.append(f"AS {source.alias}")
 
         return " ".join(parts)
+    else:
+        raise RenderError(f"Unsupported source type: {type(source).__name__}")
+
+
+def render_file(source: File, ctx: RenderContext) -> str:
+    """Render a file read operation to SQL.
+
+    Args:
+        source: A File source to render.
+        ctx: Rendering context for parameter collection.
+
+    Returns:
+        The SQL string (e.g., "read_csv('file.csv', header = TRUE)").
+
+    Raises:
+        TypeError: If the format type is unknown.
+    """
+    # Render file paths - single path or list of paths
+    if len(source.paths) == 1:
+        paths_sql = f"'{source.paths[0]}'"
+    else:
+        paths_list = ", ".join(f"'{p}'" for p in source.paths)
+        paths_sql = f"[{paths_list}]"
+
+    # Pattern match on format type to determine the read function
+    match source.format:
+        case CSV():
+            func_name = "read_csv"
+            options = render_csv_options(source.format)
+        case Parquet():
+            func_name = "read_parquet"
+            options = render_parquet_options(source.format)
+        case JSON():
+            func_name = "read_json"
+            options = render_json_options(source.format)
+        case JSONL():
+            func_name = "read_json"
+            options = render_jsonl_options(source.format)
+        case _:
+            raise TypeError(f"Unknown file format type: {type(source.format).__name__}")
+
+    # Build function call with options
+    if options:
+        options_sql = ", ".join(options)
+        sql = f"{func_name}({paths_sql}, {options_sql})"
+    else:
+        sql = f"{func_name}({paths_sql})"
+
+    # Add modifiers and alias
+    parts = [sql]
+
+    for modifier in source.modifiers:
+        parts.append(render_state(modifier, ctx))
+
+    if source.alias:
+        parts.append(f"AS {source.alias}")
+
+    return " ".join(parts)
+
+
+def render_boolean_option(name: str, value: bool | None) -> str | None:
+    """Render a boolean option to SQL.
+
+    Args:
+        name: Option name
+        value: Option value (True, False, or None)
+
+    Returns:
+        SQL string like "name = TRUE" or None if value is None
+    """
+    if value is None:
+        return None
+    return f"{name} = {'TRUE' if value else 'FALSE'}"
+
+
+def render_string_option(name: str, value: str | None) -> str | None:
+    """Render a string option to SQL.
+
+    Args:
+        name: Option name
+        value: Option value or None
+
+    Returns:
+        SQL string like "name = 'value'" or None if value is None
+    """
+    if value is None:
+        return None
+    return f"{name} = '{value}'"
+
+
+def render_integer_option(name: str, value: int | None) -> str | None:
+    """Render an integer option to SQL.
+
+    Args:
+        name: Option name
+        value: Option value or None
+
+    Returns:
+        SQL string like "name = 123" or None if value is None
+    """
+    if value is None:
+        return None
+    return f"{name} = {value}"
+
+
+def render_dict_option(name: str, value: dict[str, str] | None) -> str | None:
+    """Render a dict option to SQL.
+
+    Args:
+        name: Option name
+        value: Dict mapping strings to strings or None
+
+    Returns:
+        SQL string like "name = {'k1': 'v1', 'k2': 'v2'}" or None if value is None
+    """
+    if value is None:
+        return None
+    pairs = ", ".join(f"'{k}': '{v}'" for k, v in value.items())
+    return f"{name} = {{{pairs}}}"
+
+
+def render_list_option(name: str, value: list[str] | None) -> str | None:
+    """Render a list option to SQL.
+
+    Args:
+        name: Option name
+        value: List of strings or None
+
+    Returns:
+        SQL string like "name = ['item1', 'item2']" or None if value is None
+    """
+    if value is None:
+        return None
+    items = ", ".join(f"'{item}'" for item in value)
+    return f"{name} = [{items}]"
+
+
+def render_csv_options(csv_format: CSV) -> list[str]:
+    """Render CSV format options to SQL.
+
+    Args:
+        csv_format: A CSV format modifier.
+
+    Returns:
+        List of option strings (e.g., ["header = TRUE", "delim = ','"])
+    """
+    return list(
+        filter(
+            None,
+            [
+                # Boolean options
+                render_boolean_option("header", csv_format.header),
+                render_boolean_option("all_varchar", csv_format.all_varchar),
+                render_boolean_option("null_padding", csv_format.null_padding),
+                render_boolean_option("ignore_errors", csv_format.ignore_errors),
+                render_boolean_option("parallel", csv_format.parallel),
+                render_boolean_option("filename", csv_format.filename),
+                render_boolean_option("hive_partitioning", csv_format.hive_partitioning),
+                render_boolean_option("union_by_name", csv_format.union_by_name),
+                # String options
+                render_string_option("delim", csv_format.delim),
+                render_string_option("quote", csv_format.quote),
+                render_string_option("escape", csv_format.escape),
+                render_string_option("compression", csv_format.compression),
+                render_string_option("dateformat", csv_format.dateformat),
+                render_string_option("timestampformat", csv_format.timestampformat),
+                render_string_option("decimal_separator", csv_format.decimal_separator),
+                # Integer options
+                render_integer_option("skip", csv_format.skip),
+                render_integer_option("sample_size", csv_format.sample_size),
+                render_integer_option("max_line_size", csv_format.max_line_size),
+                # Dict options
+                render_dict_option("columns", csv_format.columns),
+                # List options
+                render_list_option("auto_type_candidates", csv_format.auto_type_candidates),
+                render_list_option("names", csv_format.names),
+                render_list_option("types", csv_format.types),
+            ],
+        )
+    )
+
+
+def render_parquet_options(parquet_format: Parquet) -> list[str]:
+    """Render Parquet format options to SQL.
+
+    Args:
+        parquet_format: A Parquet format modifier.
+
+    Returns:
+        List of option strings (e.g., ["binary_as_string = TRUE"])
+    """
+    return list(
+        filter(
+            None,
+            [
+                render_boolean_option("binary_as_string", parquet_format.binary_as_string),
+                render_boolean_option("filename", parquet_format.filename),
+                render_boolean_option("file_row_number", parquet_format.file_row_number),
+                render_boolean_option("hive_partitioning", parquet_format.hive_partitioning),
+                render_boolean_option("union_by_name", parquet_format.union_by_name),
+                render_string_option("compression", parquet_format.compression),
+            ],
+        )
+    )
+
+
+def render_json_options(json_format: JSON) -> list[str]:
+    """Render JSON format options to SQL.
+
+    Args:
+        json_format: A JSON format modifier.
+
+    Returns:
+        List of option strings (e.g., ["ignore_errors = TRUE"])
+    """
+    return list(
+        filter(
+            None,
+            [
+                render_boolean_option("ignore_errors", json_format.ignore_errors),
+                render_boolean_option("filename", json_format.filename),
+                render_boolean_option("hive_partitioning", json_format.hive_partitioning),
+                render_boolean_option("union_by_name", json_format.union_by_name),
+                render_integer_option("maximum_object_size", json_format.maximum_object_size),
+                render_string_option("compression", json_format.compression),
+                render_dict_option("columns", json_format.columns),
+            ],
+        )
+    )
+
+
+def render_jsonl_options(jsonl_format: JSONL) -> list[str]:
+    """Render JSONL format options to SQL.
+
+    JSONL is rendered as read_json() with format='newline_delimited'.
+
+    Args:
+        jsonl_format: A JSONL format modifier.
+
+    Returns:
+        List of option strings including format='newline_delimited'
+    """
+    base_options = [
+        render_boolean_option("ignore_errors", jsonl_format.ignore_errors),
+        render_boolean_option("filename", jsonl_format.filename),
+        render_boolean_option("hive_partitioning", jsonl_format.hive_partitioning),
+        render_boolean_option("union_by_name", jsonl_format.union_by_name),
+        render_integer_option("maximum_object_size", jsonl_format.maximum_object_size),
+        render_string_option("compression", jsonl_format.compression),
+        render_dict_option("columns", jsonl_format.columns),
+    ]
+    return ["format = 'newline_delimited'"] + list(filter(None, base_options))
 
 
 def render_values(values_src: Values, ctx: RenderContext) -> str:

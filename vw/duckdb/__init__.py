@@ -3,6 +3,11 @@
 from vw.core.render import SQL as SQL
 from vw.core.render import ParamStyle as ParamStyle
 from vw.core.render import RenderConfig as RenderConfig
+from vw.duckdb.files import CSV as CSV
+from vw.duckdb.files import JSON as JSON
+from vw.duckdb.files import JSONL as JSONL
+from vw.duckdb.files import Parquet as Parquet
+from vw.duckdb.files import file as file
 from vw.duckdb.public import CURRENT_ROW as CURRENT_ROW
 from vw.duckdb.public import UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING
 from vw.duckdb.public import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING

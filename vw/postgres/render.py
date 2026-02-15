@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from vw.core.exceptions import RenderError
 from vw.core.render import SQL, ParamStyle, RenderConfig, RenderContext
 
 if TYPE_CHECKING:
@@ -26,6 +27,7 @@ from vw.core.states import (
     Exists,
     Expr,
     Extract,
+    File,
     Following,
     FrameClause,
     Function,
@@ -259,13 +261,16 @@ def render_state(state: object, ctx: RenderContext) -> str:
             raise TypeError(f"Unknown state type: {type(state)}")
 
 
-def render_source(source: CTE | Statement | SetOperation | Reference | Values | RawSource, ctx: RenderContext) -> str:
-    """Render a source (CTE, Statement subquery, SetOperation, Reference, Values, or RawSource) to SQL.
+def render_source(
+    source: CTE | Statement | SetOperation | Reference | Values | File | RawSource, ctx: RenderContext
+) -> str:
+    """Render a source (CTE, Statement subquery, SetOperation, Reference, Values, File, or RawSource) to SQL.
 
     For CTEs: registers the CTE body and returns the CTE name reference.
     For Statements/SetOperations: wraps in parens as a subquery.
     For References: renders the table/view name.
     For Values: renders the VALUES clause with alias and column list.
+    For File: raises error (DuckDB-specific, not supported in PostgreSQL).
     For RawSource: renders raw SQL with parameter substitution.
     """
     if isinstance(source, CTE):
@@ -282,7 +287,7 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values | 
         return render_values(source, ctx)
     elif isinstance(source, RawSource):
         return render_state(source, ctx)
-    else:
+    elif isinstance(source, Reference):
         # Reference: render name, modifiers, then alias
         parts = [source.name]
 
@@ -294,6 +299,9 @@ def render_source(source: CTE | Statement | SetOperation | Reference | Values | 
             parts.append(f"AS {source.alias}")
 
         return " ".join(parts)
+    else:
+        # File and any other unsupported types
+        raise RenderError(f"Unsupported source type: {type(source).__name__}")
 
 
 def render_values(values_src: Values, ctx: RenderContext) -> str:

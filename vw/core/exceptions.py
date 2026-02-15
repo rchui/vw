@@ -7,3 +7,7 @@ class VWError(Exception):
 
 class CTENameCollisionError(VWError):
     """Raised when multiple CTEs with the same name are registered."""
+
+
+class RenderError(VWError):
+    """Raised when rendering encounters an unsupported or invalid state."""

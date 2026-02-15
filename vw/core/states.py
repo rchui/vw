@@ -41,6 +41,23 @@ class Values(Source):
     rows: tuple[dict[str, object], ...]
 
 
+@dataclass(eq=False, frozen=True, kw_only=True)
+class File(Source):
+    """Represents a file read operation as a row source.
+
+    Used to read data from files (CSV, Parquet, JSON, etc.) directly
+    as a table source. The format field contains a dialect-specific
+    format modifier (e.g., CSV, Parquet, JSON) with options.
+
+    Attributes:
+        paths: Tuple of file paths (supports globs and multiple files)
+        format: Dialect-specific format modifier (e.g., CSV(header=True))
+    """
+
+    paths: tuple[str, ...]
+    format: object  # Dialect-specific format modifier (CSV, Parquet, etc.)
+
+
 # --- Raw SQL Escape Hatches ------------------------------------------------ #
 
 
@@ -170,7 +187,7 @@ class Join:
 
     jtype: str
     "Join type (e.g., 'INNER', 'LEFT', 'RIGHT', 'FULL', 'CROSS')"
-    right: Reference | Statement | SetOperation | Values | RawSource
+    right: Reference | Statement | SetOperation | Values | File | RawSource
     on: tuple[Expr, ...] = field(default_factory=tuple)
     using: tuple[Expr, ...] = field(default_factory=tuple)
     lateral: bool = False
@@ -180,7 +197,7 @@ class Join:
 class Statement(Source):
     """Represents a SELECT query."""
 
-    source: Reference | Statement | SetOperation | Values | RawSource
+    source: Reference | Statement | SetOperation | Values | File | RawSource
     columns: tuple[Expr, ...] = field(default_factory=tuple)
     where_conditions: tuple[Expr, ...] = field(default_factory=tuple)
     group_by_columns: tuple[Expr, ...] = field(default_factory=tuple)
@@ -309,7 +326,7 @@ class IsNotNull(Expr):
 class Exists(Expr):
     """Represents EXISTS subquery check."""
 
-    subquery: Reference | Statement | SetOperation | Values | RawSource
+    subquery: Reference | Statement | SetOperation | Values | File | RawSource
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
@@ -345,9 +362,9 @@ class Case(Expr):
 class SetOperation(Source):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
-    left: Reference | Statement | SetOperation | Values | RawSource
+    left: Reference | Statement | SetOperation | Values | File | RawSource
     operator: str  # "UNION", "UNION ALL", "INTERSECT", "EXCEPT"
-    right: Reference | Statement | SetOperation | Values | RawSource
+    right: Reference | Statement | SetOperation | Values | File | RawSource
 
 
 # --- Common Table Expressions ---------------------------------------------- #
@@ -518,3 +535,17 @@ class Following:
     """Represents n FOLLOWING frame boundary."""
 
     count: int
+
+
+# --- Type Constants -------------------------------------------------------- #
+
+# Source types that need to be converted to Statement for query operations.
+# When these types receive query operations (where, group_by, order_by, etc.),
+# they must be wrapped in a Statement to hold the query clauses.
+
+# Tuple for isinstance() checks (runtime)
+CONVERT_TO_STATEMENT = (Reference, SetOperation, Values, File, RawSource)
+
+# Type alias for type annotations (static analysis)
+# Note: Can't use this in isinstance() - use CONVERT_TO_STATEMENT tuple instead
+SimpleSource = Reference | SetOperation | Values | File | RawSource
