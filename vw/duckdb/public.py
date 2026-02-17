@@ -194,29 +194,28 @@ def cte(name: str, query: RowSet, /, *, recursive: bool = False) -> RowSet:
         >>> # Final CTE with UNION ALL
         >>> tree = cte("tree", anchor + recursive_part, recursive=True)
     """
-    from vw.core.states import CTE, File, RawSource, Reference, SetOperation, Values
-    from vw.duckdb.states import Star
+    from typing import cast
+
+    from vw.core.states import CTE, File, RawSource, Reference, SetOperation, Statement, Values
 
     state = query.state
 
     # Handle Reference - convenience wrapper (convert to SELECT *)
     if isinstance(state, Reference):
-        star_expr = Expression(state=Star(source=state), factories=query.factories)
-        stmt = query.select(star_expr)
-        stmt_state = stmt.state
+        stmt = cast(Statement, query.select(query.star()).state)
         cte_state = CTE(
             name=name,
             recursive=recursive,
-            source=stmt_state.source,
-            alias=stmt_state.alias,
-            columns=stmt_state.columns,
-            where_conditions=stmt_state.where_conditions,
-            group_by_columns=stmt_state.group_by_columns,
-            having_conditions=stmt_state.having_conditions,
-            order_by_columns=stmt_state.order_by_columns,
-            limit=stmt_state.limit,
-            distinct=stmt_state.distinct,
-            joins=stmt_state.joins,
+            source=stmt.source,
+            alias=stmt.alias,
+            columns=stmt.columns,
+            where_conditions=stmt.where_conditions,
+            group_by_columns=stmt.group_by_columns,
+            having_conditions=stmt.having_conditions,
+            order_by_columns=stmt.order_by_columns,
+            limit=stmt.limit,
+            distinct=stmt.distinct,
+            joins=stmt.joins,
         )
     elif isinstance(state, (SetOperation, Values, File, RawSource)):
         # Wrap SetOperation/Values/File/RawSource in a CTE

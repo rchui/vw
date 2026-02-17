@@ -338,14 +338,14 @@ def describe_raw_expr_factory() -> None:
     def it_renders_via_factory() -> None:
         """Expression from raw.expr() should render correctly."""
         expr = raw.expr("UPPER({name})", name=col("username"))
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "UPPER(username)"
         assert result.params == {}
 
     def it_renders_with_params_via_factory() -> None:
         """Expression from raw.expr() should render with parameters."""
         expr = raw.expr("custom_func({val})", val=param("input", 42))
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "custom_func($input)"
         assert result.params == {"input": 42}
 
@@ -357,7 +357,7 @@ def describe_raw_expr_factory() -> None:
             b=col("y"),
             c=param("default", 0),
         )
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "GREATEST(x, y, $default)"
         assert result.params == {"default": 0}
 
@@ -490,19 +490,19 @@ def describe_raw_func_factory() -> None:
     def it_renders_no_args() -> None:
         """raw.func() without args should render correctly."""
         expr = raw.func("gen_random_uuid")
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "GEN_RANDOM_UUID()"
 
     def it_renders_with_args() -> None:
         """raw.func() with args should render correctly."""
         expr = raw.func("custom_hash", col("email"))
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "CUSTOM_HASH(email)"
 
     def it_renders_with_multiple_args() -> None:
         """raw.func() with multiple args should render correctly."""
         expr = raw.func("custom_func", col("a"), col("b"), param("c", 42))
-        result = render(expr)  # type: ignore[arg-type]
+        result = render(expr)
         assert result.query == "CUSTOM_FUNC(a, b, $c)"
         assert result.params == {"c": 42}
 

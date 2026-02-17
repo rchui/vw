@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
-
 from vw.core.exceptions import RenderError
 from vw.core.render import SQL, ParamStyle, RenderConfig, RenderContext
-
-if TYPE_CHECKING:
-    from vw.duckdb.base import Expression
-
 from vw.core.states import (
     CTE,
     Alias,
@@ -57,12 +51,14 @@ from vw.core.states import (
     Values,
     WindowFunction,
 )
-from vw.duckdb.base import RowSet
+from vw.duckdb.base import Expression, RowSet
 from vw.duckdb.files import CSV, JSON, JSONL, Parquet
 from vw.duckdb.states import Star
 
 
-def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> SQL:
+def render(
+    obj: RowSet[Expression, RowSet] | Expression[Expression, RowSet], *, config: RenderConfig | None = None
+) -> SQL:
     """Render a RowSet or Expression to DuckDB SQL.
 
     Args:

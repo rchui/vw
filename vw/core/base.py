@@ -42,73 +42,83 @@ class Expression(Stateful, FactoryT):
 
     # --- Generic Binary Operator ------------------------------------------- #
 
-    def op(self, operator: str, other: ExprT) -> ExprT:
+    def op(self, operator: str, other: ExprT | RowSetT) -> ExprT:
         """Create a generic infix binary operator expression (e.g. op('||', other))."""
-        from vw.core.states import Operator, ScalarSubquery, SetOperation, Statement
+        from typing import cast
 
-        if isinstance(other.state, (Statement, SetOperation)):
-            right = ScalarSubquery(query=other.state)
-        else:
+        from vw.core.states import Expr, Operator, ScalarSubquery, SetOperation, Statement
+
+        if isinstance(other.state, Expr):
             right = other.state
+        else:
+            # other.state is a RowSet source - convert to Statement/SetOperation and wrap in ScalarSubquery
+            # Type narrowing: other must be RowSetT since other.state is not an Expr
+            other_rowset = cast(RowSetT, other)
+            if isinstance(other_rowset.state, (Statement, SetOperation)):
+                stmt = other_rowset.state
+            else:
+                # Convert simple source to Statement by calling .select() on the RowSet
+                stmt = cast(Statement | SetOperation, other_rowset.select(other_rowset.star()).state)
+            right = ScalarSubquery(query=stmt)
         return self.factories.expr(
             state=Operator(operator=operator, left=self.state, right=right), factories=self.factories
         )
 
     # --- Comparison Operators ---------------------------------------------- #
 
-    def __eq__(self, other: ExprT) -> ExprT:  # type: ignore[override]
+    def __eq__(self, other: ExprT | RowSetT) -> ExprT:  # type: ignore[override]
         """Create an equality comparison (=)."""
         return self.op("=", other)
 
-    def __ne__(self, other: ExprT) -> ExprT:  # type: ignore[override]
+    def __ne__(self, other: ExprT | RowSetT) -> ExprT:  # type: ignore[override]
         """Create an inequality comparison (<>)."""
         return self.op("<>", other)
 
-    def __lt__(self, other: ExprT) -> ExprT:
+    def __lt__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a less than comparison (<)."""
         return self.op("<", other)
 
-    def __le__(self, other: ExprT) -> ExprT:
+    def __le__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a less than or equal comparison (<=)."""
         return self.op("<=", other)
 
-    def __gt__(self, other: ExprT) -> ExprT:
+    def __gt__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a greater than comparison (>)."""
         return self.op(">", other)
 
-    def __ge__(self, other: ExprT) -> ExprT:
+    def __ge__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a greater than or equal comparison (>=)."""
         return self.op(">=", other)
 
     # --- Arithmetic Operators ---------------------------------------------- #
 
-    def __add__(self, other: ExprT) -> ExprT:
+    def __add__(self, other: ExprT | RowSetT) -> ExprT:
         """Create an addition expression (+)."""
         return self.op("+", other)
 
-    def __sub__(self, other: ExprT) -> ExprT:
+    def __sub__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a subtraction expression (-)."""
         return self.op("-", other)
 
-    def __mul__(self, other: ExprT) -> ExprT:
+    def __mul__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a multiplication expression (*)."""
         return self.op("*", other)
 
-    def __truediv__(self, other: ExprT) -> ExprT:
+    def __truediv__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a division expression (/)."""
         return self.op("/", other)
 
-    def __mod__(self, other: ExprT) -> ExprT:
+    def __mod__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a modulo expression (%)."""
         return self.op("%", other)
 
     # --- Logical Operators ------------------------------------------------- #
 
-    def __and__(self, other: ExprT) -> ExprT:
+    def __and__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a logical AND expression (&)."""
         return self.op("AND", other)
 
-    def __or__(self, other: ExprT) -> ExprT:
+    def __or__(self, other: ExprT | RowSetT) -> ExprT:
         """Create a logical OR expression (|)."""
         return self.op("OR", other)
 
@@ -144,21 +154,51 @@ class Expression(Stateful, FactoryT):
 
         return self.factories.expr(state=NotILike(left=self.state, right=pattern.state), factories=self.factories)
 
-    def is_in(self, *values: ExprT) -> ExprT:
+    def is_in(self, *values: ExprT | RowSetT) -> ExprT:
         """Create an IN expression checking membership in a list of values."""
-        from vw.core.states import IsIn
+        from typing import cast
 
-        return self.factories.expr(
-            state=IsIn(expr=self.state, values=tuple(v.state for v in values)), factories=self.factories
-        )
+        from vw.core.states import Expr, IsIn, SetOperation, Statement
 
-    def is_not_in(self, *values: ExprT) -> ExprT:
+        value_states = []
+        for v in values:
+            if isinstance(v.state, Expr):
+                value_states.append(v.state)
+            else:
+                # v.state is a RowSet source - convert to Statement/SetOperation
+                # Type narrowing: v must be RowSetT since v.state is not an Expr
+                v_rowset = cast(RowSetT, v)
+                if isinstance(v_rowset.state, (Statement, SetOperation)):
+                    value_states.append(v_rowset.state)
+                else:
+                    # Convert simple source to Statement by calling .select() on the RowSet
+                    stmt = cast(Statement | SetOperation, v_rowset.select(v_rowset.star()).state)
+                    value_states.append(stmt)
+
+        return self.factories.expr(state=IsIn(expr=self.state, values=tuple(value_states)), factories=self.factories)
+
+    def is_not_in(self, *values: ExprT | RowSetT) -> ExprT:
         """Create a NOT IN expression checking non-membership in a list of values."""
-        from vw.core.states import IsNotIn
+        from typing import cast
 
-        return self.factories.expr(
-            state=IsNotIn(expr=self.state, values=tuple(v.state for v in values)), factories=self.factories
-        )
+        from vw.core.states import Expr, IsNotIn, SetOperation, Statement
+
+        value_states = []
+        for v in values:
+            if isinstance(v.state, Expr):
+                value_states.append(v.state)
+            else:
+                # v.state is a RowSet source - convert to Statement/SetOperation
+                # Type narrowing: v must be RowSetT since v.state is not an Expr
+                v_rowset = cast(RowSetT, v)
+                if isinstance(v_rowset.state, (Statement, SetOperation)):
+                    value_states.append(v_rowset.state)
+                else:
+                    # Convert simple source to Statement by calling .select() on the RowSet
+                    stmt = cast(Statement | SetOperation, v_rowset.select(v_rowset.star()).state)
+                    value_states.append(stmt)
+
+        return self.factories.expr(state=IsNotIn(expr=self.state, values=tuple(value_states)), factories=self.factories)
 
     def between(self, lower: ExprT, upper: ExprT, /) -> ExprT:
         """Create a BETWEEN expression checking if value is within range."""
@@ -399,7 +439,7 @@ class RowSet(Stateful, FactoryT):
     state: Reference | Statement | SetOperation | Values | File | RawSource
     factories: Factories[ExprT, RowSetT]
 
-    def select(self, *columns: ExprT) -> RowSetT:
+    def select(self, *columns: ExprT | RowSetT) -> RowSetT:
         """Add columns to SELECT clause.
 
         Transforms Source → Statement if needed.

@@ -60,11 +60,13 @@ from vw.core.states import (
     Values,
     WindowFunction,
 )
-from vw.postgres.base import RowSet
+from vw.postgres.base import Expression, RowSet
 from vw.postgres.states import DateTrunc, Interval, Now
 
 
-def render(obj: RowSet | Expression, *, config: RenderConfig | None = None) -> SQL:
+def render(
+    obj: RowSet[Expression, RowSet] | Expression[Expression, RowSet], *, config: RenderConfig | None = None
+) -> SQL:
     """Render a RowSet or Expression to PostgreSQL SQL.
 
     Args:

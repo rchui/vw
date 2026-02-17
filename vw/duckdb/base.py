@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 
 from vw.core.base import Expression as CoreExpression
@@ -6,11 +8,11 @@ from vw.duckdb.star import StarAccessor
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class Expression(CoreExpression): ...
+class Expression(CoreExpression["Expression", "RowSet"]): ...
 
 
 @dataclass(eq=False, frozen=True, kw_only=True)
-class RowSet(CoreRowSet):
+class RowSet(CoreRowSet["Expression", "RowSet"]):
     @property
     def star(self) -> StarAccessor:
         """Access DuckDB star extensions (EXCLUDE, REPLACE).

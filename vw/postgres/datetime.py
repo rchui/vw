@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 from vw.core.base import ExprT, RowSetT
-from vw.core.datetime import DateTimeAccessor
+from vw.core.datetime import DateTimeAccessor as CoreDateTimeAccessor
 
 
-class PostgresDateTimeAccessor(DateTimeAccessor[ExprT, RowSetT]):
+class DateTimeAccessor(CoreDateTimeAccessor[ExprT, RowSetT]):
     """PostgreSQL date/time accessor.
 
     Extends the ANSI SQL DateTimeAccessor with PostgreSQL-specific functions.

@@ -3,12 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+from vw.core.base import ExprT, FactoryT, RowSetT
+
 if TYPE_CHECKING:
-    from vw.core.base import Expression, Factories, RowSet
+    from vw.core.base import Factories
 
 
 @dataclass(frozen=True)
-class RawAPI:
+class RawAPI(FactoryT):
     """Namespace for raw SQL escape hatches.
 
     WARNING: All methods in this namespace bypass vw's safety guarantees:
@@ -33,9 +35,9 @@ class RawAPI:
         >>> raw.expr(f"custom_func({user_value})")  # SQL INJECTION RISK!
     """
 
-    factories: Factories
+    factories: Factories[ExprT, RowSetT]
 
-    def expr(self, template: str, /, **kwargs: Expression) -> Expression:
+    def expr(self, template: str, /, **kwargs: ExprT) -> ExprT:
         """Create a raw SQL expression with named parameter substitution.
 
         Use {name} placeholders in the template. Each kwarg provides an expression
@@ -74,7 +76,7 @@ class RawAPI:
         params_tuple = tuple((k, v.state) for k, v in kwargs.items())
         return self.factories.expr(state=RawExpr(sql=template, params=params_tuple), factories=self.factories)
 
-    def rowset(self, template: str, /, **kwargs: Expression) -> RowSet:
+    def rowset(self, template: str, /, **kwargs: ExprT) -> RowSetT:
         """Create a raw SQL source/rowset with named parameter substitution.
 
         Use {name} placeholders in the template. Each kwarg provides an expression
@@ -114,7 +116,7 @@ class RawAPI:
         params_tuple = tuple((k, v.state) for k, v in kwargs.items())
         return self.factories.rowset(state=RawSource(sql=template, params=params_tuple), factories=self.factories)
 
-    def func(self, name: str, /, *args: Expression) -> Expression:
+    def func(self, name: str, /, *args: ExprT) -> ExprT:
         """Create a function call with the given name and arguments.
 
         Use this for database-specific functions not yet supported by vw.
