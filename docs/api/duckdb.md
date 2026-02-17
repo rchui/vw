@@ -7,9 +7,10 @@ The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 ## Module Import
 
 ```python
-from vw.duckdb import ref, col, param, lit, render, F
+from vw.duckdb import ref, col, param, lit, render, F, T
 from vw.duckdb import file, CSV, Parquet, JSON, JSONL  # File reading
 from vw.duckdb import cte  # CTEs
+# T - Type shorthand for casting (T.LIST, T.STRUCT, T.MAP, etc.)
 ```
 
 ## Factory Functions
@@ -424,6 +425,105 @@ query = high_scores.select(col("name"), col("score")).order_by(col("score").desc
 #          SELECT name, score FROM user_scores ORDER BY score DESC
 ```
 
+### Type System
+
+**Status:** ✅ Available
+
+DuckDB-specific types are available via the `T` shorthand for ergonomic type casting:
+
+```python
+from vw.duckdb import T, col, ref, render
+
+# Simple DuckDB types
+col("age").cast(T.TINYINT())      # 8-bit integer
+col("count").cast(T.HUGEINT())    # 128-bit integer
+col("data").cast(T.BLOB())        # Binary data
+
+# LIST types (variable-length arrays)
+col("tags").cast(T.LIST(T.VARCHAR()))
+# Renders: tags::LIST<VARCHAR>
+
+col("matrix").cast(T.LIST(T.LIST(T.INTEGER())))
+# Renders: matrix::LIST<LIST<INTEGER>>
+
+# STRUCT types (named records)
+col("address").cast(T.STRUCT({
+    "street": T.VARCHAR(),
+    "city": T.VARCHAR(),
+    "zip": T.INTEGER()
+}))
+# Renders: address::STRUCT<street: VARCHAR, city: VARCHAR, zip: INTEGER>
+
+# MAP types (key-value pairs)
+col("metadata").cast(T.MAP(T.VARCHAR(), T.VARCHAR()))
+# Renders: metadata::MAP<VARCHAR, VARCHAR>
+
+# ARRAY types (fixed-length)
+col("coords").cast(T.ARRAY(T.DOUBLE(), 3))  # 3-element array
+# Renders: coords::DOUBLE[3]
+
+col("values").cast(T.ARRAY(T.INTEGER()))     # Variable-length
+# Renders: values::INTEGER[]
+
+# Complex nested types
+col("data").cast(T.STRUCT({
+    "id": T.INTEGER(),
+    "tags": T.LIST(T.VARCHAR()),
+    "metadata": T.MAP(T.VARCHAR(), T.INTEGER())
+}))
+# Renders: data::STRUCT<id: INTEGER, tags: LIST<VARCHAR>, metadata: MAP<VARCHAR, INTEGER>>
+```
+
+**Available Types:**
+
+**Core Types (re-exported from vw.core.types):**
+- `INTEGER`, `BIGINT`, `SMALLINT`, `REAL`, `DOUBLE_PRECISION`
+- `TEXT`, `VARCHAR`, `CHAR`, `BOOLEAN`
+- `DATE`, `TIME`, `TIMESTAMP`
+- `JSON`, `UUID`, `BYTEA`
+- `NUMERIC`, `DECIMAL`
+
+**DuckDB Integer Variants:**
+- `TINYINT()` - 8-bit signed integer
+- `UTINYINT()` - 8-bit unsigned integer
+- `USMALLINT()` - 16-bit unsigned integer
+- `UINTEGER()` - 32-bit unsigned integer
+- `UBIGINT()` - 64-bit unsigned integer
+- `HUGEINT()` - 128-bit signed integer
+- `UHUGEINT()` - 128-bit unsigned integer
+
+**DuckDB-Specific Types:**
+- `LIST(element_type)` - Variable-length arrays
+- `STRUCT(fields)` - Named record types (fields is a dict)
+- `MAP(key_type, value_type)` - Key-value pairs
+- `ARRAY(element_type, size=None)` - Fixed-length arrays
+- `BLOB()`, `BIT()`, `INTERVAL()` - Binary, bit, and interval types
+- `FLOAT()`, `DOUBLE()` - Floating point aliases
+
+**Type Composition:**
+
+Types can be nested arbitrarily:
+
+```python
+# List of maps
+T.LIST(T.MAP(T.VARCHAR(), T.INTEGER()))
+# Renders: LIST<MAP<VARCHAR, INTEGER>>
+
+# Map with struct values
+T.MAP(T.VARCHAR(), T.STRUCT({"count": T.INTEGER(), "total": T.DOUBLE()}))
+# Renders: MAP<VARCHAR, STRUCT<count: INTEGER, total: DOUBLE>>
+
+# Struct with nested collections
+T.STRUCT({
+    "name": T.VARCHAR(),
+    "scores": T.ARRAY(T.DOUBLE(), 5),
+    "metadata": T.MAP(T.VARCHAR(), T.VARCHAR())
+})
+# Renders: STRUCT<name: VARCHAR, scores: DOUBLE[5], metadata: MAP<VARCHAR, VARCHAR>>
+```
+
+See `vw.duckdb.types` for the complete reference.
+
 ## Pending DuckDB-Specific Features
 
 The following features are not yet implemented for DuckDB:
@@ -440,12 +540,6 @@ The following features are not yet implemented for DuckDB:
 - ❌ DuckDB-specific aggregates
 - ❌ DuckDB-specific statistical functions
 
-#### DuckDB Types
-- ❌ LIST type constructors
-- ❌ STRUCT type constructors
-- ❌ MAP type constructors
-- ❌ UNION type constructors
-
 #### Other Features
 - ❌ Sampling (USING SAMPLE clause)
 - ❌ DuckDB operators (list indexing, struct field access)
@@ -459,6 +553,7 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Phase 1: Core DuckDB Implementation (infrastructure)
 - ✅ Phase 2: Star Extensions (EXCLUDE, REPLACE) 🌟
 - ✅ Phase 3a: File Reading (CSV, Parquet, JSON, JSONL) 🌟
+- ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Core Query Building (SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY)
@@ -470,10 +565,10 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 
 **Next Steps:**
 - Phase 5: List/Array Functions (list operations, list_agg) 🌟
-- Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP)
+- Phase 6: Struct Operations (struct_pack, struct_extract) 🌟
 - Phase 7: Sampling (USING SAMPLE clause)
 
-**Progress:** 30% complete (3 of 10 DuckDB-specific phases complete)
+**Progress:** 40% complete (4 of 10 DuckDB-specific phases complete)
 
 ## Example (Future API)
 

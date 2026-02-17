@@ -2,7 +2,7 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, & 3a Complete - Core infrastructure, Star Extensions, and File Reading implemented
+**Status:** ✅ Phase 1, 2, 3a, & 4 Complete - Core infrastructure, Star Extensions, File Reading, and Type System implemented
 **Current Phase:** Phase 5 - List/Array Functions (next priority)
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
@@ -386,45 +386,90 @@ ref("users").select(col("name")).copy_to("names.csv")
 
 ---
 
-## 📋 Phase 4: DuckDB-Specific Types
+## ✅ Phase 4: DuckDB-Specific Types
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** MEDIUM
 
 ### DuckDB Native Types
-- [ ] LIST type (arrays)
-- [ ] STRUCT type (named fields)
-- [ ] MAP type (key-value pairs)
-- [ ] UNION type (tagged union)
-- [ ] ENUM type
-- [ ] BIT type
-- [ ] BLOB type
-- [ ] INTERVAL type
+- [x] LIST type (variable-length arrays)
+- [x] STRUCT type (named fields)
+- [x] MAP type (key-value pairs)
+- [x] ARRAY type (fixed-length arrays)
+- [x] Integer variants (TINYINT, UTINYINT, USMALLINT, UINTEGER, UBIGINT, HUGEINT, UHUGEINT)
+- [x] BLOB, BIT, INTERVAL types
+- [x] FLOAT, DOUBLE aliases
+- [ ] UNION type (deferred - rarely used)
+- [ ] ENUM type (deferred - requires CREATE TYPE)
 
 ### Type System Integration
-- [ ] Type constructors in `vw.duckdb.types`
-- [ ] Type casting to DuckDB types
-- [ ] Type inference for literals
-- [ ] Type validation
+- [x] Type constructors in `vw.duckdb.types`
+- [x] Type casting to DuckDB types via `.cast()`
+- [x] T shorthand for ergonomic usage (`from vw.duckdb import T`)
+- [x] Nested type composition (LIST of STRUCT, etc.)
+- [x] Re-export all core ANSI SQL types
+
+### Implementation Notes
+- Type functions return simple SQL type strings
+- DuckDB uses angle bracket syntax for parameterized types: `LIST<VARCHAR>`, `STRUCT<name: VARCHAR>`
+- Cast rendering works via existing `::` syntax
+- T shorthand provides ergonomic access: `T.LIST(T.VARCHAR())`
+- No type validation - DuckDB handles validation at runtime
+- Value construction deferred to Phase 5 (List Functions) and Phase 6 (Struct Operations)
 
 ### Examples
 ```python
-from vw.duckdb import types as T
+from vw.duckdb import T, col, ref, render
 
-# LIST type
-col("tags").cast(T.list(T.varchar()))
+# Simple DuckDB types
+col("age").cast(T.TINYINT())      # 8-bit integer
+col("count").cast(T.HUGEINT())    # 128-bit integer
 
-# STRUCT type
-col("address").cast(T.struct(street=T.varchar(), city=T.varchar()))
+# LIST type (variable-length arrays)
+col("tags").cast(T.LIST(T.VARCHAR()))
+# Renders: tags::LIST<VARCHAR>
 
-# MAP type
-col("metadata").cast(T.map(T.varchar(), T.varchar()))
+# STRUCT type (named fields)
+col("address").cast(T.STRUCT({"street": T.VARCHAR(), "city": T.VARCHAR(), "zip": T.INTEGER()}))
+# Renders: address::STRUCT<street: VARCHAR, city: VARCHAR, zip: INTEGER>
+
+# MAP type (key-value pairs)
+col("metadata").cast(T.MAP(T.VARCHAR(), T.VARCHAR()))
+# Renders: metadata::MAP<VARCHAR, VARCHAR>
+
+# ARRAY type (fixed-length)
+col("coords").cast(T.ARRAY(T.DOUBLE(), 3))
+# Renders: coords::DOUBLE[3]
+
+# Nested types
+col("matrix").cast(T.LIST(T.LIST(T.INTEGER())))
+# Renders: matrix::LIST<LIST<INTEGER>>
+
+# Complex composition
+col("data").cast(T.STRUCT({
+    "id": T.INTEGER(),
+    "tags": T.LIST(T.VARCHAR()),
+    "metadata": T.MAP(T.VARCHAR(), T.INTEGER())
+}))
+# Renders: data::STRUCT<id: INTEGER, tags: LIST<VARCHAR>, metadata: MAP<VARCHAR, INTEGER>>
 ```
 
 ### Testing
-- [ ] Unit tests for type constructors
-- [ ] Integration tests with type casting
-- [ ] Test type inference
+- [x] 65 unit tests in `tests/duckdb/test_types.py` (all passing)
+  - Core type re-exports (23 tests)
+  - DuckDB integer variants (7 tests)
+  - DuckDB simple types (5 tests)
+  - LIST type (6 tests)
+  - STRUCT type (8 tests)
+  - MAP type (6 tests)
+  - ARRAY type (5 tests)
+  - Type composition (5 tests)
+- [x] 21 integration tests in `tests/duckdb/integration/test_type_casting.py` (all passing)
+  - Cast rendering (9 tests)
+  - Cast in queries (5 tests)
+  - Complex nested types (4 tests)
+  - T shorthand usage (3 tests)
+- [x] All quality checks passing (ruff, type checking)
 
 ---
 
