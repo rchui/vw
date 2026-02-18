@@ -451,14 +451,13 @@ def describe_like_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             like_state.left = Column(name="c")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """Like should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         like1 = Like(left=Column(name="a"), right=Column(name="b"))
         like2 = Like(left=Column(name="a"), right=Column(name="b"))
 
         assert like1 is not like2
-        # eq=False means identity comparison, not structural
-        assert (like1 == like2) == (like1 is like2)
+        assert like1 == like2
 
     def it_is_expr_subclass() -> None:
         """Like should inherit from Expr base class."""
@@ -492,13 +491,13 @@ def describe_not_like_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             not_like_state.left = Column(name="c")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """NotLike should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         not_like1 = NotLike(left=Column(name="a"), right=Column(name="b"))
         not_like2 = NotLike(left=Column(name="a"), right=Column(name="b"))
 
         assert not_like1 is not not_like2
-        assert (not_like1 == not_like2) == (not_like1 is not_like2)
+        assert not_like1 == not_like2
 
     def it_is_expr_subclass() -> None:
         """NotLike should inherit from Expr base class."""
@@ -549,13 +548,13 @@ def describe_is_in_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             is_in_state.expr = Column(name="other")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """IsIn should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         is_in1 = IsIn(expr=Column(name="id"), values=(Column(name="1"),))
         is_in2 = IsIn(expr=Column(name="id"), values=(Column(name="1"),))
 
         assert is_in1 is not is_in2
-        assert (is_in1 == is_in2) == (is_in1 is is_in2)
+        assert is_in1 == is_in2
 
     def it_is_expr_subclass() -> None:
         """IsIn should inherit from Expr base class."""
@@ -606,13 +605,13 @@ def describe_is_not_in_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             is_not_in_state.expr = Column(name="other")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """IsNotIn should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         is_not_in1 = IsNotIn(expr=Column(name="id"), values=(Column(name="0"),))
         is_not_in2 = IsNotIn(expr=Column(name="id"), values=(Column(name="0"),))
 
         assert is_not_in1 is not is_not_in2
-        assert (is_not_in1 == is_not_in2) == (is_not_in1 is is_not_in2)
+        assert is_not_in1 == is_not_in2
 
     def it_is_expr_subclass() -> None:
         """IsNotIn should inherit from Expr base class."""
@@ -648,13 +647,13 @@ def describe_between_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             between_state.expr = Column(name="other")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """Between should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         between1 = Between(expr=Column(name="age"), lower_bound=Column(name="18"), upper_bound=Column(name="65"))
         between2 = Between(expr=Column(name="age"), lower_bound=Column(name="18"), upper_bound=Column(name="65"))
 
         assert between1 is not between2
-        assert (between1 == between2) == (between1 is between2)
+        assert between1 == between2
 
     def it_is_expr_subclass() -> None:
         """Between should inherit from Expr base class."""
@@ -692,13 +691,13 @@ def describe_not_between_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             not_between_state.expr = Column(name="other")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """NotBetween should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         not_between1 = NotBetween(expr=Column(name="age"), lower_bound=Column(name="0"), upper_bound=Column(name="17"))
         not_between2 = NotBetween(expr=Column(name="age"), lower_bound=Column(name="0"), upper_bound=Column(name="17"))
 
         assert not_between1 is not not_between2
-        assert (not_between1 == not_between2) == (not_between1 is not_between2)
+        assert not_between1 == not_between2
 
     def it_is_expr_subclass() -> None:
         """NotBetween should inherit from Expr base class."""

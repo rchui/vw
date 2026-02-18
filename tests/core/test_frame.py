@@ -452,50 +452,45 @@ def describe_frame_with_window_functions() -> None:
         assert "ROWS BETWEEN CURRENT ROW AND 10 FOLLOWING" in result.query
 
 
-def describe_identity_comparison() -> None:
-    """Test that frame boundary instances use identity comparison."""
+def describe_structural_equality() -> None:
+    """Test that frame boundary instances use structural equality."""
 
-    def it_unbounded_preceding_instances_not_equal() -> None:
-        """Two UnboundedPreceding instances should not be equal (eq=False)."""
+    def it_unbounded_preceding_has_structural_equality() -> None:
+        """Two UnboundedPreceding instances should be structurally equal."""
         u1 = UnboundedPreceding()
         u2 = UnboundedPreceding()
         assert u1 is not u2
-        # eq=False means identity comparison
-        assert (u1 == u2) == (u1 is u2)
+        assert u1 == u2
 
-    def it_unbounded_following_instances_not_equal() -> None:
-        """Two UnboundedFollowing instances should not be equal (eq=False)."""
+    def it_unbounded_following_has_structural_equality() -> None:
+        """Two UnboundedFollowing instances should be structurally equal."""
         u1 = UnboundedFollowing()
         u2 = UnboundedFollowing()
         assert u1 is not u2
-        # eq=False means identity comparison
-        assert (u1 == u2) == (u1 is u2)
+        assert u1 == u2
 
-    def it_current_row_instances_not_equal() -> None:
-        """Two CurrentRow instances should not be equal (eq=False)."""
+    def it_current_row_has_structural_equality() -> None:
+        """Two CurrentRow instances should be structurally equal."""
         c1 = CurrentRow()
         c2 = CurrentRow()
         assert c1 is not c2
-        # eq=False means identity comparison
-        assert (c1 == c2) == (c1 is c2)
+        assert c1 == c2
 
-    def it_preceding_instances_not_equal() -> None:
-        """Two Preceding instances with same count should not be equal (eq=False)."""
+    def it_preceding_has_structural_equality() -> None:
+        """Two Preceding instances with same count should be structurally equal."""
         p1 = preceding(3)
         p2 = preceding(3)
         assert p1 is not p2
         assert p1.count == p2.count  # Same count
-        # eq=False means identity comparison
-        assert (p1 == p2) == (p1 is p2)
+        assert p1 == p2
 
-    def it_following_instances_not_equal() -> None:
-        """Two Following instances with same count should not be equal (eq=False)."""
+    def it_following_has_structural_equality() -> None:
+        """Two Following instances with same count should be structurally equal."""
         f1 = following(5)
         f2 = following(5)
         assert f1 is not f2
         assert f1.count == f2.count  # Same count
-        # eq=False means identity comparison
-        assert (f1 == f2) == (f1 is f2)
+        assert f1 == f2
 
 
 def describe_constants_are_singletons() -> None:

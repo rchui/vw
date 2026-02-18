@@ -5,12 +5,12 @@ from dataclasses import dataclass, field
 # --- Base Classes ---------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Expr:
     """Base class for all expression nodes."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Source:
     """Base class for table-like sources.
 
@@ -23,14 +23,14 @@ class Source:
     modifiers: tuple[Expr, ...] = field(default_factory=tuple)
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Reference(Source):
     """Represents a named table/view reference."""
 
     name: str
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Values(Source):
     """Represents a VALUES clause as a row source.
 
@@ -41,7 +41,7 @@ class Values(Source):
     rows: tuple[dict[str, object], ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class File(Source):
     """Represents a file read operation as a row source.
 
@@ -61,7 +61,7 @@ class File(Source):
 # --- Raw SQL Escape Hatches ------------------------------------------------ #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class RawExpr(Expr):
     """Raw SQL expression with named parameter substitution.
 
@@ -84,7 +84,7 @@ class RawExpr(Expr):
     params: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class RawSource(Source):
     """Raw SQL source/table expression with named parameter substitution.
 
@@ -108,7 +108,7 @@ class RawSource(Source):
     params: tuple[tuple[str, Expr], ...] = field(default_factory=tuple)
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Column(Expr):
     """Represents a column reference."""
 
@@ -116,7 +116,7 @@ class Column(Expr):
     alias: str | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Star(Expr):
     """Represents a star (*) expression for selecting all columns.
 
@@ -129,7 +129,7 @@ class Star(Expr):
     alias: str | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Parameter(Expr):
     """Represents a query parameter."""
 
@@ -137,7 +137,7 @@ class Parameter(Expr):
     value: object
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Literal(Expr):
     """Literal value (string, number, boolean, null).
 
@@ -153,14 +153,14 @@ class Literal(Expr):
     value: object
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Limit:
     """Represents LIMIT clause."""
 
     count: int
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Fetch:
     """Represents FETCH FIRST n ROWS [ONLY | WITH TIES] clause."""
 
@@ -168,7 +168,7 @@ class Fetch:
     with_ties: bool = False
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Distinct:
     """Represents DISTINCT or DISTINCT ON clause in a SQL statement.
 
@@ -181,7 +181,7 @@ class Distinct:
 # --- Joins ----------------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Join:
     """Represents a SQL join clause."""
 
@@ -193,7 +193,7 @@ class Join:
     lateral: bool = False
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Statement(Source):
     """Represents a SELECT query."""
 
@@ -214,7 +214,7 @@ class Statement(Source):
 # --- Binary Operators ------------------------------------------------------ #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Operator(Expr):
     """Represents an infix binary operator (e.g. =, +, AND, ||)."""
 
@@ -226,7 +226,7 @@ class Operator(Expr):
 # --- Logical Operators ----------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Not(Expr):
     """Represents a logical NOT expression."""
 
@@ -236,7 +236,7 @@ class Not(Expr):
 # --- Pattern Matching ------------------------------------------------------ #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Like(Expr):
     """Represents a LIKE pattern match."""
 
@@ -244,7 +244,7 @@ class Like(Expr):
     right: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class NotLike(Expr):
     """Represents a NOT LIKE pattern match."""
 
@@ -252,7 +252,7 @@ class NotLike(Expr):
     right: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class ILike(Expr):
     """Represents an ILIKE pattern match (case-insensitive)."""
 
@@ -260,7 +260,7 @@ class ILike(Expr):
     right: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class NotILike(Expr):
     """Represents a NOT ILIKE pattern match (case-insensitive)."""
 
@@ -268,7 +268,7 @@ class NotILike(Expr):
     right: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class IsIn(Expr):
     """Represents an IN expression."""
 
@@ -276,7 +276,7 @@ class IsIn(Expr):
     values: tuple[Expr, ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class IsNotIn(Expr):
     """Represents a NOT IN expression."""
 
@@ -284,7 +284,7 @@ class IsNotIn(Expr):
     values: tuple[Expr, ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Between(Expr):
     """Represents a BETWEEN expression."""
 
@@ -293,7 +293,7 @@ class Between(Expr):
     upper_bound: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class NotBetween(Expr):
     """Represents a NOT BETWEEN expression."""
 
@@ -305,14 +305,14 @@ class NotBetween(Expr):
 # --- NULL Checks ----------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class IsNull(Expr):
     """Represents IS NULL check."""
 
     expr: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class IsNotNull(Expr):
     """Represents IS NOT NULL check."""
 
@@ -322,14 +322,14 @@ class IsNotNull(Expr):
 # --- Subquery Operators ---------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Exists(Expr):
     """Represents EXISTS subquery check."""
 
     subquery: Reference | Statement | SetOperation | Values | File | RawSource
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class ScalarSubquery(Expr):
     """Represents a subquery used as a scalar expression (e.g., in SELECT or comparisons)."""
 
@@ -339,7 +339,7 @@ class ScalarSubquery(Expr):
 # --- Conditional Expressions ----------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class WhenThen:
     """A single WHEN/THEN pair in a CASE expression."""
 
@@ -347,7 +347,7 @@ class WhenThen:
     result: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Case(Expr):
     """Searched CASE expression: CASE WHEN cond THEN val ... [ELSE val] END"""
 
@@ -358,7 +358,7 @@ class Case(Expr):
 # --- Set Operations -------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class SetOperation(Source):
     """Represents a set operation (UNION, INTERSECT, EXCEPT)."""
 
@@ -370,7 +370,7 @@ class SetOperation(Source):
 # --- Common Table Expressions ---------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CTE(Statement):
     """A Common Table Expression (WITH clause).
 
@@ -385,7 +385,7 @@ class CTE(Statement):
 # --- Expression Modifiers -------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Alias(Expr):
     """Represents an aliased expression (expr AS name)."""
 
@@ -393,7 +393,7 @@ class Alias(Expr):
     name: str
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Cast(Expr):
     """Represents type cast (CAST or ::)."""
 
@@ -401,14 +401,14 @@ class Cast(Expr):
     data_type: str
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Asc(Expr):
     """Represents ascending sort order (ASC)."""
 
     expr: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Desc(Expr):
     """Represents descending sort order (DESC)."""
 
@@ -418,7 +418,7 @@ class Desc(Expr):
 # --- Date/Time Expressions ------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Extract(Expr):
     """Represents EXTRACT(field FROM expr) — ANSI SQL."""
 
@@ -426,17 +426,17 @@ class Extract(Expr):
     expr: Expr
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CurrentTimestamp(Expr):
     """Represents CURRENT_TIMESTAMP — ANSI SQL."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CurrentDate(Expr):
     """Represents CURRENT_DATE — ANSI SQL."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CurrentTime(Expr):
     """Represents CURRENT_TIME — ANSI SQL."""
 
@@ -444,21 +444,21 @@ class CurrentTime(Expr):
 # --- Grouping Constructs --------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Rollup(Expr):
     """ROLLUP grouping construct for hierarchical subtotals."""
 
     columns: tuple[Expr, ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Cube(Expr):
     """CUBE grouping construct for all dimension combinations."""
 
     columns: tuple[Expr, ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class GroupingSets(Expr):
     """GROUPING SETS construct for explicit grouping combinations."""
 
@@ -468,7 +468,7 @@ class GroupingSets(Expr):
 # --- Functions ------------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Function(Expr):
     """Represents a SQL function (aggregate, window-only, or scalar)."""
 
@@ -479,7 +479,7 @@ class Function(Expr):
     order_by: tuple[Expr, ...] = field(default_factory=tuple)
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class WindowFunction(Expr):
     """Represents a window function with OVER clause."""
 
@@ -492,7 +492,7 @@ class WindowFunction(Expr):
 # --- Window Frame Clauses -------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class FrameClause:
     """Represents a window frame clause (ROWS/RANGE BETWEEN).
 
@@ -508,29 +508,29 @@ class FrameClause:
 # --- Frame Boundaries ------------------------------------------------------ #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class UnboundedPreceding:
     """Represents UNBOUNDED PRECEDING frame boundary."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class UnboundedFollowing:
     """Represents UNBOUNDED FOLLOWING frame boundary."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CurrentRow:
     """Represents CURRENT ROW frame boundary."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Preceding:
     """Represents n PRECEDING frame boundary."""
 
     count: int
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Following:
     """Represents n FOLLOWING frame boundary."""
 

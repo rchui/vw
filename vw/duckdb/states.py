@@ -9,7 +9,7 @@ from vw.core.states import Expr
 from vw.core.states import Star as CoreStar
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Column(CoreColumn):
     """DuckDB column reference with star extension support.
 
@@ -24,21 +24,21 @@ class Column(CoreColumn):
     replace: dict[str, Expr] | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class StarExclude:
     """Represents an EXCLUDE clause for star expressions."""
 
     columns: tuple[Expr, ...]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class StarReplace:
     """Represents a REPLACE clause for star expressions."""
 
     replacements: dict[str, Expr]
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Star(CoreStar):
     """DuckDB star expression with EXCLUDE and REPLACE support.
 

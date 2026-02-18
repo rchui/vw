@@ -9,12 +9,12 @@ from vw.core.states import Expr
 # --- Date/Time ------------------------------------------------------------- #
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Now(Expr):
     """Represents NOW() — PostgreSQL current timestamp function."""
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Interval(Expr):
     """Represents INTERVAL 'amount unit' — PostgreSQL interval literal."""
 
@@ -22,7 +22,7 @@ class Interval(Expr):
     unit: str
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class DateTrunc(Expr):
     """Represents DATE_TRUNC('unit', expr) — PostgreSQL date truncation."""
 

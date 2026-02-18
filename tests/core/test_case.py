@@ -304,14 +304,13 @@ def describe_when_then_state() -> None:
         with pytest.raises(dataclasses.FrozenInstanceError):
             when_then.condition = Column(name="y")  # type: ignore
 
-    def it_is_not_equal_by_default() -> None:
-        """WhenThen should use identity equality (eq=False)."""
+    def it_has_structural_equality() -> None:
+        """Should use structural equality."""
         when_then1 = WhenThen(condition=Column(name="x"), result=Literal(value="a"))
         when_then2 = WhenThen(condition=Column(name="x"), result=Literal(value="a"))
 
         assert when_then1 is not when_then2
-        # eq=False means identity comparison, not structural
-        assert (when_then1 == when_then2) == (when_then1 is when_then2)
+        assert when_then1 == when_then2
 
 
 def describe_case_state() -> None:

@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from vw.duckdb.base import RowSet
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class CSV:
     """CSV format modifier for file reading.
 
@@ -81,7 +81,7 @@ class CSV:
     decimal_separator: str | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Parquet:
     """Parquet format modifier for file() function.
 
@@ -105,7 +105,7 @@ class Parquet:
     compression: str | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class JSON:
     """JSON format modifier for file() function (standard JSON format).
 
@@ -131,7 +131,7 @@ class JSON:
     union_by_name: bool | None = None
 
 
-@dataclass(eq=False, frozen=True, kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class JSONL:
     """JSONL format modifier for file() function (newline-delimited JSON).
 
