@@ -8,14 +8,35 @@ from vw.core.frame import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
 from vw.core.frame import following as following
 from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
+from vw.core.mixins import (
+    ArrayAggMixin,
+    BitAndMixin,
+    BitOrMixin,
+    BoolAndMixin,
+    BoolOrMixin,
+    JsonAggMixin,
+    StringAggMixin,
+    UnnestMixin,
+)
 from vw.core.states import Column, Exists, Parameter, Reference
 from vw.postgres.base import Expression, RowSet
 
 
-class Functions(CoreFunctions):
+class Functions(
+    ArrayAggMixin,
+    UnnestMixin,
+    StringAggMixin,
+    JsonAggMixin,
+    BitAndMixin,
+    BitOrMixin,
+    BoolAndMixin,
+    BoolOrMixin,
+    CoreFunctions,
+):
     """PostgreSQL function namespace.
 
-    Inherits all ANSI SQL standard functions from CoreFunctions.
+    Inherits ANSI SQL standard functions from CoreFunctions.
+    Inherits shared aggregate functions from core mixins.
     """
 
     def now(self) -> Expression:
@@ -35,48 +56,6 @@ class Functions(CoreFunctions):
         state = Function(name="GEN_RANDOM_UUID", args=())
         return self.factories.expr(state=state, factories=self.factories)
 
-    def array_agg(
-        self, expr: Expression, *, distinct: bool = False, order_by: list[Expression] | None = None
-    ) -> Expression:
-        """ARRAY_AGG() — aggregate values into an array.
-
-        Args:
-            expr: Expression to aggregate.
-            distinct: Whether to aggregate distinct values only.
-            order_by: Optional ORDER BY expressions (inside function).
-
-        Examples:
-            >>> F.array_agg(col("name"))
-            >>> F.array_agg(col("name"), distinct=True)
-            >>> F.array_agg(col("name"), order_by=[col("name").asc()])
-            >>> F.array_agg(col("tag"), distinct=True, order_by=[col("tag")])
-        """
-        from vw.core.states import Function
-
-        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
-        state = Function(name="ARRAY_AGG", args=(expr.state,), distinct=distinct, order_by=order_by_tuple)
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def string_agg(
-        self, expr: Expression, separator: Expression, *, order_by: list[Expression] | None = None
-    ) -> Expression:
-        """STRING_AGG() — concatenate values with separator.
-
-        Args:
-            expr: Expression to aggregate.
-            separator: Separator string (typically lit() for constants).
-            order_by: Optional ORDER BY expressions (inside function).
-
-        Examples:
-            >>> F.string_agg(col("name"), lit(", "))
-            >>> F.string_agg(col("name"), lit(", "), order_by=[col("name")])
-        """
-        from vw.core.states import Function
-
-        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
-        state = Function(name="STRING_AGG", args=(expr.state, separator.state), order_by=order_by_tuple)
-        return self.factories.expr(state=state, factories=self.factories)
-
     def json_build_object(self, *args: Expression) -> Expression:
         """JSON_BUILD_OBJECT() — build JSON object from key/value pairs.
 
@@ -93,116 +72,6 @@ class Functions(CoreFunctions):
         from vw.core.states import Function
 
         state = Function(name="JSON_BUILD_OBJECT", args=tuple(a.state for a in args))
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def json_agg(self, expr: Expression, *, order_by: list[Expression] | None = None) -> Expression:
-        """JSON_AGG() — aggregate values into a JSON array.
-
-        Args:
-            expr: Expression to aggregate.
-            order_by: Optional ORDER BY expressions (inside function).
-
-        Example:
-            >>> F.json_agg(col("data"), order_by=[col("created_at")])
-        """
-        from vw.core.states import Function
-
-        order_by_tuple = tuple(e.state for e in order_by) if order_by else ()
-        state = Function(name="JSON_AGG", args=(expr.state,), order_by=order_by_tuple)
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def unnest(self, array: Expression) -> Expression:
-        """UNNEST() — expand array to set of rows.
-
-        Can be used in SELECT clause. For FROM clause usage, use raw.rowset().
-
-        Example:
-            >>> ref("data").select(F.unnest(col("array_col")))
-            >>> # For FROM: raw.rowset("unnest({arr}) AS t(elem)", arr=...)
-        """
-        from vw.core.states import Function
-
-        state = Function(name="UNNEST", args=(array.state,))
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def bit_and(self, expr: Expression) -> Expression:
-        """BIT_AND(expr) — Bitwise AND aggregate.
-
-        Computes the bitwise AND of all non-null input values.
-
-        Args:
-            expr: Expression to aggregate (typically an integer column).
-
-        Returns:
-            An Expression wrapping a Function state.
-
-        Examples:
-            >>> F.bit_and(col("flags"))  # BIT_AND(flags)
-            >>> F.bit_and(col("permissions")).alias("combined_perms")
-        """
-        from vw.core.states import Function
-
-        state = Function(name="BIT_AND", args=(expr.state,))
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def bit_or(self, expr: Expression) -> Expression:
-        """BIT_OR(expr) — Bitwise OR aggregate.
-
-        Computes the bitwise OR of all non-null input values.
-
-        Args:
-            expr: Expression to aggregate (typically an integer column).
-
-        Returns:
-            An Expression wrapping a Function state.
-
-        Examples:
-            >>> F.bit_or(col("flags"))  # BIT_OR(flags)
-            >>> F.bit_or(col("permissions")).alias("combined_perms")
-        """
-        from vw.core.states import Function
-
-        state = Function(name="BIT_OR", args=(expr.state,))
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def bool_and(self, expr: Expression) -> Expression:
-        """BOOL_AND(expr) — Boolean AND aggregate (also known as EVERY).
-
-        Returns true if all input values are true, otherwise false.
-
-        Args:
-            expr: Expression to aggregate (boolean expression or column).
-
-        Returns:
-            An Expression wrapping a Function state.
-
-        Examples:
-            >>> F.bool_and(col("is_active"))  # BOOL_AND(is_active)
-            >>> F.bool_and(col("verified")).alias("all_verified")
-        """
-        from vw.core.states import Function
-
-        state = Function(name="BOOL_AND", args=(expr.state,))
-        return self.factories.expr(state=state, factories=self.factories)
-
-    def bool_or(self, expr: Expression) -> Expression:
-        """BOOL_OR(expr) — Boolean OR aggregate.
-
-        Returns true if at least one input value is true, otherwise false.
-
-        Args:
-            expr: Expression to aggregate (boolean expression or column).
-
-        Returns:
-            An Expression wrapping a Function state.
-
-        Examples:
-            >>> F.bool_or(col("needs_review"))  # BOOL_OR(needs_review)
-            >>> F.bool_or(col("has_error")).alias("any_errors")
-        """
-        from vw.core.states import Function
-
-        state = Function(name="BOOL_OR", args=(expr.state,))
         return self.factories.expr(state=state, factories=self.factories)
 
 

@@ -2,8 +2,8 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, 3a, & 4 Complete - Core infrastructure, Star Extensions, File Reading, and Type System implemented
-**Current Phase:** Phase 5 - List/Array Functions (next priority)
+**Status:** ✅ Phase 1, 2, 3a, 4, & 5 Complete - Core infrastructure, Star Extensions, File Reading, Type System, and List Functions implemented
+**Current Phase:** Phase 6 - Struct Operations (next priority)
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
 ---
@@ -473,48 +473,119 @@ col("data").cast(T.STRUCT({
 
 ---
 
-## 📋 Phase 5: List/Array Functions
+## ✅ Phase 5: List/Array Functions
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** MEDIUM-HIGH
 
 ### List Construction
-- [ ] `list_value([1, 2, 3])` - create list literal
-- [ ] List literals via Python lists
-- [ ] `array_agg()` - aggregate to array (inherited from postgres)
+- [x] `F.list_value(*elements)` - create list from elements
+- [x] `F.array_agg(expr, distinct, order_by)` - aggregate to array (inherited from postgres via mixin)
+- [x] `F.list_agg(expr, distinct, order_by)` - DuckDB-native list aggregation
 
 ### List Operations
-- [ ] `list_extract(list, index)` - access list element
-- [ ] `list_slice(list, start, end)` - slice list
-- [ ] `list_contains(list, element)` - check membership
-- [ ] `list_concat(list1, list2)` - concatenate lists
-- [ ] `list_append(list, element)` - append element
-- [ ] `list_prepend(element, list)` - prepend element
-- [ ] `unnest(list)` - expand list to rows (inherited from postgres)
+- [x] `F.list_extract(list, index)` - access list element (1-based, negative supported)
+- [x] `F.list_slice(list, begin, end, step)` - slice list with optional step
+- [x] `F.list_contains(list, element)` - check membership
+- [x] `F.list_concat(*lists)` - concatenate multiple lists
+- [x] `F.list_append(list, element)` - append element to end
+- [x] `F.list_prepend(element, list)` - prepend element to beginning
+- [x] `F.unnest(array)` - expand list to rows (inherited from postgres via mixin)
 
-### List Aggregates
-- [ ] `list_agg(expr)` - DuckDB-specific list aggregation
-- [ ] Support for ORDER BY within list_agg
+### List Transformation
+- [x] `F.list_sort(list)` - sort list ascending
+- [x] `F.list_reverse(list)` - reverse list order
+- [x] `F.list_distinct(list)` - remove duplicates
+- [x] `F.list_has_any(list1, list2)` - check overlap
+- [x] `F.list_has_all(list1, list2)` - check containment
+- [x] `F.flatten(list)` - flatten nested lists
 
-### Data Structures Needed
-- [ ] ListValue dataclass for list literals
-- [ ] List function wrappers in F module
+### List Scalar Aggregates
+- [x] `F.list_sum(list)` - sum numeric elements
+- [x] `F.list_avg(list)` - average numeric elements
+- [x] `F.list_min(list)` - minimum element
+- [x] `F.list_max(list)` - maximum element
+- [x] `F.list_count(list)` - count elements (excluding NULL)
+
+### Shared Aggregate Functions (via Mixin)
+- [x] `F.array_agg(expr, distinct, order_by)` - PostgreSQL-compatible aggregation
+- [x] `F.unnest(array)` - expand array to rows
+- [x] `F.string_agg(expr, separator, order_by)` - concatenate with separator
+- [x] `F.json_agg(expr, order_by)` - aggregate to JSON array
+- [x] `F.bit_and(expr)`, `F.bit_or(expr)` - bitwise aggregates
+- [x] `F.bool_and(expr)`, `F.bool_or(expr)` - boolean aggregates
+
+### Data Structures Implemented
+- [x] ArrayAggFunctionMixin in `vw/core/mixins.py` (8 shared functions)
+- [x] DuckDB Functions class inherits from mixin
+- [x] 19 DuckDB-specific list functions in `vw/duckdb/public.py`
+- [x] All functions use existing Function state (no new dataclasses needed)
+
+### Implementation Notes
+- Created shared mixin for functions that work identically in PostgreSQL and DuckDB
+- Individual mixins (ArrayAggMixin, UnnestMixin, etc.) inherit from FactoryT
+- Each mixin declares `factories: Factories[ExprT, RowSetT]` for type safety
+- DuckDB Functions class inherits from 8 mixins + CoreFunctions
+- All 19 list functions follow simple pattern: create Function state, wrap with factories.expr()
+- Lambda functions (list_filter, list_transform, list_reduce) deferred - need lambda expression support
+- Breadcrumb comment added for future work: `# TODO: list_filter/transform/reduce - requires lambda expression support`
 
 ### Examples
 ```python
-# List operations
-col("tags").list.extract(1)  # Access first element
-col("tags").list.slice(1, 3)  # Slice
-col("tags").list.contains("python")  # Check membership
+from vw.duckdb import F, col, lit, ref, render
 
-# List aggregation
-F.list_agg(col("name"), order_by=[col("id").asc()])
+# Construction
+query = ref("t").select(F.list_value(lit(1), lit(2), lit(3)).alias("nums"))
+# Renders: SELECT LIST_VALUE(1, 2, 3) AS nums FROM t
+
+# Aggregation with ORDER BY
+query = ref("orders").select(
+    col("user_id"),
+    F.list_agg(col("product"), order_by=[col("date").asc()]).alias("products")
+).group_by(col("user_id"))
+# Renders: SELECT user_id, LIST_AGG(product ORDER BY date ASC) AS products FROM orders GROUP BY user_id
+
+# Access and slicing
+query = ref("t").select(
+    F.list_extract(col("tags"), lit(1)).alias("first"),
+    F.list_slice(col("tags"), lit(2), lit(-1)).alias("middle")
+)
+# Renders: SELECT LIST_EXTRACT(tags, 1) AS first, LIST_SLICE(tags, 2, -1) AS middle FROM t
+
+# Membership and operations
+query = ref("posts").select(col("*")).where(
+    F.list_contains(col("tags"), lit("python"))
+)
+# Renders: SELECT * FROM posts WHERE LIST_CONTAINS(tags, 'python')
+
+# Transformation
+query = ref("t").select(
+    F.list_distinct(F.list_sort(col("items"))).alias("unique_sorted")
+)
+# Renders: SELECT LIST_DISTINCT(LIST_SORT(items)) AS unique_sorted FROM t
+
+# Scalar aggregates
+query = ref("t").select(
+    F.list_sum(col("amounts")).alias("total"),
+    F.list_avg(col("ratings")).alias("avg_rating"),
+    F.list_count(col("items")).alias("count")
+)
+# Renders: SELECT LIST_SUM(amounts) AS total, LIST_AVG(ratings) AS avg_rating, LIST_COUNT(items) AS count FROM t
 ```
 
 ### Testing
-- [ ] Unit tests for list operations
-- [ ] Integration tests with actual lists
-- [ ] Test list aggregation with ORDER BY
+- [x] 60 integration tests in `tests/duckdb/integration/test_list_functions.py` (all passing)
+  - 9 tests for list construction (list_value, list_agg with various options)
+  - 13 tests for list access (list_extract, list_slice with edge cases)
+  - 8 tests for list membership (list_contains, list_has_any, list_has_all)
+  - 9 tests for list modification (list_concat, list_append, list_prepend)
+  - 9 tests for list transformation (list_sort, list_reverse, list_distinct, flatten)
+  - 12 tests for scalar aggregates (list_sum, list_avg, list_min, list_max, list_count)
+  - Tests cover basic usage, edge cases, WHERE/HAVING clauses, CTEs, JOINs, function composition
+- [x] Full test suite passing (1457 tests total, including 60 new list function tests)
+- [x] Type checking passing (uv run ty check)
+- [x] Linting passing (uv run ruff check)
+- [x] Code formatting passing (uv run ruff format)
 
 ---
 
@@ -815,6 +886,8 @@ def source(name: str, **kwargs):
 - ✅ Phase 1: Core DuckDB Implementation (infrastructure complete)
 - ✅ Phase 2: Star Extensions (EXCLUDE, REPLACE) 🌟
 - ✅ Phase 3a: File Reading (read_csv, read_parquet, read_json, read_jsonl) 🌟
+- ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
+- ✅ Phase 5: List/Array Functions (19 functions: construction, access, modification, transformation, aggregates) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Phase 1: Core Query Building
@@ -824,23 +897,22 @@ def source(name: str, **kwargs):
 - ✅ Phase 5: Advanced Features (Subqueries, VALUES, CASE, Set Operations, CTEs)
 - ✅ Phase 6: Parameters & Rendering
 - ✅ Phase 7: Scalar Functions
+- ✅ Shared Aggregate Functions (via mixins: array_agg, unnest, string_agg, json_agg, bit/bool aggregates)
 
 **DuckDB-Specific (remaining work):**
 - ⏸️ Phase 3b: COPY Statements (deferred) - can use raw SQL until needed
-- ❌ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, UNION)
-- ❌ Phase 5: List/Array Functions 🌟 MEDIUM-HIGH PRIORITY - NEXT
-- ❌ Phase 6: Struct Operations
+- ❌ Phase 6: Struct Operations 🌟 MEDIUM PRIORITY - NEXT
 - ❌ Phase 7: Sampling (USING SAMPLE)
 - ❌ Phase 8: DuckDB-Specific Functions
 - ❌ Phase 9: DuckDB Advanced Features (CTAS, Extensions, etc.)
 - ❌ Phase 10: DuckDB Operators
 
-**Total Progress:** 30% complete (3 of 10 DuckDB-specific phases complete, 1 deferred)
+**Total Progress:** 50% complete (5 of 10 DuckDB-specific phases complete, 1 deferred)
 
 **Next Steps:**
-- Phase 5: List/Array Functions (list operations, list_agg) - high value for DuckDB users
-- Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP) - needed for proper type handling
-- Focus on HIGH and MEDIUM priority features that provide unique DuckDB value
+- Phase 6: Struct Operations (struct_pack, struct_extract) - needed for nested data
+- Phase 7: Sampling (USING SAMPLE clause) - useful for large datasets
+- Focus on MEDIUM priority features that provide unique DuckDB value
 
 ---
 

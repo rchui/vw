@@ -2,7 +2,7 @@
 
 The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 
-**Status:** ✅ **Core Features Complete** - Basic DuckDB support is now available with Star Extensions (EXCLUDE, REPLACE) and File Reading (CSV, Parquet, JSON, JSONL).
+**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), and List Functions (19 functions).
 
 ## Module Import
 
@@ -524,6 +524,251 @@ T.STRUCT({
 
 See `vw.duckdb.types` for the complete reference.
 
+### List/Array Functions
+
+**Status:** ✅ Available
+
+DuckDB provides comprehensive list manipulation functions. Lists are variable-length arrays that can contain any type of data.
+
+#### Construction Functions
+
+**`F.list_value(*elements)`** - Create a list from arguments
+
+```python
+from vw.duckdb import F, col, lit, ref, render
+
+query = ref("t").select(F.list_value(lit(1), lit(2), lit(3)).alias("nums"))
+result = render(query)
+# Renders: SELECT LIST_VALUE(1, 2, 3) AS nums FROM t
+
+# With columns
+query = ref("t").select(F.list_value(col("a"), col("b"), col("c")).alias("combined"))
+# Renders: SELECT LIST_VALUE(a, b, c) AS combined FROM t
+```
+
+**`F.list_agg(expr, distinct=False, order_by=None)`** - Aggregate values into a list
+
+```python
+# Basic aggregation
+query = ref("orders").select(col("user_id"), F.list_agg(col("product")).alias("products")).group_by(col("user_id"))
+# Renders: SELECT user_id, LIST_AGG(product) AS products FROM orders GROUP BY user_id
+
+# With DISTINCT
+query = ref("t").select(F.list_agg(col("tag"), distinct=True).alias("unique_tags"))
+# Renders: SELECT LIST_AGG(DISTINCT tag) AS unique_tags FROM t
+
+# With ORDER BY
+query = ref("t").select(F.list_agg(col("name"), order_by=[col("name").asc()]).alias("sorted_names"))
+# Renders: SELECT LIST_AGG(name ORDER BY name ASC) AS sorted_names FROM t
+```
+
+**`F.array_agg(expr, distinct=False, order_by=None)`** - PostgreSQL-compatible array aggregation
+
+Works identically to `list_agg()` for compatibility with PostgreSQL-style queries.
+
+#### Access Functions
+
+**`F.list_extract(list_expr, index)`** - Extract element at index (1-based, negative supported)
+
+```python
+# First element (1-based indexing)
+query = ref("t").select(F.list_extract(col("tags"), lit(1)).alias("first_tag"))
+# Renders: SELECT LIST_EXTRACT(tags, 1) AS first_tag FROM t
+
+# Last element (negative indexing)
+query = ref("t").select(F.list_extract(col("items"), lit(-1)).alias("last_item"))
+# Renders: SELECT LIST_EXTRACT(items, -1) AS last_item FROM t
+```
+
+**`F.list_slice(list_expr, begin, end, step=None)`** - Slice list with optional step
+
+```python
+# Basic slice
+query = ref("t").select(F.list_slice(col("items"), lit(1), lit(3)).alias("slice"))
+# Renders: SELECT LIST_SLICE(items, 1, 3) AS slice FROM t
+
+# With step (every 2nd element)
+query = ref("t").select(F.list_slice(col("nums"), lit(1), lit(10), lit(2)).alias("evens"))
+# Renders: SELECT LIST_SLICE(nums, 1, 10, 2) AS evens FROM t
+```
+
+#### Membership Functions
+
+**`F.list_contains(list_expr, element)`** - Check if list contains element
+
+```python
+query = ref("posts").select(col("*")).where(F.list_contains(col("tags"), lit("python")))
+# Renders: SELECT * FROM posts WHERE LIST_CONTAINS(tags, 'python')
+```
+
+**`F.list_has_any(list1, list2)`** - Check if lists have any common elements
+
+```python
+query = ref("users").select(col("*")).where(
+    F.list_has_any(col("roles"), F.list_value(lit("admin"), lit("moderator")))
+)
+# Renders: SELECT * FROM users WHERE LIST_HAS_ANY(roles, LIST_VALUE('admin', 'moderator'))
+```
+
+**`F.list_has_all(list1, list2)`** - Check if first list contains all elements of second
+
+```python
+query = ref("t").select(
+    F.list_has_all(col("tags"), F.list_value(lit("python"), lit("tutorial"))).alias("is_python_tutorial")
+)
+# Renders: SELECT LIST_HAS_ALL(tags, LIST_VALUE('python', 'tutorial')) AS is_python_tutorial FROM t
+```
+
+#### Modification Functions
+
+**`F.list_concat(*lists)`** - Concatenate multiple lists
+
+```python
+query = ref("t").select(F.list_concat(col("list1"), col("list2")).alias("combined"))
+# Renders: SELECT LIST_CONCAT(list1, list2) AS combined FROM t
+
+# With more than two lists
+query = ref("t").select(F.list_concat(col("a"), col("b"), col("c")).alias("all"))
+# Renders: SELECT LIST_CONCAT(a, b, c) AS all FROM t
+```
+
+**`F.list_append(list_expr, element)`** - Append element to end of list
+
+```python
+query = ref("t").select(F.list_append(col("tags"), lit("new")).alias("updated_tags"))
+# Renders: SELECT LIST_APPEND(tags, 'new') AS updated_tags FROM t
+```
+
+**`F.list_prepend(element, list_expr)`** - Prepend element to beginning of list
+
+```python
+query = ref("t").select(F.list_prepend(lit("first"), col("tags")).alias("updated_tags"))
+# Renders: SELECT LIST_PREPEND('first', tags) AS updated_tags FROM t
+```
+
+#### Transformation Functions
+
+**`F.list_sort(list_expr)`** - Sort list in ascending order
+
+```python
+query = ref("t").select(F.list_sort(col("numbers")).alias("sorted"))
+# Renders: SELECT LIST_SORT(numbers) AS sorted FROM t
+```
+
+**`F.list_reverse(list_expr)`** - Reverse list order
+
+```python
+query = ref("t").select(F.list_reverse(col("items")).alias("reversed"))
+# Renders: SELECT LIST_REVERSE(items) AS reversed FROM t
+
+# Combine with sort for descending order
+query = ref("t").select(F.list_reverse(F.list_sort(col("nums"))).alias("desc_sorted"))
+# Renders: SELECT LIST_REVERSE(LIST_SORT(nums)) AS desc_sorted FROM t
+```
+
+**`F.list_distinct(list_expr)`** - Remove duplicate elements
+
+```python
+query = ref("t").select(F.list_distinct(col("tags")).alias("unique_tags"))
+# Renders: SELECT LIST_DISTINCT(tags) AS unique_tags FROM t
+```
+
+**`F.flatten(list_expr)`** - Flatten nested lists
+
+```python
+query = ref("t").select(F.flatten(col("nested_lists")).alias("flat"))
+# Renders: SELECT FLATTEN(nested_lists) AS flat FROM t
+```
+
+#### Scalar Aggregate Functions
+
+**`F.list_sum(list_expr)`** - Sum all numeric elements
+
+```python
+query = ref("t").select(F.list_sum(col("amounts")).alias("total"))
+# Renders: SELECT LIST_SUM(amounts) AS total FROM t
+```
+
+**`F.list_avg(list_expr)`** - Average of numeric elements
+
+```python
+query = ref("t").select(F.list_avg(col("ratings")).alias("avg_rating"))
+# Renders: SELECT LIST_AVG(ratings) AS avg_rating FROM t
+```
+
+**`F.list_min(list_expr)`** - Minimum element
+
+```python
+query = ref("t").select(F.list_min(col("prices")).alias("min_price"))
+# Renders: SELECT LIST_MIN(prices) AS min_price FROM t
+```
+
+**`F.list_max(list_expr)`** - Maximum element
+
+```python
+query = ref("players").select(col("name"), col("scores")).order_by(F.list_max(col("scores")).desc())
+# Renders: SELECT name, scores FROM players ORDER BY LIST_MAX(scores) DESC
+```
+
+**`F.list_count(list_expr)`** - Count elements (excluding NULL)
+
+```python
+query = ref("t").select(col("*")).where(F.list_count(col("tags")) > lit(3))
+# Renders: SELECT * FROM t WHERE LIST_COUNT(tags) > 3
+```
+
+#### Set Operations
+
+**`F.unnest(array)`** - Expand list to rows
+
+```python
+from vw.duckdb import F, col, ref, render
+
+# Expand array column to rows (in SELECT)
+query = ref("data").select(F.unnest(col("array_col")))
+# Renders: SELECT UNNEST(array_col) FROM data
+```
+
+#### Complete Example
+
+```python
+from vw.duckdb import F, col, lit, ref, cte, render
+
+# Create a CTE with list aggregation
+tagged = cte(
+    "tagged",
+    ref("posts")
+    .select(
+        col("category"),
+        F.list_agg(col("tag"), distinct=True, order_by=[col("tag")]).alias("all_tags")
+    )
+    .group_by(col("category"))
+)
+
+# Query with list operations
+query = (
+    tagged
+    .select(
+        col("category"),
+        col("all_tags"),
+        F.list_count(col("all_tags")).alias("tag_count"),
+        F.list_extract(col("all_tags"), lit(1)).alias("first_tag")
+    )
+    .where(F.list_contains(col("all_tags"), lit("python")))
+    .order_by(col("tag_count").desc())
+)
+
+result = render(query)
+# WITH tagged AS (
+#   SELECT category, LIST_AGG(DISTINCT tag ORDER BY tag) AS all_tags
+#   FROM posts GROUP BY category
+# )
+# SELECT category, all_tags, LIST_COUNT(all_tags) AS tag_count, LIST_EXTRACT(all_tags, 1) AS first_tag
+# FROM tagged
+# WHERE LIST_CONTAINS(all_tags, 'python')
+# ORDER BY tag_count DESC
+```
+
 ## Pending DuckDB-Specific Features
 
 The following features are not yet implemented for DuckDB:
@@ -534,8 +779,8 @@ The following features are not yet implemented for DuckDB:
 - ⏸️ `COPY FROM` - Copy from file to table (can use raw SQL until needed)
 - ⏸️ `COPY TO` - Copy from table/query to file (can use raw SQL until needed)
 
-#### DuckDB Functions (Next Priority)
-- ❌ List/array functions (list_extract, list_slice, list_contains, list_agg, etc.)
+#### DuckDB Functions
+- ✅ List/array functions (list_extract, list_slice, list_contains, list_agg, etc.) - **Phase 5 Complete** 🌟
 - ❌ Struct functions (struct_pack, struct_extract, etc.)
 - ❌ DuckDB-specific aggregates
 - ❌ DuckDB-specific statistical functions
@@ -554,6 +799,7 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Phase 2: Star Extensions (EXCLUDE, REPLACE) 🌟
 - ✅ Phase 3a: File Reading (CSV, Parquet, JSON, JSONL) 🌟
 - ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
+- ✅ Phase 5: List/Array Functions (19 functions: construction, access, modification, transformation, aggregates) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Core Query Building (SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY)
@@ -562,13 +808,14 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Joins (INNER, LEFT, RIGHT, FULL, CROSS)
 - ✅ Advanced Features (Subqueries, VALUES, CASE, Set Operations, CTEs)
 - ✅ Parameters & Rendering
+- ✅ Shared Aggregate Functions (array_agg, unnest, string_agg, json_agg, bit/bool aggregates)
 
 **Next Steps:**
-- Phase 5: List/Array Functions (list operations, list_agg) 🌟
 - Phase 6: Struct Operations (struct_pack, struct_extract) 🌟
 - Phase 7: Sampling (USING SAMPLE clause)
+- Phase 8: DuckDB-specific statistical functions
 
-**Progress:** 40% complete (4 of 10 DuckDB-specific phases complete)
+**Progress:** 50% complete (5 of 10 DuckDB-specific phases complete)
 
 ## Example (Future API)
 
