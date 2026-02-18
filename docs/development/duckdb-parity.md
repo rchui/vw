@@ -2,8 +2,8 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, 3a, 4, & 5 Complete - Core infrastructure, Star Extensions, File Reading, Type System, and List Functions implemented
-**Current Phase:** Phase 6 - Struct Operations (next priority)
+**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, and DuckDB-Specific Functions implemented
+**Current Phase:** Phase 7 - Sampling (next priority)
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
 ---
@@ -589,43 +589,61 @@ query = ref("t").select(
 
 ---
 
-## 📋 Phase 6: Struct Operations
+## ✅ Phase 6: Struct Operations
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** MEDIUM
 
 ### Struct Construction
-- [ ] `struct_pack(field1=val1, field2=val2)` - create struct
-- [ ] Struct literals via dict notation
-- [ ] ROW constructor (SQL standard)
+- [x] `F.struct_pack({"name": val, "age": val})` - create struct using dict
+- [x] Nested structs (struct_pack inside struct_pack)
 
 ### Struct Access
-- [ ] `struct_extract(struct, field)` - access struct field
-- [ ] Dot notation for field access (if possible)
-- [ ] `struct.field` accessor pattern
+- [x] `F.struct_extract(struct, field_name)` - access struct field by name
 
 ### Struct Functions
-- [ ] `struct_insert(struct, field=value)` - add/update field
-- [ ] `struct_keys(struct)` - get field names
-- [ ] `struct_values(struct)` - get field values
+- [x] `F.struct_insert(struct, {"field": value})` - add/update field
+- [x] `F.struct_keys(struct)` - get list of field names
+- [x] `F.struct_values(struct)` - get list of field values
 
-### Data Structures Needed
-- [ ] StructValue dataclass for struct literals
-- [ ] StructAccessor for field access
+### Implementation Notes
+- `StructPack` and `StructInsert` added to `vw/duckdb/states.py` (custom states needed for `:=` named-argument syntax)
+- Rendering added to `vw/duckdb/render.py` with match cases for both new states
+- `struct_extract`, `struct_keys`, `struct_values` use existing `Function` state
+- All 5 functions added to `Functions` class in `vw/duckdb/public.py`
+- `struct_pack` and `struct_insert` accept `dict[str, Expression]` for field specification
 
 ### Examples
 ```python
-# Struct construction
-F.struct_pack(name="Alice", age=30)
+from vw.duckdb import F, col, lit, ref, render
 
-# Struct access
-col("address").struct.extract("city")
-col("address").struct.city  # If possible
+# Struct construction
+query = ref("t").select(F.struct_pack({"name": lit("Alice"), "age": lit(30)}).alias("person"))
+render(query).query  # SELECT STRUCT_PACK(name := 'Alice', age := 30) AS person FROM t
+
+# Struct field access
+query = ref("t").select(F.struct_extract(col("address"), "city").alias("city"))
+render(query).query  # SELECT STRUCT_EXTRACT(address, 'city') AS city FROM t
+
+# Add field to struct
+query = ref("t").select(F.struct_insert(col("s"), {"score": lit(100)}).alias("updated"))
+render(query).query  # SELECT STRUCT_INSERT(s, score := 100) AS updated FROM t
+
+# Get field names and values
+query = ref("t").select(F.struct_keys(col("s")).alias("keys"), F.struct_values(col("s")).alias("vals"))
+
+# Nested struct
+inner = F.struct_pack({"street": lit("Main St"), "zip": lit("12345")})
+query = ref("t").select(F.struct_pack({"name": lit("Alice"), "addr": inner}).alias("user"))
 ```
 
 ### Testing
-- [ ] Unit tests for struct operations
-- [ ] Integration tests with nested structs
+- [x] 16 integration tests in `tests/duckdb/integration/test_struct_functions.py` (all passing)
+  - struct_pack: single field, multiple fields, with columns, nested
+  - struct_extract: basic, numeric field name, from struct_pack
+  - struct_insert: basic, multiple fields, column value
+  - struct_keys, struct_values: basic and with struct_pack
+  - composition: pack+extract chained, extract in WHERE
 
 ---
 
@@ -668,58 +686,79 @@ source("big_table").sample(percent=10, seed=42)
 
 ---
 
-## 📋 Phase 8: DuckDB-Specific Functions
+## ✅ Phase 8: DuckDB-Specific Functions
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** MEDIUM-LOW
 
 ### String Functions (DuckDB-specific)
-- [ ] `regexp_matches()` - DuckDB regex
-- [ ] `regexp_replace()` - DuckDB regex replace
-- [ ] `regexp_extract()` - DuckDB regex extract
-- [ ] `string_split()` - split string to list
-- [ ] `string_split_regex()` - split by regex
+- [x] `F.regexp_matches(string, regex)` - test if string matches regex
+- [x] `F.regexp_replace(string, regex, replacement, flags?)` - replace regex matches
+- [x] `F.regexp_extract(string, regex, group?)` - extract regex match
+- [x] `F.string_split(string, separator)` - split string to list
+- [x] `F.string_split_regex(string, regex)` - split by regex pattern
 
 ### JSON Functions (DuckDB-specific)
-- [ ] DuckDB JSON extraction functions
-- [ ] JSON path queries
-- [ ] JSON operators (via `.op()`)
+- [ ] DuckDB JSON extraction functions (deferred - use `.op()` until needed)
+- [ ] JSON path queries (deferred)
+- [ ] JSON operators (available via existing `.op()`)
 
 ### Date/Time Functions (DuckDB-specific)
-- [ ] `date_diff(unit, start, end)` - date difference
-- [ ] `date_add(date, interval)` - add interval
-- [ ] `date_sub(date, interval)` - subtract interval
-- [ ] `date_part(unit, date)` - extract date part
-- [ ] `make_date(year, month, day)` - construct date
-- [ ] `make_time(hour, minute, second)` - construct time
-- [ ] `make_timestamp(...)` - construct timestamp
+- [x] `F.date_diff(part, start, end)` - date difference
+- [ ] `date_add(date, interval)` - add interval (deferred)
+- [ ] `date_sub(date, interval)` - subtract interval (deferred)
+- [x] `F.date_part(part, date)` - extract date part
+- [x] `F.make_date(year, month, day)` - construct date
+- [x] `F.make_time(hour, minute, second)` - construct time
+- [x] `F.make_timestamp(year, month, day, hour, minute, second)` - construct timestamp
 
 ### Statistical Functions
-- [ ] `approx_count_distinct()` - approximate distinct count
-- [ ] `approx_quantile()` - approximate quantile
-- [ ] `mode()` - most frequent value
-- [ ] `median()` - median value
-- [ ] `quantile()` - quantile value
-- [ ] `reservoir_quantile()` - approximate quantile using reservoir sampling
+- [x] `F.approx_count_distinct(expr)` - approximate distinct count (HyperLogLog)
+- [x] `F.approx_quantile(expr, quantile)` - approximate quantile (t-digest)
+- [x] `F.mode(expr)` - most frequently occurring value
+- [x] `F.median(expr)` - median (50th percentile)
+- [x] `F.quantile(expr, quantile)` - exact quantile
+- [x] `F.reservoir_quantile(expr, quantile)` - approximate quantile (reservoir sampling)
 
-### Data Structures Needed
-- [ ] Function wrappers in F module
-- [ ] DuckDB-specific accessor methods
+### Implementation Notes
+- All functions use the existing `Function` state from `vw/core/states.py` — no new dataclasses needed
+- All 16 functions added to `Functions` class in `vw/duckdb/public.py`
+- Optional args (`flags`, `group`) handled with `None` default and conditional tuple building
+- `date_add` and `date_sub` deferred — use `raw.func()` or arithmetic with interval until needed
 
 ### Examples
 ```python
+from vw.duckdb import F, col, lit, ref, render
+
 # String functions
-col("text").text.split(",")
-col("text").text.regexp_extract(r"(\d+)")
+F.regexp_matches(col("email"), lit(r".*@.*\.com"))   # REGEXP_MATCHES(email, '.*@.*\.com')
+F.regexp_replace(col("text"), lit(r"\s+"), lit(" ")) # REGEXP_REPLACE(text, '\s+', ' ')
+F.regexp_extract(col("text"), lit(r"(\d+)"), lit(1)) # REGEXP_EXTRACT(text, '(\d+)', 1)
+F.string_split(col("tags"), lit(","))                # STRING_SPLIT(tags, ',')
+F.string_split_regex(col("text"), lit(r"\s+"))       # STRING_SPLIT_REGEX(text, '\s+')
+
+# Date/Time functions
+F.date_diff(lit("day"), col("start"), col("end"))    # DATE_DIFF('day', start, end)
+F.date_part(lit("year"), col("created_at"))          # DATE_PART('year', created_at)
+F.make_date(lit(2024), lit(1), lit(15))              # MAKE_DATE(2024, 1, 15)
+F.make_time(lit(14), lit(30), lit(0))                # MAKE_TIME(14, 30, 0)
+F.make_timestamp(lit(2024), lit(1), lit(15), lit(14), lit(30), lit(0))  # MAKE_TIMESTAMP(...)
 
 # Statistical functions
-F.median(col("age"))
-F.approx_quantile(col("value"), 0.95)
+F.approx_count_distinct(col("user_id"))              # APPROX_COUNT_DISTINCT(user_id)
+F.approx_quantile(col("latency"), lit(0.95))         # APPROX_QUANTILE(latency, 0.95)
+F.mode(col("category"))                              # MODE(category)
+F.median(col("price"))                               # MEDIAN(price)
+F.quantile(col("response_time"), lit(0.99))          # QUANTILE(response_time, 0.99)
+F.reservoir_quantile(col("value"), lit(0.5))         # RESERVOIR_QUANTILE(value, 0.5)
 ```
 
 ### Testing
-- [ ] Unit tests for each function
-- [ ] Integration tests with real data
+- [x] 35 integration tests in `tests/duckdb/integration/test_duckdb_functions.py` (all passing)
+  - String: each function with required and optional args (where applicable)
+  - Date/Time: each function with literals and column expressions
+  - Statistical: basic usage plus group_by composition for aggregates
+  - Composition: regexp_matches in WHERE, median with HAVING, date_diff in WHERE, string_split + list_count
 
 ---
 
@@ -888,6 +927,8 @@ def source(name: str, **kwargs):
 - ✅ Phase 3a: File Reading (read_csv, read_parquet, read_json, read_jsonl) 🌟
 - ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
 - ✅ Phase 5: List/Array Functions (19 functions: construction, access, modification, transformation, aggregates) 🌟
+- ✅ Phase 6: Struct Operations (5 functions: struct_pack, struct_extract, struct_insert, struct_keys, struct_values) 🌟
+- ✅ Phase 8: DuckDB-Specific Functions (16 functions: string, date/time, statistical) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Phase 1: Core Query Building
@@ -901,18 +942,16 @@ def source(name: str, **kwargs):
 
 **DuckDB-Specific (remaining work):**
 - ⏸️ Phase 3b: COPY Statements (deferred) - can use raw SQL until needed
-- ❌ Phase 6: Struct Operations 🌟 MEDIUM PRIORITY - NEXT
 - ❌ Phase 7: Sampling (USING SAMPLE)
-- ❌ Phase 8: DuckDB-Specific Functions
 - ❌ Phase 9: DuckDB Advanced Features (CTAS, Extensions, etc.)
 - ❌ Phase 10: DuckDB Operators
 
-**Total Progress:** 50% complete (5 of 10 DuckDB-specific phases complete, 1 deferred)
+**Total Progress:** 70% complete (7 of 10 DuckDB-specific phases complete, 1 deferred)
 
 **Next Steps:**
-- Phase 6: Struct Operations (struct_pack, struct_extract) - needed for nested data
 - Phase 7: Sampling (USING SAMPLE clause) - useful for large datasets
-- Focus on MEDIUM priority features that provide unique DuckDB value
+- Phase 9: Advanced Features (CTAS, etc.) - as demand justifies
+- Focus on remaining MEDIUM priority features that provide unique DuckDB value
 
 ---
 

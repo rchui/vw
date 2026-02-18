@@ -28,7 +28,7 @@ from vw.duckdb.public import (
     values,
     when,
 )
-from vw.duckdb.states import Column
+from vw.duckdb.states import Column, StructInsert, StructPack
 
 
 def describe_factory_functions():
@@ -810,3 +810,455 @@ def describe_shared_aggregate_functions():
             assert result.state == Function(
                 name="BOOL_OR", args=(Column(name="has_error", exclude=None, replace=None),)
             )
+
+
+def describe_struct_functions():
+    """Tests for DuckDB struct functions."""
+
+    def describe_struct_pack():
+        """Tests for F.struct_pack()."""
+
+        def it_creates_struct_pack_state():
+            result = F.struct_pack({"name": lit("Alice"), "age": lit(30)})
+
+            assert result.state == StructPack(fields=(("name", Literal(value="Alice")), ("age", Literal(value=30))))
+
+        def it_renders_correctly():
+            query = ref("t").select(F.struct_pack({"name": lit("Alice"), "age": lit(30)}).alias("person"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_PACK(name := 'Alice', age := 30) AS person FROM t"
+            assert sql.params == {}
+
+        def it_renders_single_field():
+            query = ref("t").select(F.struct_pack({"x": lit(1)}).alias("s"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_PACK(x := 1) AS s FROM t"
+
+        def it_renders_with_column_args():
+            result = F.struct_pack({"x": col("x_val"), "y": col("y_val")})
+
+            assert result.state == StructPack(
+                fields=(
+                    ("x", Column(name="x_val", exclude=None, replace=None)),
+                    ("y", Column(name="y_val", exclude=None, replace=None)),
+                )
+            )
+
+    def describe_struct_extract():
+        """Tests for F.struct_extract()."""
+
+        def it_creates_function_state():
+            result = F.struct_extract(col("address"), "city")
+
+            assert result.state == Function(
+                name="STRUCT_EXTRACT",
+                args=(Column(name="address", exclude=None, replace=None), Literal(value="city")),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.struct_extract(col("address"), "city").alias("city"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_EXTRACT(address, 'city') AS city FROM t"
+            assert sql.params == {}
+
+    def describe_struct_insert():
+        """Tests for F.struct_insert()."""
+
+        def it_creates_struct_insert_state():
+            result = F.struct_insert(col("s"), {"score": lit(100)})
+
+            assert result.state == StructInsert(
+                struct=Column(name="s", exclude=None, replace=None),
+                fields=(("score", Literal(value=100)),),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.struct_insert(col("s"), {"score": lit(100)}).alias("updated"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_INSERT(s, score := 100) AS updated FROM t"
+            assert sql.params == {}
+
+        def it_renders_multiple_fields():
+            query = ref("t").select(
+                F.struct_insert(col("addr"), {"zip": lit("12345"), "country": lit("US")}).alias("full")
+            )
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_INSERT(addr, zip := '12345', country := 'US') AS full FROM t"
+
+    def describe_struct_keys():
+        """Tests for F.struct_keys()."""
+
+        def it_creates_function_state():
+            result = F.struct_keys(col("s"))
+
+            assert result.state == Function(name="STRUCT_KEYS", args=(Column(name="s", exclude=None, replace=None),))
+
+        def it_renders_correctly():
+            query = ref("t").select(F.struct_keys(col("s")).alias("keys"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_KEYS(s) AS keys FROM t"
+            assert sql.params == {}
+
+    def describe_struct_values():
+        """Tests for F.struct_values()."""
+
+        def it_creates_function_state():
+            result = F.struct_values(col("s"))
+
+            assert result.state == Function(name="STRUCT_VALUES", args=(Column(name="s", exclude=None, replace=None),))
+
+        def it_renders_correctly():
+            query = ref("t").select(F.struct_values(col("s")).alias("vals"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRUCT_VALUES(s) AS vals FROM t"
+            assert sql.params == {}
+
+
+def describe_duckdb_string_functions():
+    """Tests for DuckDB-specific string functions."""
+
+    def describe_regexp_matches():
+        """Tests for F.regexp_matches()."""
+
+        def it_creates_function_state():
+            result = F.regexp_matches(col("email"), lit(r"\d+"))
+
+            assert result.state == Function(
+                name="REGEXP_MATCHES",
+                args=(Column(name="email", exclude=None, replace=None), Literal(value=r"\d+")),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.regexp_matches(col("email"), lit(r"\d+")).alias("match"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT REGEXP_MATCHES(email, '\d+') AS match FROM t"
+            assert sql.params == {}
+
+    def describe_regexp_replace():
+        """Tests for F.regexp_replace()."""
+
+        def it_creates_function_state_without_flags():
+            result = F.regexp_replace(col("text"), lit(r"\s+"), lit(" "))
+
+            assert result.state == Function(
+                name="REGEXP_REPLACE",
+                args=(
+                    Column(name="text", exclude=None, replace=None),
+                    Literal(value=r"\s+"),
+                    Literal(value=" "),
+                ),
+            )
+
+        def it_creates_function_state_with_flags():
+            result = F.regexp_replace(col("text"), lit(r"\s+"), lit(" "), lit("g"))
+
+            assert result.state == Function(
+                name="REGEXP_REPLACE",
+                args=(
+                    Column(name="text", exclude=None, replace=None),
+                    Literal(value=r"\s+"),
+                    Literal(value=" "),
+                    Literal(value="g"),
+                ),
+            )
+
+        def it_renders_without_flags():
+            query = ref("t").select(F.regexp_replace(col("text"), lit(r"\s+"), lit(" ")).alias("clean"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT REGEXP_REPLACE(text, '\s+', ' ') AS clean FROM t"
+
+        def it_renders_with_flags():
+            query = ref("t").select(F.regexp_replace(col("text"), lit(r"[aeiou]"), lit("*"), lit("g")).alias("clean"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT REGEXP_REPLACE(text, '[aeiou]', '*', 'g') AS clean FROM t"
+
+    def describe_regexp_extract():
+        """Tests for F.regexp_extract()."""
+
+        def it_creates_function_state_without_group():
+            result = F.regexp_extract(col("text"), lit(r"\d+"))
+
+            assert result.state == Function(
+                name="REGEXP_EXTRACT",
+                args=(Column(name="text", exclude=None, replace=None), Literal(value=r"\d+")),
+            )
+
+        def it_creates_function_state_with_group():
+            result = F.regexp_extract(col("text"), lit(r"(\d+)"), lit(1))
+
+            assert result.state == Function(
+                name="REGEXP_EXTRACT",
+                args=(
+                    Column(name="text", exclude=None, replace=None),
+                    Literal(value=r"(\d+)"),
+                    Literal(value=1),
+                ),
+            )
+
+        def it_renders_without_group():
+            query = ref("t").select(F.regexp_extract(col("text"), lit(r"\d+")).alias("digits"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT REGEXP_EXTRACT(text, '\d+') AS digits FROM t"
+
+        def it_renders_with_group():
+            query = ref("t").select(F.regexp_extract(col("text"), lit(r"(\d+)"), lit(1)).alias("group1"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT REGEXP_EXTRACT(text, '(\d+)', 1) AS group1 FROM t"
+
+    def describe_string_split():
+        """Tests for F.string_split()."""
+
+        def it_creates_function_state():
+            result = F.string_split(col("tags"), lit(","))
+
+            assert result.state == Function(
+                name="STRING_SPLIT",
+                args=(Column(name="tags", exclude=None, replace=None), Literal(value=",")),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.string_split(col("tags"), lit(",")).alias("tag_list"))
+            sql = render(query)
+
+            assert sql.query == "SELECT STRING_SPLIT(tags, ',') AS tag_list FROM t"
+            assert sql.params == {}
+
+    def describe_string_split_regex():
+        """Tests for F.string_split_regex()."""
+
+        def it_creates_function_state():
+            result = F.string_split_regex(col("text"), lit(r"\s+"))
+
+            assert result.state == Function(
+                name="STRING_SPLIT_REGEX",
+                args=(Column(name="text", exclude=None, replace=None), Literal(value=r"\s+")),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.string_split_regex(col("text"), lit(r"\s+")).alias("words"))
+            sql = render(query)
+
+            assert sql.query == r"SELECT STRING_SPLIT_REGEX(text, '\s+') AS words FROM t"
+            assert sql.params == {}
+
+
+def describe_duckdb_datetime_functions():
+    """Tests for DuckDB-specific date/time functions."""
+
+    def describe_date_diff():
+        """Tests for F.date_diff()."""
+
+        def it_creates_function_state():
+            result = F.date_diff(lit("day"), col("start_date"), col("end_date"))
+
+            assert result.state == Function(
+                name="DATE_DIFF",
+                args=(
+                    Literal(value="day"),
+                    Column(name="start_date", exclude=None, replace=None),
+                    Column(name="end_date", exclude=None, replace=None),
+                ),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.date_diff(lit("day"), col("start_date"), col("end_date")).alias("days"))
+            sql = render(query)
+
+            assert sql.query == "SELECT DATE_DIFF('day', start_date, end_date) AS days FROM t"
+            assert sql.params == {}
+
+    def describe_date_part():
+        """Tests for F.date_part()."""
+
+        def it_creates_function_state():
+            result = F.date_part(lit("year"), col("created_at"))
+
+            assert result.state == Function(
+                name="DATE_PART",
+                args=(Literal(value="year"), Column(name="created_at", exclude=None, replace=None)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.date_part(lit("year"), col("created_at")).alias("year"))
+            sql = render(query)
+
+            assert sql.query == "SELECT DATE_PART('year', created_at) AS year FROM t"
+            assert sql.params == {}
+
+    def describe_make_date():
+        """Tests for F.make_date()."""
+
+        def it_creates_function_state():
+            result = F.make_date(lit(2024), lit(1), lit(15))
+
+            assert result.state == Function(
+                name="MAKE_DATE",
+                args=(Literal(value=2024), Literal(value=1), Literal(value=15)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.make_date(lit(2024), lit(1), lit(15)).alias("d"))
+            sql = render(query)
+
+            assert sql.query == "SELECT MAKE_DATE(2024, 1, 15) AS d FROM t"
+            assert sql.params == {}
+
+    def describe_make_time():
+        """Tests for F.make_time()."""
+
+        def it_creates_function_state():
+            result = F.make_time(lit(14), lit(30), lit(0))
+
+            assert result.state == Function(
+                name="MAKE_TIME",
+                args=(Literal(value=14), Literal(value=30), Literal(value=0)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.make_time(lit(14), lit(30), lit(0)).alias("t"))
+            sql = render(query)
+
+            assert sql.query == "SELECT MAKE_TIME(14, 30, 0) AS t FROM t"
+            assert sql.params == {}
+
+    def describe_make_timestamp():
+        """Tests for F.make_timestamp()."""
+
+        def it_creates_function_state():
+            result = F.make_timestamp(lit(2024), lit(1), lit(15), lit(14), lit(30), lit(0))
+
+            assert result.state == Function(
+                name="MAKE_TIMESTAMP",
+                args=(
+                    Literal(value=2024),
+                    Literal(value=1),
+                    Literal(value=15),
+                    Literal(value=14),
+                    Literal(value=30),
+                    Literal(value=0),
+                ),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.make_timestamp(lit(2024), lit(1), lit(15), lit(14), lit(30), lit(0)).alias("ts"))
+            sql = render(query)
+
+            assert sql.query == "SELECT MAKE_TIMESTAMP(2024, 1, 15, 14, 30, 0) AS ts FROM t"
+            assert sql.params == {}
+
+
+def describe_duckdb_statistical_functions():
+    """Tests for DuckDB statistical aggregate functions."""
+
+    def describe_approx_count_distinct():
+        """Tests for F.approx_count_distinct()."""
+
+        def it_creates_function_state():
+            result = F.approx_count_distinct(col("user_id"))
+
+            assert result.state == Function(
+                name="APPROX_COUNT_DISTINCT", args=(Column(name="user_id", exclude=None, replace=None),)
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.approx_count_distinct(col("user_id")).alias("approx_users"))
+            sql = render(query)
+
+            assert sql.query == "SELECT APPROX_COUNT_DISTINCT(user_id) AS approx_users FROM t"
+            assert sql.params == {}
+
+    def describe_approx_quantile():
+        """Tests for F.approx_quantile()."""
+
+        def it_creates_function_state():
+            result = F.approx_quantile(col("latency"), lit(0.95))
+
+            assert result.state == Function(
+                name="APPROX_QUANTILE",
+                args=(Column(name="latency", exclude=None, replace=None), Literal(value=0.95)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.approx_quantile(col("latency"), lit(0.95)).alias("p95"))
+            sql = render(query)
+
+            assert sql.query == "SELECT APPROX_QUANTILE(latency, 0.95) AS p95 FROM t"
+            assert sql.params == {}
+
+    def describe_mode():
+        """Tests for F.mode()."""
+
+        def it_creates_function_state():
+            result = F.mode(col("category"))
+
+            assert result.state == Function(name="MODE", args=(Column(name="category", exclude=None, replace=None),))
+
+        def it_renders_correctly():
+            query = ref("t").select(F.mode(col("category")).alias("most_common"))
+            sql = render(query)
+
+            assert sql.query == "SELECT MODE(category) AS most_common FROM t"
+            assert sql.params == {}
+
+    def describe_median():
+        """Tests for F.median()."""
+
+        def it_creates_function_state():
+            result = F.median(col("age"))
+
+            assert result.state == Function(name="MEDIAN", args=(Column(name="age", exclude=None, replace=None),))
+
+        def it_renders_correctly():
+            query = ref("t").select(F.median(col("age")).alias("median_age"))
+            sql = render(query)
+
+            assert sql.query == "SELECT MEDIAN(age) AS median_age FROM t"
+            assert sql.params == {}
+
+    def describe_quantile():
+        """Tests for F.quantile()."""
+
+        def it_creates_function_state():
+            result = F.quantile(col("response_time"), lit(0.99))
+
+            assert result.state == Function(
+                name="QUANTILE",
+                args=(Column(name="response_time", exclude=None, replace=None), Literal(value=0.99)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.quantile(col("response_time"), lit(0.99)).alias("p99"))
+            sql = render(query)
+
+            assert sql.query == "SELECT QUANTILE(response_time, 0.99) AS p99 FROM t"
+            assert sql.params == {}
+
+    def describe_reservoir_quantile():
+        """Tests for F.reservoir_quantile()."""
+
+        def it_creates_function_state():
+            result = F.reservoir_quantile(col("value"), lit(0.5))
+
+            assert result.state == Function(
+                name="RESERVOIR_QUANTILE",
+                args=(Column(name="value", exclude=None, replace=None), Literal(value=0.5)),
+            )
+
+        def it_renders_correctly():
+            query = ref("t").select(F.reservoir_quantile(col("value"), lit(0.5)).alias("p50"))
+            sql = render(query)
+
+            assert sql.query == "SELECT RESERVOIR_QUANTILE(value, 0.5) AS p50 FROM t"
+            assert sql.params == {}

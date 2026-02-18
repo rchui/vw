@@ -47,3 +47,18 @@ class Star(CoreStar):
     """
 
     modifiers: tuple[StarExclude | StarReplace, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, kw_only=True)
+class StructPack:
+    """Represents STRUCT_PACK(name := val, ...) with named-argument syntax."""
+
+    fields: tuple[tuple[str, Expr], ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class StructInsert:
+    """Represents STRUCT_INSERT(struct, name := val, ...) with named-argument syntax."""
+
+    struct: Expr
+    fields: tuple[tuple[str, Expr], ...]

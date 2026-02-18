@@ -53,7 +53,7 @@ from vw.core.states import (
 )
 from vw.duckdb.base import Expression, RowSet
 from vw.duckdb.files import CSV, JSON, JSONL, Parquet
-from vw.duckdb.states import Star
+from vw.duckdb.states import Star, StructInsert, StructPack
 
 
 def render(
@@ -242,6 +242,15 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_raw_expr(state, ctx)
         case RawSource():
             return render_raw_source(state, ctx)
+
+        # --- DuckDB Struct Operations -------------------------------------- #
+        case StructPack():
+            args = ", ".join(f"{name} := {render_state(val, ctx)}" for name, val in state.fields)
+            return f"STRUCT_PACK({args})"
+        case StructInsert():
+            struct_sql = render_state(state.struct, ctx)
+            fields_sql = ", ".join(f"{name} := {render_state(val, ctx)}" for name, val in state.fields)
+            return f"STRUCT_INSERT({struct_sql}, {fields_sql})"
 
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")

@@ -426,6 +426,455 @@ class Functions(
 
     # TODO: list_filter/transform/reduce - requires lambda expression support
 
+    # --- Struct Construction Functions ------------------------------------- #
+
+    def struct_pack(self, fields: dict[str, "Expression"]) -> "Expression":
+        """STRUCT_PACK() — create a struct from named fields.
+
+        DuckDB uses := named-argument syntax: STRUCT_PACK(name := 'Alice', age := 30).
+
+        Args:
+            fields: Dict mapping field names to expressions.
+
+        Returns:
+            An Expression wrapping a StructPack state.
+
+        Examples:
+            >>> F.struct_pack({"name": lit("Alice"), "age": lit(30)})
+            >>> F.struct_pack({"x": col("x"), "y": col("y")})
+        """
+        from vw.duckdb.states import StructPack
+
+        packed = tuple((name, expr.state) for name, expr in fields.items())
+        state = StructPack(fields=packed)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Struct Access Functions ------------------------------------------- #
+
+    def struct_extract(self, struct: "Expression", field_name: str) -> "Expression":
+        """STRUCT_EXTRACT() — extract a named field from a struct.
+
+        Args:
+            struct: Struct expression.
+            field_name: Name of the field to extract.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.struct_extract(col("address"), "city")
+            >>> F.struct_extract(col("person"), "name")
+        """
+        from vw.core.states import Function, Literal
+
+        state = Function(name="STRUCT_EXTRACT", args=(struct.state, Literal(value=field_name)))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Struct Modification Functions ------------------------------------- #
+
+    def struct_insert(self, struct: "Expression", fields: dict[str, "Expression"]) -> "Expression":
+        """STRUCT_INSERT() — add or update fields in a struct.
+
+        DuckDB uses := named-argument syntax: STRUCT_INSERT(s, score := 100).
+
+        Args:
+            struct: Struct expression to modify.
+            fields: Dict mapping new field names to expressions.
+
+        Returns:
+            An Expression wrapping a StructInsert state.
+
+        Examples:
+            >>> F.struct_insert(col("person"), {"score": lit(100)})
+            >>> F.struct_insert(col("addr"), {"zip": lit("12345"), "country": lit("US")})
+        """
+        from vw.duckdb.states import StructInsert
+
+        packed = tuple((name, expr.state) for name, expr in fields.items())
+        state = StructInsert(struct=struct.state, fields=packed)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def struct_keys(self, struct: "Expression") -> "Expression":
+        """STRUCT_KEYS() — get list of field names from a struct.
+
+        Args:
+            struct: Struct expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.struct_keys(col("address"))
+            >>> F.struct_keys(F.struct_pack({"a": lit(1), "b": lit(2)}))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="STRUCT_KEYS", args=(struct.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def struct_values(self, struct: "Expression") -> "Expression":
+        """STRUCT_VALUES() — get list of field values from a struct.
+
+        Args:
+            struct: Struct expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.struct_values(col("address"))
+            >>> F.struct_values(F.struct_pack({"a": lit(1), "b": lit(2)}))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="STRUCT_VALUES", args=(struct.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- String Functions (DuckDB-Specific) -------------------------------- #
+
+    def regexp_matches(self, string: "Expression", regex: "Expression") -> "Expression":
+        """REGEXP_MATCHES() — test if string matches regex pattern.
+
+        Args:
+            string: String expression to test.
+            regex: Regex pattern expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.regexp_matches(col("email"), lit(r".*@.*\\.com"))
+            >>> F.regexp_matches(col("phone"), lit(r"\\d{10}"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="REGEXP_MATCHES", args=(string.state, regex.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def regexp_replace(
+        self,
+        string: "Expression",
+        regex: "Expression",
+        replacement: "Expression",
+        flags: "Expression | None" = None,
+    ) -> "Expression":
+        """REGEXP_REPLACE() — replace regex matches in string.
+
+        Args:
+            string: String expression.
+            regex: Regex pattern expression.
+            replacement: Replacement string expression.
+            flags: Optional regex flags expression (e.g., lit('g') for global).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.regexp_replace(col("text"), lit(r"\\s+"), lit(" "))
+            >>> F.regexp_replace(col("text"), lit(r"[aeiou]"), lit("*"), lit("g"))
+        """
+        from vw.core.states import Function
+
+        args = [string.state, regex.state, replacement.state]
+        if flags is not None:
+            args.append(flags.state)
+        state = Function(name="REGEXP_REPLACE", args=tuple(args))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def regexp_extract(
+        self,
+        string: "Expression",
+        regex: "Expression",
+        group: "Expression | None" = None,
+    ) -> "Expression":
+        """REGEXP_EXTRACT() — extract regex match from string.
+
+        Args:
+            string: String expression.
+            regex: Regex pattern expression.
+            group: Optional capture group index expression (default 0 = full match).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.regexp_extract(col("text"), lit(r"(\\d+)"))
+            >>> F.regexp_extract(col("text"), lit(r"(\\w+)@(\\w+)"), lit(1))
+        """
+        from vw.core.states import Function
+
+        args = [string.state, regex.state]
+        if group is not None:
+            args.append(group.state)
+        state = Function(name="REGEXP_EXTRACT", args=tuple(args))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def string_split(self, string: "Expression", separator: "Expression") -> "Expression":
+        """STRING_SPLIT() — split string into list by separator.
+
+        Args:
+            string: String expression to split.
+            separator: Separator string expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.string_split(col("tags"), lit(","))
+            >>> F.string_split(col("path"), lit("/"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="STRING_SPLIT", args=(string.state, separator.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def string_split_regex(self, string: "Expression", regex: "Expression") -> "Expression":
+        """STRING_SPLIT_REGEX() — split string into list by regex pattern.
+
+        Args:
+            string: String expression to split.
+            regex: Regex pattern expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.string_split_regex(col("text"), lit(r"\\s+"))
+            >>> F.string_split_regex(col("csv"), lit(r",\\s*"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="STRING_SPLIT_REGEX", args=(string.state, regex.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Date/Time Functions (DuckDB-Specific) ----------------------------- #
+
+    def date_diff(self, part: "Expression", start: "Expression", end: "Expression") -> "Expression":
+        """DATE_DIFF() — compute difference between two dates/timestamps.
+
+        Args:
+            part: Date part unit expression (e.g., lit('day'), lit('month')).
+            start: Start date/timestamp expression.
+            end: End date/timestamp expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.date_diff(lit("day"), col("start_date"), col("end_date"))
+            >>> F.date_diff(lit("month"), col("hired_at"), col("left_at"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="DATE_DIFF", args=(part.state, start.state, end.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def date_part(self, part: "Expression", date: "Expression") -> "Expression":
+        """DATE_PART() — extract a date part from a date/timestamp.
+
+        Args:
+            part: Date part unit expression (e.g., lit('year'), lit('month')).
+            date: Date/timestamp expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.date_part(lit("year"), col("created_at"))
+            >>> F.date_part(lit("dow"), col("event_date"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="DATE_PART", args=(part.state, date.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def make_date(self, year: "Expression", month: "Expression", day: "Expression") -> "Expression":
+        """MAKE_DATE() — construct a DATE from year, month, day components.
+
+        Args:
+            year: Year expression.
+            month: Month expression (1-12).
+            day: Day expression (1-31).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.make_date(lit(2024), lit(1), lit(15))
+            >>> F.make_date(col("year"), col("month"), col("day"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAKE_DATE", args=(year.state, month.state, day.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def make_time(self, hour: "Expression", minute: "Expression", second: "Expression") -> "Expression":
+        """MAKE_TIME() — construct a TIME from hour, minute, second components.
+
+        Args:
+            hour: Hour expression (0-23).
+            minute: Minute expression (0-59).
+            second: Second expression (0-59.999...).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.make_time(lit(14), lit(30), lit(0))
+            >>> F.make_time(col("hour"), col("minute"), col("second"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAKE_TIME", args=(hour.state, minute.state, second.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def make_timestamp(
+        self,
+        year: "Expression",
+        month: "Expression",
+        day: "Expression",
+        hour: "Expression",
+        minute: "Expression",
+        second: "Expression",
+    ) -> "Expression":
+        """MAKE_TIMESTAMP() — construct a TIMESTAMP from date and time components.
+
+        Args:
+            year: Year expression.
+            month: Month expression (1-12).
+            day: Day expression (1-31).
+            hour: Hour expression (0-23).
+            minute: Minute expression (0-59).
+            second: Second expression (0-59.999...).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.make_timestamp(lit(2024), lit(1), lit(15), lit(14), lit(30), lit(0))
+            >>> F.make_timestamp(col("yr"), col("mo"), col("dy"), col("hr"), col("mi"), col("se"))
+        """
+        from vw.core.states import Function
+
+        state = Function(
+            name="MAKE_TIMESTAMP",
+            args=(year.state, month.state, day.state, hour.state, minute.state, second.state),
+        )
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Statistical Functions (DuckDB-Specific) --------------------------- #
+
+    def approx_count_distinct(self, expr: "Expression") -> "Expression":
+        """APPROX_COUNT_DISTINCT() — approximate distinct count using HyperLogLog.
+
+        Args:
+            expr: Expression to count distinct values of.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.approx_count_distinct(col("user_id"))
+            >>> F.approx_count_distinct(col("session_id")).alias("approx_sessions")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="APPROX_COUNT_DISTINCT", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def approx_quantile(self, expr: "Expression", quantile: "Expression") -> "Expression":
+        """APPROX_QUANTILE() — approximate quantile using t-digest.
+
+        Args:
+            expr: Expression to compute quantile of.
+            quantile: Quantile value expression (0.0 to 1.0).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.approx_quantile(col("latency"), lit(0.95))
+            >>> F.approx_quantile(col("value"), lit(0.5))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="APPROX_QUANTILE", args=(expr.state, quantile.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def mode(self, expr: "Expression") -> "Expression":
+        """MODE() — most frequently occurring value.
+
+        Args:
+            expr: Expression to find mode of.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.mode(col("category"))
+            >>> F.mode(col("status")).alias("most_common_status")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MODE", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def median(self, expr: "Expression") -> "Expression":
+        """MEDIAN() — median (50th percentile) value.
+
+        Args:
+            expr: Expression to compute median of.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.median(col("age"))
+            >>> F.median(col("price")).alias("median_price")
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MEDIAN", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def quantile(self, expr: "Expression", quantile: "Expression") -> "Expression":
+        """QUANTILE() — exact quantile value.
+
+        Args:
+            expr: Expression to compute quantile of.
+            quantile: Quantile value expression (0.0 to 1.0).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.quantile(col("response_time"), lit(0.99))
+            >>> F.quantile(col("score"), lit(0.75))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="QUANTILE", args=(expr.state, quantile.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def reservoir_quantile(self, expr: "Expression", quantile: "Expression") -> "Expression":
+        """RESERVOIR_QUANTILE() — approximate quantile using reservoir sampling.
+
+        Args:
+            expr: Expression to compute quantile of.
+            quantile: Quantile value expression (0.0 to 1.0).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.reservoir_quantile(col("value"), lit(0.95))
+            >>> F.reservoir_quantile(col("latency"), lit(0.5))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="RESERVOIR_QUANTILE", args=(expr.state, quantile.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
 
 # Global Functions instance for DuckDB
 F = Functions(Factories(expr=Expression, rowset=RowSet))
