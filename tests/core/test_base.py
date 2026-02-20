@@ -198,6 +198,50 @@ def describe_rowset() -> None:
             assert result.query == "SELECT user_id FROM orders WHERE status GROUP BY user_id HAVING count"
             assert result.params == {}
 
+    def describe_qualify() -> None:
+        def it_sets_qualify_conditions_on_state() -> None:
+            """qualify() should set qualify_conditions on the Statement state."""
+            from vw.core.states import Operator, Statement
+
+            q = ref("t").select(col("id")).qualify(col("rnk") == col("n"))
+            assert isinstance(q.state, Statement)
+            assert len(q.state.qualify_conditions) == 1
+            assert isinstance(q.state.qualify_conditions[0], Operator)
+
+        def it_accumulates_multiple_conditions() -> None:
+            """Multiple qualify() calls should accumulate qualify_conditions."""
+            from vw.core.states import Statement
+
+            q = ref("t").select(col("id")).qualify(col("rnk") == col("n")).qualify(col("score") > col("min"))
+            assert isinstance(q.state, Statement)
+            assert len(q.state.qualify_conditions) == 2
+
+        def it_accepts_multiple_conditions_in_one_call() -> None:
+            """qualify() should accept multiple conditions in one call."""
+            from vw.core.states import Statement
+
+            q = ref("t").select(col("id")).qualify(col("rnk") == col("n"), col("score") > col("min"))
+            assert isinstance(q.state, Statement)
+            assert len(q.state.qualify_conditions) == 2
+
+        def it_converts_reference_to_statement() -> None:
+            """qualify() on a Reference should produce a Statement."""
+            from vw.core.states import Reference, Statement
+
+            source = ref("t")
+            assert isinstance(source.state, Reference)
+            q = source.qualify(col("rnk") == col("n"))
+            assert isinstance(q.state, Statement)
+
+        def it_preserves_having_conditions() -> None:
+            """qualify() should not disturb having_conditions."""
+            from vw.core.states import Statement
+
+            q = ref("t").select(col("dept")).group_by(col("dept")).having(col("cnt")).qualify(col("rnk"))
+            assert isinstance(q.state, Statement)
+            assert len(q.state.having_conditions) == 1
+            assert len(q.state.qualify_conditions) == 1
+
     def describe_order_by() -> None:
         def it_renders_order_by_clause() -> None:
             """ORDER BY clause should render correctly."""

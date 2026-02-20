@@ -66,3 +66,37 @@ def test_window_functions() -> None:
         query="SELECT product, ROW_NUMBER() OVER (PARTITION BY category ORDER BY amount DESC) FROM sales",
         params={},
     )
+
+
+def test_qualify_clause() -> None:
+    """Test QUALIFY clause rendering (DuckDB-specific post-window filter)."""
+    query = (
+        ref("employees")
+        .select(
+            col("dept"),
+            col("name"),
+            F.row_number().over(partition_by=[col("dept")], order_by=[col("salary").desc()]).alias("rn"),
+        )
+        .qualify(col("rn") == param("rank", 1))
+    )
+    result = render(query)
+
+    assert result == SQL(
+        query="SELECT dept, name, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) AS rn FROM employees QUALIFY rn = $rank",
+        params={"rank": 1},
+    )
+
+
+def test_qualify_before_order_by() -> None:
+    """QUALIFY must render before the top-level ORDER BY."""
+    query = (
+        ref("t")
+        .select(col("id"), F.row_number().over(order_by=[col("id")]).alias("rn"))
+        .qualify(col("rn") == param("n", 1))
+        .order_by(col("id"))
+    )
+    result = render(query)
+
+    # rfind locates the top-level ORDER BY, not the one inside the window function spec
+    assert "QUALIFY" in result.query
+    assert result.query.index("QUALIFY") < result.query.rfind("ORDER BY")

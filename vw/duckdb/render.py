@@ -661,6 +661,11 @@ def render_statement(stmt: Statement, ctx: RenderContext) -> str:
         conditions = " AND ".join(render_state(cond, ctx) for cond in stmt.having_conditions)
         parts.append(f"HAVING {conditions}")
 
+    # QUALIFY clause
+    if stmt.qualify_conditions:
+        conditions = " AND ".join(render_state(cond, ctx) for cond in stmt.qualify_conditions)
+        parts.append(f"QUALIFY {conditions}")
+
     # ORDER BY clause
     if stmt.order_by_columns:
         cols = ", ".join(render_state(col, ctx) for col in stmt.order_by_columns)

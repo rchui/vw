@@ -575,6 +575,31 @@ class RowSet(Stateful, FactoryT):
 
         return self.factories.rowset(state=new_state, factories=self.factories)
 
+    def qualify(self, *conditions: ExprT) -> RowSetT:
+        """Add QUALIFY clause conditions (DuckDB — post-window function filtering).
+
+        Transforms Reference or SetOperation → Statement if needed.
+        Multiple calls accumulate conditions (combined with AND).
+
+        Args:
+            *conditions: Expression conditions to filter window function results.
+
+        Returns:
+            A new RowSet with QUALIFY conditions added.
+        """
+        from vw.core.states import CONVERT_TO_STATEMENT, Statement
+
+        cond_states = tuple(c.state for c in conditions)
+        if isinstance(self.state, CONVERT_TO_STATEMENT):
+            new_state = Statement(source=self.state, qualify_conditions=cond_states)
+        else:
+            new_state = replace(
+                self.state,
+                qualify_conditions=self.state.qualify_conditions + cond_states,
+            )
+
+        return self.factories.rowset(state=new_state, factories=self.factories)
+
     def order_by(self, *columns: ExprT) -> RowSetT:
         """Add ORDER BY clause.
 

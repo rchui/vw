@@ -2,7 +2,7 @@
 
 The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 
-**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), List Functions (19 functions), Struct Operations, Sampling (USING SAMPLE), and Raw SQL API.
+**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), List Functions (19 functions), Struct Operations, Sampling (USING SAMPLE), DuckDB-Specific Functions, Map Functions, JSON Functions, QUALIFY clause, and Raw SQL API.
 
 ## Module Import
 
@@ -121,7 +121,7 @@ result = render(query)
 - ✅ Null handling (COALESCE, NULLIF, GREATEST, LEAST)
 
 ### Query Building
-- ✅ SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY
+- ✅ SELECT, FROM, WHERE, GROUP BY, HAVING, QUALIFY, ORDER BY
 - ✅ LIMIT, OFFSET, FETCH, DISTINCT
 - ✅ Joins (INNER, LEFT, RIGHT, FULL, CROSS)
 - ✅ Subqueries, CTEs, VALUES clause
@@ -831,6 +831,215 @@ query = ref("big_table").modifiers(modifiers.using_sample(method="reservoir", ro
 
 ---
 
+### QUALIFY Clause
+
+**Status:** ✅ Available
+
+DuckDB's `QUALIFY` clause filters rows based on window function results — analogous to `HAVING` for aggregates, but applied after window functions are computed.
+
+```python
+from vw.duckdb import F, col, param, ref, render
+
+# Keep only the top-ranked row per department
+query = (
+    ref("employees")
+    .select(
+        col("dept"),
+        col("name"),
+        F.row_number().over(partition_by=[col("dept")], order_by=[col("salary").desc()]).alias("rn"),
+    )
+    .qualify(col("rn") == param("rank", 1))
+)
+result = render(query)
+# SELECT dept, name, ROW_NUMBER() OVER (PARTITION BY dept ORDER BY salary DESC) AS rn
+# FROM employees
+# QUALIFY rn = $rank
+
+# Multiple conditions — calls accumulate (AND)
+query = (
+    ref("scores")
+    .select(col("name"), F.rank().over(order_by=[col("score").desc()]).alias("rnk"))
+    .qualify(col("rnk") <= param("top_n", 3))
+    .qualify(col("score") > param("min_score", 0))
+)
+
+# QUALIFY renders after HAVING and before ORDER BY
+query = (
+    ref("t")
+    .select(col("dept"), F.count(col("id")).alias("cnt"))
+    .group_by(col("dept"))
+    .having(F.count(col("id")) > param("min", 5))
+    .qualify(col("cnt") > param("threshold", 10))
+    .order_by(col("dept"))
+)
+# SELECT dept, COUNT(id) AS cnt FROM t
+# GROUP BY dept HAVING COUNT(id) > $min QUALIFY cnt > $threshold ORDER BY dept
+```
+
+**Notes:**
+- `.qualify()` is defined on the shared `RowSet` base (same as `.having()`), but only the DuckDB renderer emits the `QUALIFY` keyword — the PostgreSQL renderer silently ignores it.
+- Multiple `.qualify()` calls accumulate conditions with AND (same as `.where()`).
+
+---
+
+### Map Functions
+
+**Status:** ✅ Available
+
+DuckDB's `MAP` type stores key-value pairs. Map functions create, access, and transform maps.
+
+#### Construction
+
+**`F.map(keys, values)`** — Create a map from two lists
+
+```python
+query = ref("t").select(
+    F.map(F.list_value(lit("a"), lit("b")), F.list_value(lit(1), lit(2))).alias("m")
+)
+# SELECT MAP(LIST_VALUE('a', 'b'), LIST_VALUE(1, 2)) AS m FROM t
+```
+
+**`F.map_from_entries(entries)`** — Create a map from a list of `{key, value}` structs
+
+```python
+query = ref("t").select(F.map_from_entries(col("kv_pairs")).alias("m"))
+# SELECT MAP_FROM_ENTRIES(kv_pairs) AS m FROM t
+```
+
+**`F.map_concat(*maps)`** — Merge multiple maps (variadic)
+
+```python
+query = ref("t").select(F.map_concat(col("defaults"), col("overrides")).alias("merged"))
+# SELECT MAP_CONCAT(defaults, overrides) AS merged FROM t
+```
+
+#### Access
+
+**`F.map_extract(map_expr, key)`** — Get value for a key
+
+```python
+query = ref("t").select(F.map_extract(col("config"), lit("timeout")).alias("timeout"))
+# SELECT MAP_EXTRACT(config, 'timeout') AS timeout FROM t
+```
+
+**`F.map_keys(map_expr)`** — Return list of keys
+
+```python
+query = ref("t").select(F.map_keys(col("config")).alias("keys"))
+# SELECT MAP_KEYS(config) AS keys FROM t
+```
+
+**`F.map_values(map_expr)`** — Return list of values
+
+```python
+query = ref("t").select(F.map_values(col("config")).alias("vals"))
+# SELECT MAP_VALUES(config) AS vals FROM t
+```
+
+#### Sizing
+
+**`F.cardinality(expr)`** — Number of entries (works on maps and lists)
+
+```python
+query = ref("t").select(col("id")).where(F.cardinality(col("tags")) > lit(0))
+# SELECT id FROM t WHERE CARDINALITY(tags) > 0
+```
+
+---
+
+### JSON Functions
+
+**Status:** ✅ Available
+
+DuckDB provides first-class JSON support for extracting, inspecting, and constructing JSON values.
+
+#### Extraction
+
+**`F.json_extract(json_expr, path)`** — Extract JSON value by JSONPath
+
+```python
+query = ref("t").select(F.json_extract(col("data"), lit("$.name")).alias("name"))
+# SELECT JSON_EXTRACT(data, '$.name') AS name FROM t
+
+query = ref("t").select(F.json_extract(col("event"), lit("$.payload.user_id")).alias("uid"))
+# SELECT JSON_EXTRACT(event, '$.payload.user_id') AS uid FROM t
+```
+
+**`F.json_extract_string(json_expr, path)`** — Extract value as VARCHAR
+
+```python
+query = ref("t").select(F.json_extract_string(col("data"), lit("$.name")).alias("name"))
+# SELECT JSON_EXTRACT_STRING(data, '$.name') AS name FROM t
+```
+
+#### Inspection
+
+**`F.json_array_length(json_expr, path=None)`** — Count array elements
+
+```python
+query = ref("t").select(F.json_array_length(col("items")).alias("count"))
+# SELECT JSON_ARRAY_LENGTH(items) AS count FROM t
+
+query = ref("t").select(F.json_array_length(col("data"), lit("$.items")).alias("count"))
+# SELECT JSON_ARRAY_LENGTH(data, '$.items') AS count FROM t
+```
+
+**`F.json_type(json_expr, path=None)`** — Get JSON value type as string
+
+```python
+query = ref("t").select(F.json_type(col("data")).alias("jtype"))
+# SELECT JSON_TYPE(data) AS jtype FROM t
+```
+
+**`F.json_valid(json_expr)`** — Returns TRUE if valid JSON
+
+```python
+query = ref("t").select(col("id")).where(F.json_valid(col("payload")))
+# SELECT id FROM t WHERE JSON_VALID(payload)
+```
+
+**`F.json_keys(json_expr, path=None)`** — Return list of object keys
+
+```python
+query = ref("t").select(F.json_keys(col("data")).alias("keys"))
+# SELECT JSON_KEYS(data) AS keys FROM t
+
+query = ref("t").select(F.json_keys(col("data"), lit("$.nested")).alias("keys"))
+# SELECT JSON_KEYS(data, '$.nested') AS keys FROM t
+```
+
+#### Construction
+
+**`F.to_json(expr)`** — Convert any value to JSON
+
+```python
+query = ref("t").select(F.to_json(col("data")).alias("json_data"))
+# SELECT TO_JSON(data) AS json_data FROM t
+
+query = ref("t").select(
+    F.to_json(F.struct_pack({"name": lit("Alice"), "age": lit(30)})).alias("json_obj")
+)
+# SELECT TO_JSON(STRUCT_PACK(name := 'Alice', age := 30)) AS json_obj FROM t
+```
+
+**`F.json_object(*args)`** — Create JSON object from alternating key/value pairs
+
+```python
+query = ref("t").select(
+    F.json_object(lit("name"), col("name"), lit("age"), col("age")).alias("obj")
+)
+# SELECT JSON_OBJECT('name', name, 'age', age) AS obj FROM t
+```
+
+**`F.json_array(*elements)`** — Create JSON array
+
+```python
+query = ref("t").select(F.json_array(lit(1), lit(2), lit(3)).alias("arr"))
+# SELECT JSON_ARRAY(1, 2, 3) AS arr FROM t
+```
+
+---
+
 ### Raw SQL API
 
 **Status:** ✅ Available
@@ -887,6 +1096,7 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Phase 6: Struct Operations (struct_pack, struct_extract, struct_insert, struct_keys, struct_values) 🌟
 - ✅ Phase 7: Sampling (USING SAMPLE with percent/rows/method/seed + Raw SQL API) 🌟
 - ✅ Phase 8: DuckDB-Specific Functions (string, date/time, statistical) 🌟
+- ✅ Phase 8 (cont.): QUALIFY clause, Map functions (7), JSON functions (9) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Core Query Building (SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY)

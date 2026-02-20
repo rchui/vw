@@ -2,7 +2,7 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, 7, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, Sampling, and DuckDB-Specific Functions implemented
+**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, 7, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, Sampling, DuckDB-Specific Functions, QUALIFY clause, Map Functions, and JSON Functions implemented
 **Current Phase:** Phase 9 - Advanced Features
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
@@ -723,10 +723,30 @@ ref("big_table").select(col("id")).sample(percent=10)
 - [x] `F.string_split(string, separator)` - split string to list
 - [x] `F.string_split_regex(string, regex)` - split by regex pattern
 
+### QUALIFY Clause
+- [x] `.qualify(*conditions)` - post-window function row filtering
+- [x] Rendering in `vw/duckdb/render.py` (after HAVING, before ORDER BY)
+- [x] Accumulates conditions across multiple calls (AND semantics)
+
+### Map Functions (DuckDB-specific)
+- [x] `F.map(keys, values)` - create map from two lists
+- [x] `F.map_extract(map, key)` - get value for key
+- [x] `F.map_keys(map)` - return list of keys
+- [x] `F.map_values(map)` - return list of values
+- [x] `F.map_from_entries(entries)` - create map from list of structs
+- [x] `F.map_concat(*maps)` - merge maps (variadic)
+- [x] `F.cardinality(expr)` - number of entries (maps and lists)
+
 ### JSON Functions (DuckDB-specific)
-- [ ] DuckDB JSON extraction functions (deferred - use `.op()` until needed)
-- [ ] JSON path queries (deferred)
-- [ ] JSON operators (available via existing `.op()`)
+- [x] `F.json_extract(json, path)` - extract JSON value by path
+- [x] `F.json_extract_string(json, path)` - extract value as VARCHAR
+- [x] `F.json_array_length(json, path?)` - count array elements
+- [x] `F.json_type(json, path?)` - get JSON value type as string
+- [x] `F.json_valid(json)` - returns TRUE if valid JSON
+- [x] `F.json_keys(json, path?)` - return list of object keys
+- [x] `F.to_json(value)` - convert value to JSON
+- [x] `F.json_object(*args)` - create JSON object from key/value pairs
+- [x] `F.json_array(*elements)` - create JSON array
 
 ### Date/Time Functions (DuckDB-specific)
 - [x] `F.date_diff(part, start, end)` - date difference
@@ -784,6 +804,12 @@ F.reservoir_quantile(col("value"), lit(0.5))         # RESERVOIR_QUANTILE(value,
   - Date/Time: each function with literals and column expressions
   - Statistical: basic usage plus group_by composition for aggregates
   - Composition: regexp_matches in WHERE, median with HAVING, date_diff in WHERE, string_split + list_count
+- [x] QUALIFY method tests in `tests/core/test_base.py` (state accumulation)
+- [x] QUALIFY rendering tests in `tests/duckdb/test_render.py` (SQL output)
+- [x] 12 integration tests in `tests/duckdb/integration/test_map_functions.py`
+  - map, map_extract, map_keys, map_values, map_from_entries, map_concat, cardinality
+- [x] 18 integration tests in `tests/duckdb/integration/test_json_functions.py`
+  - json_extract, json_extract_string, json_array_length, json_type, json_valid, json_keys, to_json, json_object, json_array
 
 ---
 
@@ -955,6 +981,7 @@ def source(name: str, **kwargs):
 - ✅ Phase 6: Struct Operations (5 functions: struct_pack, struct_extract, struct_insert, struct_keys, struct_values) 🌟
 - ✅ Phase 7: Sampling (USING SAMPLE with percent/rows/method/seed) 🌟
 - ✅ Phase 8: DuckDB-Specific Functions (16 functions: string, date/time, statistical) 🌟
+- ✅ Phase 8 (cont.): QUALIFY clause, Map functions (7: map, map_extract, map_keys, map_values, map_from_entries, map_concat, cardinality), JSON functions (9: json_extract, json_extract_string, json_array_length, json_type, json_valid, json_keys, to_json, json_object, json_array) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Phase 1: Core Query Building

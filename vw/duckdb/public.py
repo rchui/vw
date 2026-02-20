@@ -530,6 +530,305 @@ class Functions(
         state = Function(name="STRUCT_VALUES", args=(struct.state,))
         return self.factories.expr(state=state, factories=self.factories)
 
+    # --- Map Construction Functions ---------------------------------------- #
+
+    def map(self, keys: "Expression", values: "Expression") -> "Expression":
+        """MAP(keys, values) — create map from two lists.
+
+        Args:
+            keys: List expression of keys.
+            values: List expression of values.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map(F.list_value(lit("a"), lit("b")), F.list_value(lit(1), lit(2)))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP", args=(keys.state, values.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def map_from_entries(self, entries: "Expression") -> "Expression":
+        """MAP_FROM_ENTRIES(list) — create map from list of {key, value} structs.
+
+        Args:
+            entries: List expression of structs with key and value fields.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map_from_entries(col("kv_pairs"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP_FROM_ENTRIES", args=(entries.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def map_concat(self, *maps: "Expression") -> "Expression":
+        """MAP_CONCAT(map1, map2, ...) — merge maps.
+
+        Args:
+            *maps: Map expressions to merge.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map_concat(col("map1"), col("map2"))
+            >>> F.map_concat(col("defaults"), col("overrides"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP_CONCAT", args=tuple(m.state for m in maps))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- Map Access Functions ---------------------------------------------- #
+
+    def map_extract(self, map_expr: "Expression", key: "Expression") -> "Expression":
+        """MAP_EXTRACT(map, key) — get value for key.
+
+        Args:
+            map_expr: Map expression.
+            key: Key expression to look up.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map_extract(col("config"), lit("timeout"))
+            >>> F.map_extract(col("scores"), col("user_id"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP_EXTRACT", args=(map_expr.state, key.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def map_keys(self, map_expr: "Expression") -> "Expression":
+        """MAP_KEYS(map) — return list of keys.
+
+        Args:
+            map_expr: Map expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map_keys(col("config"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP_KEYS", args=(map_expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def map_values(self, map_expr: "Expression") -> "Expression":
+        """MAP_VALUES(map) — return list of values.
+
+        Args:
+            map_expr: Map expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.map_values(col("config"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="MAP_VALUES", args=(map_expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def cardinality(self, expr: "Expression") -> "Expression":
+        """CARDINALITY(map_or_list) — number of entries.
+
+        Works on both maps and lists.
+
+        Args:
+            expr: Map or list expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.cardinality(col("config_map"))
+            >>> F.cardinality(col("tags"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="CARDINALITY", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    # --- JSON Functions ---------------------------------------------------- #
+
+    def json_extract(self, json_expr: "Expression", path: "Expression") -> "Expression":
+        """JSON_EXTRACT(json, path) — extract JSON value by path.
+
+        Args:
+            json_expr: JSON expression.
+            path: Path expression (e.g., lit('$.key')).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_extract(col("data"), lit("$.name"))
+            >>> F.json_extract(col("event"), lit("$.payload.user_id"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_EXTRACT", args=(json_expr.state, path.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_extract_string(self, json_expr: "Expression", path: "Expression") -> "Expression":
+        """JSON_EXTRACT_STRING(json, path) — extract value as VARCHAR.
+
+        Args:
+            json_expr: JSON expression.
+            path: Path expression (e.g., lit('$.key')).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_extract_string(col("data"), lit("$.name"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_EXTRACT_STRING", args=(json_expr.state, path.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_array_length(self, json_expr: "Expression", path: "Expression | None" = None) -> "Expression":
+        """JSON_ARRAY_LENGTH(json[, path]) — count array elements.
+
+        Args:
+            json_expr: JSON expression containing an array.
+            path: Optional path to a nested array.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_array_length(col("data"))
+            >>> F.json_array_length(col("data"), lit("$.items"))
+        """
+        from vw.core.states import Function
+
+        args = (json_expr.state,) if path is None else (json_expr.state, path.state)
+        state = Function(name="JSON_ARRAY_LENGTH", args=args)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_type(self, json_expr: "Expression", path: "Expression | None" = None) -> "Expression":
+        """JSON_TYPE(json[, path]) — get JSON value type as string.
+
+        Args:
+            json_expr: JSON expression.
+            path: Optional path to a nested value.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_type(col("data"))
+            >>> F.json_type(col("data"), lit("$.value"))
+        """
+        from vw.core.states import Function
+
+        args = (json_expr.state,) if path is None else (json_expr.state, path.state)
+        state = Function(name="JSON_TYPE", args=args)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_valid(self, json_expr: "Expression") -> "Expression":
+        """JSON_VALID(json) — returns TRUE if valid JSON.
+
+        Args:
+            json_expr: Expression containing a JSON string.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_valid(col("raw_json"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_VALID", args=(json_expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_keys(self, json_expr: "Expression", path: "Expression | None" = None) -> "Expression":
+        """JSON_KEYS(json[, path]) — return list of object keys.
+
+        Args:
+            json_expr: JSON expression containing an object.
+            path: Optional path to a nested object.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_keys(col("data"))
+            >>> F.json_keys(col("data"), lit("$.nested"))
+        """
+        from vw.core.states import Function
+
+        args = (json_expr.state,) if path is None else (json_expr.state, path.state)
+        state = Function(name="JSON_KEYS", args=args)
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def to_json(self, expr: "Expression") -> "Expression":
+        """TO_JSON(value) — convert value to JSON.
+
+        Args:
+            expr: Expression to convert.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.to_json(col("data"))
+            >>> F.to_json(F.struct_pack({"name": lit("Alice"), "age": lit(30)}))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="TO_JSON", args=(expr.state,))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_object(self, *args: "Expression") -> "Expression":
+        """JSON_OBJECT(key1, val1, ...) — create JSON object (variadic key/value pairs).
+
+        Args:
+            *args: Alternating key and value expressions.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_object(lit("name"), col("name"), lit("age"), col("age"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_OBJECT", args=tuple(a.state for a in args))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def json_array(self, *elements: "Expression") -> "Expression":
+        """JSON_ARRAY(e1, e2, ...) — create JSON array.
+
+        Args:
+            *elements: Expressions to include in the JSON array.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.json_array(lit(1), lit(2), lit(3))
+            >>> F.json_array(col("a"), col("b"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="JSON_ARRAY", args=tuple(e.state for e in elements))
+        return self.factories.expr(state=state, factories=self.factories)
+
     # --- String Functions (DuckDB-Specific) -------------------------------- #
 
     def regexp_matches(self, string: "Expression", regex: "Expression") -> "Expression":

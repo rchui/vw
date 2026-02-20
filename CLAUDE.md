@@ -218,6 +218,11 @@ uv run ty check        # Type check
 - DuckDB raw API (raw.expr/rowset/func) → `docs/api/duckdb.md` (Raw SQL API)
 - .sample() (USING SAMPLE clause) → `docs/api/duckdb.md` (Sampling)
 - modifiers.using_sample() (typed USING SAMPLE factory) → `docs/api/duckdb.md` (Sampling)
+- .qualify() (QUALIFY clause, post-window filtering) → `docs/api/duckdb.md` (QUALIFY Clause)
+- F.map/map_extract/map_keys/map_values/map_from_entries/map_concat (Map functions) → `docs/api/duckdb.md` (Map Functions)
+- F.cardinality() (map/list size) → `docs/api/duckdb.md` (Map Functions)
+- F.json_extract/json_extract_string/json_array_length/json_type/json_valid/json_keys (JSON inspection) → `docs/api/duckdb.md` (JSON Functions)
+- F.to_json/json_object/json_array (JSON construction) → `docs/api/duckdb.md` (JSON Functions)
 - Planned features → `docs/api/duckdb.md` (Pending DuckDB-Specific Features)
 
 ### Development Roadmaps
