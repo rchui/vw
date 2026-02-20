@@ -62,3 +62,16 @@ class StructInsert:
 
     struct: Expr
     fields: tuple[tuple[str, Expr], ...]
+
+
+@dataclass(frozen=True, kw_only=True)
+class UsingSample(Expr):
+    """Represents USING SAMPLE clause (DuckDB-specific table sampling).
+
+    Exactly one of percent or rows must be set.
+    """
+
+    percent: float | None = None
+    rows: int | None = None
+    method: str | None = None
+    seed: int | None = None

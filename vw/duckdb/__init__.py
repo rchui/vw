@@ -3,6 +3,7 @@
 from vw.core.render import SQL as SQL
 from vw.core.render import ParamStyle as ParamStyle
 from vw.core.render import RenderConfig as RenderConfig
+from vw.duckdb import modifiers as modifiers
 from vw.duckdb import types as T
 from vw.duckdb.files import CSV as CSV
 from vw.duckdb.files import JSON as JSON
@@ -26,4 +27,5 @@ from vw.duckdb.public import ref as ref
 from vw.duckdb.public import rollup as rollup
 from vw.duckdb.public import values as values
 from vw.duckdb.public import when as when
+from vw.duckdb.raw import raw as raw
 from vw.duckdb.render import render as render

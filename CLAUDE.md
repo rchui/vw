@@ -212,10 +212,10 @@ uv run ty check        # Type check
 - Feature status → `docs/api/postgres.md` (Feature Status)
 
 ### API Reference - DuckDB
-- Current status → `docs/api/duckdb.md` (entire file - incomplete)
-- Missing features → `docs/api/duckdb.md` (Missing Features)
-- Planned features → `docs/api/duckdb.md` (DuckDB-Specific Features)
-- Future API example → `docs/api/duckdb.md` (Example (Future API))
+- Current status → `docs/api/duckdb.md` (Development Status)
+- DuckDB raw API (raw.expr/rowset/func) → `docs/api/duckdb.md` (Raw SQL API)
+- .sample() (USING SAMPLE clause) → `docs/api/duckdb.md` (Sampling)
+- Planned features → `docs/api/duckdb.md` (Pending DuckDB-Specific Features)
 
 ### Development Roadmaps
 - PostgreSQL feature roadmap → `docs/development/postgres-parity.md`

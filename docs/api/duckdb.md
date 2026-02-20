@@ -2,7 +2,7 @@
 
 The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 
-**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), and List Functions (19 functions).
+**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), List Functions (19 functions), Struct Operations, Sampling (USING SAMPLE), and Raw SQL API.
 
 ## Module Import
 
@@ -10,6 +10,7 @@ The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 from vw.duckdb import ref, col, param, lit, render, F, T
 from vw.duckdb import file, CSV, Parquet, JSON, JSONL  # File reading
 from vw.duckdb import cte  # CTEs
+from vw.duckdb import raw  # Raw SQL escape hatch
 # T - Type shorthand for casting (T.LIST, T.STRUCT, T.MAP, etc.)
 ```
 
@@ -769,6 +770,87 @@ result = render(query)
 # ORDER BY tag_count DESC
 ```
 
+### Sampling
+
+**Status:** ✅ Available
+
+DuckDB's `USING SAMPLE` clause samples rows from a table or query. Use `.sample()` on any `RowSet`.
+
+Exactly one of `percent` or `rows` must be provided. `method` and `seed` are optional.
+
+```python
+from vw.duckdb import ref, col, render
+
+# Percentage sampling (10% of rows)
+query = ref("big_table").sample(percent=10)
+result = render(query)
+# Renders: FROM big_table USING SAMPLE 10%
+
+# Row count sampling (1000 rows)
+query = ref("big_table").sample(rows=1000)
+# Renders: FROM big_table USING SAMPLE 1000 ROWS
+
+# With sampling method
+query = ref("big_table").sample(method="reservoir", rows=1000)
+# Renders: FROM big_table USING SAMPLE reservoir(1000 ROWS)
+
+query = ref("big_table").sample(method="bernoulli", percent=10)
+# Renders: FROM big_table USING SAMPLE bernoulli(10%)
+
+query = ref("big_table").sample(method="system", percent=5)
+# Renders: FROM big_table USING SAMPLE system(5%)
+
+# With seed for reproducibility (REPEATABLE clause)
+query = ref("big_table").sample(percent=10, seed=42)
+# Renders: FROM big_table USING SAMPLE 10% REPEATABLE (42)
+
+query = ref("big_table").sample(method="reservoir", rows=1000, seed=7)
+# Renders: FROM big_table USING SAMPLE reservoir(1000 ROWS) REPEATABLE (7)
+
+# Can be used before or after .select()
+query = ref("big_table").select(col("id"), col("name")).sample(percent=10)
+# Renders: SELECT id, name FROM big_table USING SAMPLE 10%
+```
+
+**Parameters:**
+- `percent` (float | None) - Sample percentage (0-100); mutually exclusive with `rows`
+- `rows` (int | None) - Number of rows to sample; mutually exclusive with `percent`
+- `method` (str | None) - Sampling method: `"reservoir"`, `"bernoulli"`, or `"system"`
+- `seed` (int | None) - Random seed for reproducibility (renders as `REPEATABLE (seed)`)
+
+**Raises:** `ValueError` if neither or both of `percent`/`rows` are provided.
+
+---
+
+### Raw SQL API
+
+**Status:** ✅ Available
+
+The `raw` object provides an escape hatch for SQL features not yet wrapped by vw.
+
+```python
+from vw.duckdb import raw, col, param, ref, render
+
+# Raw expression (renders inline)
+expr = raw.expr("some_custom_func({x}, {y})", x=col("a"), y=param("val", 42))
+
+# Raw rowset (renders in FROM clause)
+source = raw.rowset("range(1, 10) AS t(n)")
+query = source.select(col("n"))
+result = render(query)
+# Renders: SELECT n FROM range(1, 10) AS t(n)
+
+# Raw function (creates a standard Function state)
+expr = raw.func("MY_CUSTOM_FUNC", col("x"), col("y"))
+```
+
+**Methods:**
+- `raw.expr(sql, **kwargs)` - Create a raw SQL expression; kwargs are named placeholders
+- `raw.rowset(sql, **kwargs)` - Create a raw SQL row source; kwargs are named placeholders
+- `raw.func(name, *args)` - Create a function call with the given name and argument expressions
+
+---
+
 ## Pending DuckDB-Specific Features
 
 The following features are not yet implemented for DuckDB:
@@ -779,15 +861,8 @@ The following features are not yet implemented for DuckDB:
 - ⏸️ `COPY FROM` - Copy from file to table (can use raw SQL until needed)
 - ⏸️ `COPY TO` - Copy from table/query to file (can use raw SQL until needed)
 
-#### DuckDB Functions
-- ✅ List/array functions (list_extract, list_slice, list_contains, list_agg, etc.) - **Phase 5 Complete** 🌟
-- ❌ Struct functions (struct_pack, struct_extract, etc.)
-- ❌ DuckDB-specific aggregates
-- ❌ DuckDB-specific statistical functions
-
 #### Other Features
-- ❌ Sampling (USING SAMPLE clause)
-- ❌ DuckDB operators (list indexing, struct field access)
+- ❌ DuckDB operators (list indexing, struct field access) - use `.op()` for now
 - ❌ Advanced features (CTAS, extensions, PIVOT/UNPIVOT)
 
 ## Development Status
@@ -800,6 +875,9 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Phase 3a: File Reading (CSV, Parquet, JSON, JSONL) 🌟
 - ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
 - ✅ Phase 5: List/Array Functions (19 functions: construction, access, modification, transformation, aggregates) 🌟
+- ✅ Phase 6: Struct Operations (struct_pack, struct_extract, struct_insert, struct_keys, struct_values) 🌟
+- ✅ Phase 7: Sampling (USING SAMPLE with percent/rows/method/seed + Raw SQL API) 🌟
+- ✅ Phase 8: DuckDB-Specific Functions (string, date/time, statistical) 🌟
 
 **Inherited from PostgreSQL:**
 - ✅ Core Query Building (SELECT, FROM, WHERE, GROUP BY, HAVING, ORDER BY)
@@ -811,11 +889,10 @@ DuckDB support is actively developed, inheriting core functionality from Postgre
 - ✅ Shared Aggregate Functions (array_agg, unnest, string_agg, json_agg, bit/bool aggregates)
 
 **Next Steps:**
-- Phase 6: Struct Operations (struct_pack, struct_extract) 🌟
-- Phase 7: Sampling (USING SAMPLE clause)
-- Phase 8: DuckDB-specific statistical functions
+- Phase 9: Advanced features (CTAS, extensions) - as demand justifies
+- Phase 10: DuckDB operators - use `.op()` until needed
 
-**Progress:** 50% complete (5 of 10 DuckDB-specific phases complete)
+**Progress:** 80% complete (8 of 10 DuckDB-specific phases complete)
 
 ## Example (Future API)
 

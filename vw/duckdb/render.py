@@ -53,7 +53,7 @@ from vw.core.states import (
 )
 from vw.duckdb.base import Expression, RowSet
 from vw.duckdb.files import CSV, JSON, JSONL, Parquet
-from vw.duckdb.states import Star, StructInsert, StructPack
+from vw.duckdb.states import Star, StructInsert, StructPack, UsingSample
 
 
 def render(
@@ -251,6 +251,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             struct_sql = render_state(state.struct, ctx)
             fields_sql = ", ".join(f"{name} := {render_state(val, ctx)}" for name, val in state.fields)
             return f"STRUCT_INSERT({struct_sql}, {fields_sql})"
+        case UsingSample():
+            return render_using_sample(state)
 
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")
@@ -973,6 +975,25 @@ def render_with_clause(ctx: RenderContext) -> str:
         with_keyword = "WITH"
     cte_definitions = ", ".join(f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes)
     return f"{with_keyword} {cte_definitions}"
+
+
+def render_using_sample(state: UsingSample) -> str:
+    """Render USING SAMPLE clause."""
+    if state.method is not None:
+        if state.percent is not None:
+            size_sql = f"{state.percent}%"
+        else:
+            size_sql = f"{state.rows} ROWS"
+        sample_sql = f"USING SAMPLE {state.method}({size_sql})"
+    elif state.percent is not None:
+        sample_sql = f"USING SAMPLE {state.percent}%"
+    else:
+        sample_sql = f"USING SAMPLE {state.rows} ROWS"
+
+    if state.seed is not None:
+        sample_sql = f"{sample_sql} REPEATABLE ({state.seed})"
+
+    return sample_sql
 
 
 def render_raw_expr(raw_expr: RawExpr, ctx: RenderContext) -> str:

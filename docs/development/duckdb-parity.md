@@ -2,8 +2,8 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, and DuckDB-Specific Functions implemented
-**Current Phase:** Phase 7 - Sampling (next priority)
+**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, 7, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, Sampling, and DuckDB-Specific Functions implemented
+**Current Phase:** Phase 9 - Advanced Features
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
 ---
@@ -647,42 +647,67 @@ query = ref("t").select(F.struct_pack({"name": lit("Alice"), "addr": inner}).ali
 
 ---
 
-## 📋 Phase 7: Sampling
+## ✅ Phase 7: Sampling
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 **Priority:** MEDIUM
 
 ### Sampling Methods
-- [ ] `USING SAMPLE` clause
-- [ ] Percentage sampling via `.sample(percent=10)`
-- [ ] Row count sampling via `.sample(rows=1000)`
-- [ ] Reservoir sampling via `.sample(method="reservoir", rows=1000)`
-- [ ] Bernoulli sampling via `.sample(method="bernoulli", percent=10)`
-- [ ] System sampling via `.sample(method="system", percent=10)`
+- [x] `USING SAMPLE` clause
+- [x] Percentage sampling via `.sample(percent=10)`
+- [x] Row count sampling via `.sample(rows=1000)`
+- [x] Reservoir sampling via `.sample(method="reservoir", rows=1000)`
+- [x] Bernoulli sampling via `.sample(method="bernoulli", percent=10)`
+- [x] System sampling via `.sample(method="system", percent=5)`
+- [x] Seed for reproducibility via `.sample(percent=10, seed=42)` (REPEATABLE clause)
 
-### Data Structures Needed
-- [ ] Sample dataclass (method, percent, rows, seed)
-- [ ] Sampling methods on Statement
+### Implementation Notes
+- `.sample()` added directly to DuckDB `RowSet` in `vw/duckdb/base.py`
+- Uses `RawExpr` state appended to `modifiers` tuple (same pattern as `.modifiers()`)
+- Works in both positions: before `.select()` (modifier on Reference) and after (modifier on Statement)
+- Exactly one of `percent` or `rows` must be provided; raises `ValueError` otherwise
+- `raw` API added to DuckDB (`vw/duckdb/raw.py`) and exported from `vw/duckdb/__init__.py`
+- `vw/core/mixins.py` restructured into `vw/core/mixins/` package (functions.py + rowsets.py)
 
 ### Examples
 ```python
+from vw.duckdb import ref, col, render
+
 # Percentage sampling
-source("big_table").select(col("id")).sample(percent=10)
-# Renders: SELECT id FROM big_table USING SAMPLE 10%
+ref("big_table").sample(percent=10)
+# Renders: FROM big_table USING SAMPLE 10%
 
 # Row count sampling
-source("big_table").select(col("id")).sample(rows=1000)
-# Renders: SELECT id FROM big_table USING SAMPLE 1000 ROWS
+ref("big_table").sample(rows=1000)
+# Renders: FROM big_table USING SAMPLE 1000 ROWS
+
+# Sampling method + rows
+ref("big_table").sample(method="reservoir", rows=1000)
+# Renders: FROM big_table USING SAMPLE reservoir(1000 ROWS)
+
+# Sampling method + percent
+ref("big_table").sample(method="bernoulli", percent=10)
+# Renders: FROM big_table USING SAMPLE bernoulli(10%)
 
 # With seed for reproducibility
-source("big_table").sample(percent=10, seed=42)
-# Renders: SELECT * FROM big_table USING SAMPLE 10% (SEED 42)
+ref("big_table").sample(percent=10, seed=42)
+# Renders: FROM big_table USING SAMPLE 10% REPEATABLE (42)
+
+# After SELECT
+ref("big_table").select(col("id")).sample(percent=10)
+# Renders: SELECT id FROM big_table USING SAMPLE 10%
 ```
 
 ### Testing
-- [ ] Unit tests for sample clauses
-- [ ] Integration tests with different sampling methods
-- [ ] Test seed reproducibility
+- [x] 11 unit tests in `tests/duckdb/test_sample.py` (all passing)
+  - Basic percent and rows sampling
+  - All sampling methods (reservoir, bernoulli, system)
+  - Seed/REPEATABLE clause
+  - Before and after `.select()` positions
+  - Error cases (no args, both percent and rows)
+- [x] 7 unit tests in `tests/duckdb/test_raw.py` (all passing)
+  - `raw` importable from `vw.duckdb`
+  - `raw.expr()`, `raw.rowset()`, `raw.func()` all work correctly
 
 ---
 
@@ -928,6 +953,7 @@ def source(name: str, **kwargs):
 - ✅ Phase 4: DuckDB-Specific Types (LIST, STRUCT, MAP, ARRAY, integer variants) 🌟
 - ✅ Phase 5: List/Array Functions (19 functions: construction, access, modification, transformation, aggregates) 🌟
 - ✅ Phase 6: Struct Operations (5 functions: struct_pack, struct_extract, struct_insert, struct_keys, struct_values) 🌟
+- ✅ Phase 7: Sampling (USING SAMPLE with percent/rows/method/seed) 🌟
 - ✅ Phase 8: DuckDB-Specific Functions (16 functions: string, date/time, statistical) 🌟
 
 **Inherited from PostgreSQL:**
@@ -942,16 +968,14 @@ def source(name: str, **kwargs):
 
 **DuckDB-Specific (remaining work):**
 - ⏸️ Phase 3b: COPY Statements (deferred) - can use raw SQL until needed
-- ❌ Phase 7: Sampling (USING SAMPLE)
 - ❌ Phase 9: DuckDB Advanced Features (CTAS, Extensions, etc.)
 - ❌ Phase 10: DuckDB Operators
 
-**Total Progress:** 70% complete (7 of 10 DuckDB-specific phases complete, 1 deferred)
+**Total Progress:** 80% complete (8 of 10 DuckDB-specific phases complete, 1 deferred)
 
 **Next Steps:**
-- Phase 7: Sampling (USING SAMPLE clause) - useful for large datasets
 - Phase 9: Advanced Features (CTAS, etc.) - as demand justifies
-- Focus on remaining MEDIUM priority features that provide unique DuckDB value
+- Phase 10: DuckDB Operators - use `.op()` until needed
 
 ---
 

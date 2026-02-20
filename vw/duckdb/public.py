@@ -10,7 +10,7 @@ from vw.core.frame import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING
 from vw.core.frame import following as following
 from vw.core.frame import preceding as preceding
 from vw.core.functions import Functions as CoreFunctions
-from vw.core.mixins import (
+from vw.core.mixins.functions import (
     ArrayAggMixin,
     BitAndMixin,
     BitOrMixin,
