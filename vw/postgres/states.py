@@ -36,12 +36,11 @@ class DateTrunc(Expr):
 
 @dataclass(frozen=True, kw_only=True)
 class RowLock(Expr):
-    """Represents a FOR UPDATE/SHARE locking clause (PostgreSQL row-level locking).
-    """
+    """Represents a FOR UPDATE/SHARE locking clause (PostgreSQL row-level locking)."""
 
     strength: Literal["UPDATE", "NO KEY UPDATE", "SHARE", "KEY SHARE"]
-    '"UPDATE", "NO KEY UPDATE", "SHARE", "KEY SHARE"'
+    "'UPDATE', 'NO KEY UPDATE', 'SHARE', 'KEY SHARE'"
     of_tables: tuple[Source, ...] = ()
-    'For Reference: alias or name. For other Sources: alias required.'
+    "For Reference: alias or name. For other Sources: alias required."
     wait_policy: Literal["NOWAIT", "SKIP LOCKED"] | None = None
-    '"NOWAIT", "SKIP LOCKED"'
+    "'NOWAIT', 'SKIP LOCKED'"
