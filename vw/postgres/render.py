@@ -61,7 +61,7 @@ from vw.core.states import (
     WindowFunction,
 )
 from vw.postgres.base import Expression, RowSet
-from vw.postgres.states import DateTrunc, Interval, Now
+from vw.postgres.states import DateTrunc, Interval, Now, RowLock
 
 
 def render(
@@ -258,6 +258,10 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return render_raw_expr(state, ctx)
         case RawSource():
             return render_raw_source(state, ctx)
+
+        # --- PostgreSQL Row-Level Locking ------------------------------ #
+        case RowLock():
+            return render_row_lock(state)
 
         case _:
             raise TypeError(f"Unknown state type: {type(state)}")
@@ -707,6 +711,31 @@ def render_with_clause(ctx: RenderContext) -> str:
         with_keyword = "WITH"
     cte_definitions = ", ".join(f"{cte.name} AS ({cte.body_sql})" for cte in ctx.ctes)
     return f"{with_keyword} {cte_definitions}"
+
+
+def render_row_lock(lock: RowLock) -> str:
+    """Render a FOR UPDATE/SHARE locking clause.
+
+    For Reference sources, alias or name is used.
+    For other sources, alias must be set or a RenderError is raised.
+    """
+    sql = f"FOR {lock.strength}"
+
+    if lock.of_tables:
+        names = []
+        for source in lock.of_tables:
+            if isinstance(source, Reference):
+                names.append(source.alias or source.name)
+            elif source.alias:
+                names.append(source.alias)
+            else:
+                raise RenderError(f"OF table source has no alias: {type(source).__name__}")
+        sql = f"{sql} OF {', '.join(names)}"
+
+    if lock.wait_policy is not None:
+        sql = f"{sql} {lock.wait_policy}"
+
+    return sql
 
 
 def render_raw_expr(raw_expr: RawExpr, ctx: RenderContext) -> str:

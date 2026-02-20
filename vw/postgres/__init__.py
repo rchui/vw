@@ -1,6 +1,7 @@
 from vw.core.render import SQL as SQL
 from vw.core.render import ParamStyle as ParamStyle
 from vw.core.render import RenderConfig as RenderConfig
+from vw.postgres import modifiers as modifiers
 from vw.postgres.public import CURRENT_ROW as CURRENT_ROW
 from vw.postgres.public import UNBOUNDED_FOLLOWING as UNBOUNDED_FOLLOWING
 from vw.postgres.public import UNBOUNDED_PRECEDING as UNBOUNDED_PRECEDING

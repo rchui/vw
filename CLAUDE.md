@@ -143,6 +143,7 @@ uv run ty check        # Type check
 - FILTER clause → `docs/quickstart.md` (FILTER Clause)
 - Grouping Sets (ROLLUP, CUBE, GROUPING SETS) → `docs/quickstart.md` (Grouping Sets), `docs/api/postgres.md` (Factory Functions > rollup/cube/grouping_sets)
 - Query modifiers (FOR UPDATE, TABLESAMPLE) → `docs/api/postgres.md` (Query Modifiers)
+- Row-level locking (modifiers.row_lock) → `docs/api/postgres.md` (Row-Level Locking)
 - SQLAlchemy integration → `docs/quickstart.md` (Using with SQLAlchemy), `docs/api/postgres.md` (Using with SQLAlchemy)
 
 ### API Reference - Expression Class
@@ -167,6 +168,7 @@ uv run ty check        # Type check
 - .offset() (separate from .limit()) → `docs/api/postgres.md` (Query Modifiers > .offset)
 - .fetch() (FETCH FIRST with WITH TIES support) → `docs/api/postgres.md` (Query Modifiers > .fetch)
 - .modifiers() (row-level locking, table sampling) → `docs/api/postgres.md` (Query Modifiers > .modifiers)
+- modifiers.row_lock() (typed FOR UPDATE/SHARE) → `docs/api/postgres.md` (Row-Level Locking)
 - .alias(), .col(), .star → `docs/api/core.md` (RowSet)
 - .join.inner/left/right/full_outer/cross → `docs/api/core.md` (RowSet > .join)
 - .join with lateral=True (PostgreSQL LATERAL) → `docs/api/postgres.md` (LATERAL Joins)
@@ -215,6 +217,7 @@ uv run ty check        # Type check
 - Current status → `docs/api/duckdb.md` (Development Status)
 - DuckDB raw API (raw.expr/rowset/func) → `docs/api/duckdb.md` (Raw SQL API)
 - .sample() (USING SAMPLE clause) → `docs/api/duckdb.md` (Sampling)
+- modifiers.using_sample() (typed USING SAMPLE factory) → `docs/api/duckdb.md` (Sampling)
 - Planned features → `docs/api/duckdb.md` (Pending DuckDB-Specific Features)
 
 ### Development Roadmaps

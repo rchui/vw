@@ -11,6 +11,7 @@ from vw.duckdb import ref, col, param, lit, render, F, T
 from vw.duckdb import file, CSV, Parquet, JSON, JSONL  # File reading
 from vw.duckdb import cte  # CTEs
 from vw.duckdb import raw  # Raw SQL escape hatch
+from vw.duckdb import modifiers  # Typed modifiers (modifiers.using_sample)
 # T - Type shorthand for casting (T.LIST, T.STRUCT, T.MAP, etc.)
 ```
 
@@ -774,12 +775,17 @@ result = render(query)
 
 **Status:** ✅ Available
 
-DuckDB's `USING SAMPLE` clause samples rows from a table or query. Use `.sample()` on any `RowSet`.
+DuckDB's `USING SAMPLE` clause samples rows from a table or query. Two APIs are available:
+
+- **`.sample()` shorthand** — convenience method on any `RowSet`
+- **`modifiers.using_sample()`** — typed factory for use with `.modifiers()`
 
 Exactly one of `percent` or `rows` must be provided. `method` and `seed` are optional.
 
 ```python
-from vw.duckdb import ref, col, render
+from vw.duckdb import ref, col, modifiers, render
+
+# --- .sample() shorthand ---
 
 # Percentage sampling (10% of rows)
 query = ref("big_table").sample(percent=10)
@@ -797,22 +803,25 @@ query = ref("big_table").sample(method="reservoir", rows=1000)
 query = ref("big_table").sample(method="bernoulli", percent=10)
 # Renders: FROM big_table USING SAMPLE bernoulli(10%)
 
-query = ref("big_table").sample(method="system", percent=5)
-# Renders: FROM big_table USING SAMPLE system(5%)
-
 # With seed for reproducibility (REPEATABLE clause)
 query = ref("big_table").sample(percent=10, seed=42)
 # Renders: FROM big_table USING SAMPLE 10% REPEATABLE (42)
 
-query = ref("big_table").sample(method="reservoir", rows=1000, seed=7)
-# Renders: FROM big_table USING SAMPLE reservoir(1000 ROWS) REPEATABLE (7)
-
 # Can be used before or after .select()
 query = ref("big_table").select(col("id"), col("name")).sample(percent=10)
 # Renders: SELECT id, name FROM big_table USING SAMPLE 10%
+
+# --- modifiers.using_sample() typed factory ---
+
+# Equivalent to .sample(), but via .modifiers()
+query = ref("big_table").modifiers(modifiers.using_sample(percent=10))
+# Renders: FROM big_table USING SAMPLE 10%
+
+query = ref("big_table").modifiers(modifiers.using_sample(method="reservoir", rows=1000, seed=42))
+# Renders: FROM big_table USING SAMPLE reservoir(1000 ROWS) REPEATABLE (42)
 ```
 
-**Parameters:**
+**Parameters (both APIs):**
 - `percent` (float | None) - Sample percentage (0-100); mutually exclusive with `rows`
 - `rows` (int | None) - Number of rows to sample; mutually exclusive with `percent`
 - `method` (str | None) - Sampling method: `"reservoir"`, `"bernoulli"`, or `"system"`

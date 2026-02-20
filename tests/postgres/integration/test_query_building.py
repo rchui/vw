@@ -278,7 +278,7 @@ def describe_fetch_queries() -> None:
 
 def describe_modifier_queries() -> None:
     def it_builds_for_update() -> None:
-        from vw.postgres import raw
+        from vw.postgres import modifiers, param
 
         expected_sql = """
         SELECT *
@@ -287,20 +287,18 @@ def describe_modifier_queries() -> None:
         FOR UPDATE
         """
 
-        from vw.postgres import param
-
         q = (
             ref("accounts")
             .select(col("*"))
             .where(col("id") == param("account_id", 123))
-            .modifiers(raw.expr("FOR UPDATE"))
+            .modifiers(modifiers.row_lock("UPDATE"))
         )
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"account_id": 123}
 
     def it_builds_for_update_skip_locked() -> None:
-        from vw.postgres import param, raw
+        from vw.postgres import modifiers, param
 
         expected_sql = """
         SELECT *
@@ -317,22 +315,20 @@ def describe_modifier_queries() -> None:
             .where(col("status") == param("status", "pending"))
             .order_by(col("priority").desc())
             .limit(1)
-            .modifiers(raw.expr("FOR UPDATE SKIP LOCKED"))
+            .modifiers(modifiers.row_lock("UPDATE", wait_policy="SKIP LOCKED"))
         )
         result = render(q)
         assert result.query == sql(expected_sql)
         assert result.params == {"status": "pending"}
 
     def it_builds_tablesample() -> None:
-        from vw.postgres import raw
+        from vw.postgres import param, raw
 
         expected_sql = """
         SELECT *
         FROM events TABLESAMPLE SYSTEM(5)
         WHERE event_type = $event_type
         """
-
-        from vw.postgres import param
 
         q = (
             ref("events")
@@ -345,7 +341,7 @@ def describe_modifier_queries() -> None:
         assert result.params == {"event_type": "click"}
 
     def it_builds_fetch_with_for_update() -> None:
-        from vw.postgres import raw
+        from vw.postgres import modifiers
 
         expected_sql = """
         SELECT *
@@ -362,7 +358,7 @@ def describe_modifier_queries() -> None:
             .where(col("active"))
             .order_by(col("created_at"))
             .fetch(10)
-            .modifiers(raw.expr("FOR SHARE"))
+            .modifiers(modifiers.row_lock("SHARE"))
         )
         result = render(q)
         assert result.query == sql(expected_sql)

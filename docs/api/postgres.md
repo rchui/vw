@@ -6,6 +6,7 @@ The `vw.postgres` module provides PostgreSQL-specific implementations and render
 
 ```python
 from vw.postgres import ref, col, param, lit, when, exists, cte, interval, rollup, cube, grouping_sets, raw, render, F
+from vw.postgres import modifiers  # Row-level locking (modifiers.row_lock)
 ```
 
 ## Factory Functions
@@ -563,21 +564,20 @@ ref("products").select(col("id"), col("name"))
 Add modifiers to queries or tables. Modifiers are rendered after the main query (for statement-level modifiers) or after the table name (for table-level modifiers).
 
 Common use cases:
-- **Row-level locking**: `FOR UPDATE`, `FOR SHARE`, `FOR NO KEY UPDATE`, `FOR KEY SHARE`
-- **Table sampling**: `TABLESAMPLE SYSTEM(n)`, `TABLESAMPLE BERNOULLI(n)`
-- **Lock options**: `SKIP LOCKED`, `NOWAIT`
+- **Row-level locking**: `modifiers.row_lock(strength)` from `vw.postgres.modifiers`
+- **Table sampling**: `raw.expr("TABLESAMPLE SYSTEM(n)")` (use `raw.expr()` for these)
 
-⚠️ **Security Warning:** Modifiers use `raw.expr()` which has no SQL injection protection. Never use string concatenation or f-strings with user input. Always use `param()` for dynamic values.
+### Row-Level Locking — `modifiers.row_lock()`
 
-**Statement-level modifiers:**
+Use `modifiers.row_lock()` for typed, safe row-level locking. Import `modifiers` from `vw.postgres`.
 
 ```python
-from vw.postgres import raw, ref, col, param, render
+from vw.postgres import modifiers, ref, col, param, render
 
-# Row-level locking for updates
+# FOR UPDATE
 ref("accounts").select(col("*"))
     .where(col("id") == param("account_id", 123))
-    .modifiers(raw.expr("FOR UPDATE"))
+    .modifiers(modifiers.row_lock("UPDATE"))
 # SQL: SELECT * FROM accounts WHERE id = $account_id FOR UPDATE
 
 # Job queue pattern - skip locked rows
@@ -585,47 +585,50 @@ ref("jobs").select(col("*"))
     .where(col("status") == param("status", "pending"))
     .order_by(col("priority").desc())
     .limit(1)
-    .modifiers(raw.expr("FOR UPDATE SKIP LOCKED"))
+    .modifiers(modifiers.row_lock("UPDATE", wait_policy="SKIP LOCKED"))
 # SQL: SELECT * FROM jobs WHERE status = $status ORDER BY priority DESC LIMIT 1 FOR UPDATE SKIP LOCKED
 
 # Shared lock with nowait
 ref("users").select(col("*"))
     .where(col("active"))
-    .modifiers(raw.expr("FOR SHARE NOWAIT"))
+    .modifiers(modifiers.row_lock("SHARE", wait_policy="NOWAIT"))
 # SQL: SELECT * FROM users WHERE active FOR SHARE NOWAIT
+
+# Lock specific tables in a join
+users = ref("users").alias("u")
+orders = ref("orders").alias("o")
+q = (
+    users.select(col("u.id"), col("o.total"))
+    .join.inner(orders, on=[col("u.id") == col("o.user_id")])
+    .modifiers(modifiers.row_lock("UPDATE", of=(users.state,)))
+)
+# SQL: ... FOR UPDATE OF u
 ```
 
-**Table-level modifiers:**
+**Parameters:**
+- `strength` (`Literal["UPDATE", "NO KEY UPDATE", "SHARE", "KEY SHARE"]`) - Lock strength
+- `of` (`tuple[Source, ...]`) - Sources to lock; uses alias or name for `Reference`, alias required for others
+- `wait_policy` (`Literal["NOWAIT", "SKIP LOCKED"] | None`) - Wait behaviour; `None` waits (default)
+
+**Table-level modifiers (raw):**
 
 ```python
-# Random sampling
+from vw.postgres import raw
+
+# Random sampling (use raw.expr — no typed wrapper yet)
 ref("events").modifiers(raw.expr("TABLESAMPLE SYSTEM(5)"))
     .select(col("*"))
     .where(col("event_type") == param("event_type", "click"))
 # SQL: SELECT * FROM events TABLESAMPLE SYSTEM(5) WHERE event_type = $event_type
-
-# Partition selection (if table is partitioned)
-ref("logs").modifiers(raw.expr("PARTITION (p2024_01)"))
-    .select(col("*"))
-    .where(col("level") == param("level", "ERROR"))
-# SQL: SELECT * FROM logs PARTITION (p2024_01) WHERE level = $level
 ```
 
-**Multiple modifiers:**
-
-Modifiers accumulate - you can call `.modifiers()` multiple times or pass multiple modifiers:
+**Multiple modifiers accumulate:**
 
 ```python
-# Multiple calls accumulate
-query = ref("users").select(col("*"))
-query = query.modifiers(raw.expr("FOR UPDATE"))
-query = query.modifiers(raw.expr("SKIP LOCKED"))
-# SQL: SELECT * FROM users FOR UPDATE SKIP LOCKED
-
-# Or pass multiple modifiers at once
-query = ref("users").select(col("*"))
-    .modifiers(raw.expr("FOR UPDATE"), raw.expr("SKIP LOCKED"))
-# SQL: SELECT * FROM users FOR UPDATE SKIP LOCKED
+# Multiple calls or single call with multiple args — same result
+ref("users").select(col("*")).modifiers(modifiers.row_lock("UPDATE"))
+# or
+ref("users").select(col("*")).modifiers(modifiers.row_lock("UPDATE"), raw.expr("..."))
 ```
 
 ---

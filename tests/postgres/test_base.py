@@ -8,7 +8,8 @@ Core ANSI SQL RowSet methods (col, star, where, group_by, having, order_by, limi
 offset, distinct) are tested in tests/core/test_base.py.
 """
 
-from vw.postgres import col, ref, render
+from vw.postgres import col, modifiers, ref, render
+from vw.postgres.states import RowLock
 
 
 def describe_fetch() -> None:
@@ -44,65 +45,64 @@ def describe_fetch() -> None:
 
 
 def describe_modifiers() -> None:
-    def describe_statement_level() -> None:
+    def describe_row_lock_factory() -> None:
+        def it_creates_row_lock_state() -> None:
+            expr = modifiers.row_lock("UPDATE")
+            assert isinstance(expr.state, RowLock)
+            assert expr.state.strength == "UPDATE"
+            assert expr.state.wait_policy is None
+
         def it_renders_for_update() -> None:
-            """Modifier on statement should render at end."""
-            from vw.postgres import raw
+            q = ref("users").select(col("*")).modifiers(modifiers.row_lock("UPDATE"))
+            assert render(q).query == "SELECT * FROM users FOR UPDATE"
 
-            q = ref("users").select(col("*")).modifiers(raw.expr("FOR UPDATE"))
-            result = render(q)
-            assert result.query == "SELECT * FROM users FOR UPDATE"
+        def it_renders_for_share() -> None:
+            q = ref("users").select(col("*")).modifiers(modifiers.row_lock("SHARE"))
+            assert render(q).query == "SELECT * FROM users FOR SHARE"
 
-        def it_renders_for_update_nowait() -> None:
-            """FOR UPDATE NOWAIT modifier."""
-            from vw.postgres import raw
+        def it_renders_for_no_key_update() -> None:
+            q = ref("users").select(col("*")).modifiers(modifiers.row_lock("NO KEY UPDATE"))
+            assert render(q).query == "SELECT * FROM users FOR NO KEY UPDATE"
 
-            q = ref("users").select(col("id")).modifiers(raw.expr("FOR UPDATE NOWAIT"))
-            result = render(q)
-            assert result.query == "SELECT id FROM users FOR UPDATE NOWAIT"
+        def it_renders_for_key_share() -> None:
+            q = ref("users").select(col("*")).modifiers(modifiers.row_lock("KEY SHARE"))
+            assert render(q).query == "SELECT * FROM users FOR KEY SHARE"
 
-        def it_renders_for_update_skip_locked() -> None:
-            """FOR UPDATE SKIP LOCKED modifier."""
-            from vw.postgres import param, raw
+        def it_renders_nowait() -> None:
+            q = ref("users").select(col("id")).modifiers(modifiers.row_lock("UPDATE", wait_policy="NOWAIT"))
+            assert render(q).query == "SELECT id FROM users FOR UPDATE NOWAIT"
+
+        def it_renders_skip_locked() -> None:
+            from vw.postgres import param
 
             q = (
                 ref("jobs")
                 .select(col("*"))
                 .where(col("status") == param("s", "pending"))
-                .modifiers(raw.expr("FOR UPDATE SKIP LOCKED"))
+                .modifiers(modifiers.row_lock("UPDATE", wait_policy="SKIP LOCKED"))
             )
             result = render(q)
             assert result.query == "SELECT * FROM jobs WHERE status = $s FOR UPDATE SKIP LOCKED"
             assert result.params == {"s": "pending"}
 
-        def it_renders_after_limit() -> None:
-            """Modifier should render after LIMIT."""
-            from vw.postgres import raw
+        def it_renders_of_tables() -> None:
+            users = ref("users")
+            q = ref("users").select(col("*")).modifiers(modifiers.row_lock("UPDATE", of=(users.state,)))
+            assert render(q).query == "SELECT * FROM users FOR UPDATE OF users"
 
-            q = ref("jobs").select(col("*")).limit(10).modifiers(raw.expr("FOR UPDATE"))
-            result = render(q)
-            assert result.query == "SELECT * FROM jobs LIMIT 10 FOR UPDATE"
+        def it_renders_of_tables_with_alias() -> None:
+            users = ref("users").alias("u")
+            q = ref("users").alias("u").select(col("*")).modifiers(modifiers.row_lock("UPDATE", of=(users.state,)))
+            assert render(q).query == "SELECT * FROM users AS u FOR UPDATE OF u"
+
+        def it_renders_after_limit() -> None:
+            q = ref("jobs").select(col("*")).limit(10).modifiers(modifiers.row_lock("UPDATE"))
+            assert render(q).query == "SELECT * FROM jobs LIMIT 10 FOR UPDATE"
 
         def it_renders_after_offset_and_limit() -> None:
-            """Modifier should render after LIMIT OFFSET."""
-            from vw.postgres import raw
-
-            q = ref("items").select(col("*")).offset(20).limit(10).modifiers(raw.expr("FOR SHARE"))
-            result = render(q)
-            assert result.query == "SELECT * FROM items LIMIT 10 OFFSET 20 FOR SHARE"
+            q = ref("items").select(col("*")).offset(20).limit(10).modifiers(modifiers.row_lock("SHARE"))
+            assert render(q).query == "SELECT * FROM items LIMIT 10 OFFSET 20 FOR SHARE"
 
         def it_renders_after_fetch() -> None:
-            """Modifier should render after FETCH."""
-            from vw.postgres import raw
-
-            q = ref("users").select(col("*")).fetch(10).modifiers(raw.expr("FOR UPDATE"))
-            result = render(q)
-            assert result.query == "SELECT * FROM users FETCH FIRST 10 ROWS ONLY FOR UPDATE"
-
-        def it_accumulates_multiple_modifiers() -> None:
-            """Multiple modifiers accumulate."""
-            from vw.postgres import raw
-
-            q = ref("users").select(col("*")).modifiers(raw.expr("FOR UPDATE"), raw.expr("SKIP LOCKED"))
-            result = render(q)
-            assert result.query == "SELECT * FROM users FOR UPDATE SKIP LOCKED"
+            q = ref("users").select(col("*")).fetch(10).modifiers(modifiers.row_lock("UPDATE"))
+            assert render(q).query == "SELECT * FROM users FETCH FIRST 10 ROWS ONLY FOR UPDATE"
