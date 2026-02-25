@@ -20,6 +20,7 @@ from vw.duckdb.public import cube as cube
 from vw.duckdb.public import exists as exists
 from vw.duckdb.public import following as following
 from vw.duckdb.public import grouping_sets as grouping_sets
+from vw.duckdb.public import interval as interval
 from vw.duckdb.public import lit as lit
 from vw.duckdb.public import param as param
 from vw.duckdb.public import preceding as preceding

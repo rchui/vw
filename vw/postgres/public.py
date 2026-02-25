@@ -400,6 +400,6 @@ def interval(amount: int | float, unit: str, /) -> Expression:
         >>> col("created_at") + interval(1, "day")
         >>> col("expires_at") - interval(30, "day")
     """
-    from vw.postgres.states import Interval
+    from vw.core.states import Interval
 
     return Expression(state=Interval(amount=amount, unit=unit), factories=Factories(expr=Expression, rowset=RowSet))

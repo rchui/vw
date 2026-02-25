@@ -26,6 +26,7 @@ from vw.core.states import (
     FrameClause,
     Function,
     GroupingSets,
+    Interval,
     IsIn,
     IsNotIn,
     IsNotNull,
@@ -178,6 +179,8 @@ def render_state(state: object, ctx: RenderContext) -> str:
             return "CURRENT_DATE"
         case CurrentTime():
             return "CURRENT_TIME"
+        case Interval():
+            return f"INTERVAL '{state.amount} {state.unit}'"
 
         # --- Grouping Constructs --------------------------------------- #
         case Rollup():

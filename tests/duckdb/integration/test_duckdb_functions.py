@@ -1,6 +1,6 @@
 """Integration tests for DuckDB-specific functions (Phase 8)."""
 
-from vw.duckdb import F, col, lit, ref, render
+from vw.duckdb import F, col, interval, lit, ref, render
 
 
 def describe_string_functions():
@@ -162,6 +162,69 @@ def describe_datetime_functions():
             )
             result = render(query)
             assert result.query == "SELECT MAKE_TIMESTAMP(yr, mo, dy, hr, mi, se) AS ts FROM t"
+            assert result.params == {}
+
+    def describe_date_add():
+        """Test DATE_ADD function."""
+
+        def it_renders_with_interval():
+            query = ref("t").select(F.date_add(col("start"), interval(30, "day")).alias("result"))
+            result = render(query)
+            assert result.query == "SELECT DATE_ADD(start, INTERVAL '30 day') AS result FROM t"
+            assert result.params == {}
+
+        def it_renders_with_column_interval():
+            query = ref("t").select(F.date_add(col("date"), col("offset")).alias("result"))
+            result = render(query)
+            assert result.query == "SELECT DATE_ADD(date, offset) AS result FROM t"
+            assert result.params == {}
+
+        def it_renders_in_select_with_alias():
+            query = ref("orders").select(F.date_add(col("order_date"), interval(1, "month")).alias("due_date"))
+            result = render(query)
+            assert result.query == "SELECT DATE_ADD(order_date, INTERVAL '1 month') AS due_date FROM orders"
+            assert result.params == {}
+
+    def describe_date_sub():
+        """Test DATE_SUB function — counts complete partitions between two dates."""
+
+        def it_renders_day_sub():
+            query = ref("t").select(F.date_sub(lit("day"), col("start"), col("end")).alias("days"))
+            result = render(query)
+            assert result.query == "SELECT DATE_SUB('day', start, end) AS days FROM t"
+            assert result.params == {}
+
+        def it_renders_month_sub():
+            query = ref("t").select(F.date_sub(lit("month"), col("hired"), col("left")).alias("months"))
+            result = render(query)
+            assert result.query == "SELECT DATE_SUB('month', hired, left) AS months FROM t"
+            assert result.params == {}
+
+    def describe_interval():
+        """Test interval() factory function."""
+
+        def it_renders_interval_literal():
+            query = ref("t").select(interval(1, "day").alias("one_day"))
+            result = render(query)
+            assert result.query == "SELECT INTERVAL '1 day' AS one_day FROM t"
+            assert result.params == {}
+
+        def it_works_with_addition():
+            query = ref("t").select((col("date") + interval(5, "day")).alias("future"))
+            result = render(query)
+            assert result.query == "SELECT date + INTERVAL '5 day' AS future FROM t"
+            assert result.params == {}
+
+        def it_works_with_subtraction():
+            query = ref("t").select((col("date") - interval(3, "month")).alias("past"))
+            result = render(query)
+            assert result.query == "SELECT date - INTERVAL '3 month' AS past FROM t"
+            assert result.params == {}
+
+        def it_works_with_date_add():
+            query = ref("t").select(F.date_add(col("d"), interval(1, "year")).alias("next_year"))
+            result = render(query)
+            assert result.query == "SELECT DATE_ADD(d, INTERVAL '1 year') AS next_year FROM t"
             assert result.params == {}
 
 

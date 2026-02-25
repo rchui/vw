@@ -16,14 +16,6 @@ class Now(Expr):
 
 
 @dataclass(frozen=True, kw_only=True)
-class Interval(Expr):
-    """Represents INTERVAL 'amount unit' — PostgreSQL interval literal."""
-
-    amount: int | float
-    unit: str
-
-
-@dataclass(frozen=True, kw_only=True)
 class DateTrunc(Expr):
     """Represents DATE_TRUNC('unit', expr) — PostgreSQL date truncation."""
 

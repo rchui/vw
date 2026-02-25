@@ -2,7 +2,7 @@
 
 The `vw.duckdb` module provides DuckDB-specific implementations and rendering.
 
-**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), List Functions (19 functions), Struct Operations, Sampling (USING SAMPLE), DuckDB-Specific Functions, Map Functions, JSON Functions, QUALIFY clause, and Raw SQL API.
+**Status:** ✅ **Core Features Complete** - DuckDB support includes Star Extensions (EXCLUDE, REPLACE), File Reading (CSV, Parquet, JSON, JSONL), Type System (LIST, STRUCT, MAP, ARRAY), List Functions (19 functions), Struct Operations, Sampling (USING SAMPLE), DuckDB-Specific Functions, Map Functions, JSON Functions, QUALIFY clause, and Date/Time interval support (`date_add`, `date_sub`, `interval`).
 
 ## Module Import
 
@@ -86,6 +86,32 @@ lit(None)  # NULL
 **Status:** ✅ Available
 
 ### `render(rowset)`
+
+### `interval(amount, unit)`
+
+Create an ANSI SQL `INTERVAL` literal expression. Use with arithmetic operators or `F.date_add()`.
+
+```python
+from vw.duckdb import col, interval, ref, render, F
+
+# Arithmetic with intervals
+query = ref("events").select((col("created_at") + interval(1, "day")).alias("tomorrow"))
+render(query).query
+# "SELECT created_at + INTERVAL '1 day' AS tomorrow FROM events"
+
+# With date_add
+query = ref("orders").select(F.date_add(col("order_date"), interval(30, "day")).alias("due_date"))
+render(query).query
+# "SELECT DATE_ADD(order_date, INTERVAL '30 day') AS due_date FROM orders"
+```
+
+**Parameters:**
+- `amount` (int | float) - The quantity of time units
+- `unit` (str) - The time unit: `"day"`, `"hour"`, `"month"`, `"year"`, `"minute"`, `"second"`, etc.
+
+**Returns:** Expression wrapping an `Interval` state
+
+**Status:** ✅ Available
 
 Render a RowSet or Expression to DuckDB SQL.
 
@@ -1068,6 +1094,59 @@ expr = raw.func("MY_CUSTOM_FUNC", col("x"), col("y"))
 - `raw.func(name, *args)` - Create a function call with the given name and argument expressions
 
 ---
+
+## Date/Time Functions
+
+### `F.date_add(date, interval)`
+
+Add an interval to a date or timestamp.
+
+```python
+from vw.duckdb import F, col, interval, ref, render
+
+# Add 30 days to a date column
+query = ref("orders").select(F.date_add(col("order_date"), interval(30, "day")).alias("due_date"))
+render(query).query
+# "SELECT DATE_ADD(order_date, INTERVAL '30 day') AS due_date FROM orders"
+
+# Add 1 month
+query = ref("subs").select(F.date_add(col("start_date"), interval(1, "month")).alias("renewal"))
+render(query).query
+# "SELECT DATE_ADD(start_date, INTERVAL '1 month') AS renewal FROM subs"
+```
+
+**Parameters:**
+- `date` - Date or timestamp expression
+- `interval` - Interval expression (use `interval(amount, unit)` factory)
+
+**Status:** ✅ Available
+
+### `F.date_sub(part, startdate, enddate)`
+
+Count the number of complete time partitions between two dates. Note: this differs from `F.date_diff()`,
+which counts boundary crossings. `date_sub` counts **complete** partitions.
+
+```python
+from vw.duckdb import F, col, lit, ref, render
+
+# Complete months elapsed
+query = ref("employees").select(F.date_sub(lit("month"), col("hired_at"), col("left_at")).alias("months"))
+render(query).query
+# "SELECT DATE_SUB('month', hired_at, left_at) AS months FROM employees"
+
+# Complete years (returns 0 if less than a full year has passed)
+query = ref("t").select(F.date_sub(lit("year"), col("start"), col("end")).alias("years"))
+render(query).query
+# "SELECT DATE_SUB('year', start, end) AS years FROM t"
+```
+
+**Parameters:**
+- `part` - Date part unit expression (e.g., `lit('day')`, `lit('month')`, `lit('year')`)
+- `startdate` - Start date/timestamp expression
+- `enddate` - End date/timestamp expression
+
+**Status:** ✅ Available
+
 
 ## Pending DuckDB-Specific Features
 

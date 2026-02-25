@@ -441,6 +441,14 @@ class CurrentTime(Expr):
     """Represents CURRENT_TIME — ANSI SQL."""
 
 
+@dataclass(frozen=True, kw_only=True)
+class Interval(Expr):
+    """Represents INTERVAL 'amount unit' — ANSI SQL interval literal."""
+
+    amount: int | float
+    unit: str
+
+
 # --- Grouping Constructs --------------------------------------------------- #
 
 

@@ -2,7 +2,7 @@
 
 Feature parity tracking for `vw/duckdb/` implementation.
 
-**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, 7, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, Sampling, DuckDB-Specific Functions, QUALIFY clause, Map Functions, and JSON Functions implemented
+**Status:** ✅ Phase 1, 2, 3a, 4, 5, 6, 7, & 8 Complete - Core infrastructure, Star Extensions, File Reading, Type System, List Functions, Struct Operations, Sampling, DuckDB-Specific Functions, QUALIFY clause, Map Functions, JSON Functions, and date_add/date_sub/interval implemented
 **Current Phase:** Phase 9 - Advanced Features
 **Prerequisites:** Most PostgreSQL phases must be completed first (✅ Complete)
 
@@ -750,8 +750,9 @@ ref("big_table").select(col("id")).sample(percent=10)
 
 ### Date/Time Functions (DuckDB-specific)
 - [x] `F.date_diff(part, start, end)` - date difference
-- [ ] `date_add(date, interval)` - add interval (deferred)
-- [ ] `date_sub(date, interval)` - subtract interval (deferred)
+- [x] `F.date_add(date, interval)` - add interval to a date/timestamp
+- [x] `F.date_sub(part, startdate, enddate)` - count complete partitions between two dates (not boundary crossings)
+- [x] `interval(amount, unit)` - create INTERVAL literal (e.g., `interval(1, "day")` → `INTERVAL '1 day'`)
 - [x] `F.date_part(part, date)` - extract date part
 - [x] `F.make_date(year, month, day)` - construct date
 - [x] `F.make_time(hour, minute, second)` - construct time
@@ -769,7 +770,7 @@ ref("big_table").select(col("id")).sample(percent=10)
 - All functions use the existing `Function` state from `vw/core/states.py` — no new dataclasses needed
 - All 16 functions added to `Functions` class in `vw/duckdb/public.py`
 - Optional args (`flags`, `group`) handled with `None` default and conditional tuple building
-- `date_add` and `date_sub` deferred — use `raw.func()` or arithmetic with interval until needed
+- `Interval` state moved to `vw/core/states.py` (ANSI SQL, shared by postgres and duckdb)
 
 ### Examples
 ```python

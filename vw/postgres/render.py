@@ -33,6 +33,7 @@ from vw.core.states import (
     Function,
     GroupingSets,
     ILike,
+    Interval,
     IsIn,
     IsNotIn,
     IsNotNull,
@@ -61,7 +62,7 @@ from vw.core.states import (
     WindowFunction,
 )
 from vw.postgres.base import Expression, RowSet
-from vw.postgres.states import DateTrunc, Interval, Now, RowLock
+from vw.postgres.states import DateTrunc, Now, RowLock
 
 
 def render(

@@ -968,6 +968,48 @@ class Functions(
         state = Function(name="DATE_DIFF", args=(part.state, start.state, end.state))
         return self.factories.expr(state=state, factories=self.factories)
 
+    def date_add(self, date: "Expression", interval: "Expression") -> "Expression":
+        """DATE_ADD() — add an interval to a date/timestamp.
+
+        Args:
+            date: Date or timestamp expression.
+            interval: Interval expression (e.g., interval(1, "day")).
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.date_add(col("start_date"), interval(30, "day"))
+            >>> F.date_add(col("created_at"), interval(1, "month"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="DATE_ADD", args=(date.state, interval.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
+    def date_sub(self, part: "Expression", start: "Expression", end: "Expression") -> "Expression":
+        """DATE_SUB() — count complete partitions between two dates.
+
+        Unlike DATE_DIFF which counts partition boundary crossings, DATE_SUB
+        counts the number of complete partitions between two dates.
+
+        Args:
+            part: Date part unit expression (e.g., lit('day'), lit('month')).
+            start: Start date/timestamp expression.
+            end: End date/timestamp expression.
+
+        Returns:
+            An Expression wrapping a Function state.
+
+        Examples:
+            >>> F.date_sub(lit("month"), col("start_date"), col("end_date"))
+            >>> F.date_sub(lit("year"), col("hired_at"), col("left_at"))
+        """
+        from vw.core.states import Function
+
+        state = Function(name="DATE_SUB", args=(part.state, start.state, end.state))
+        return self.factories.expr(state=state, factories=self.factories)
+
     def date_part(self, part: "Expression", date: "Expression") -> "Expression":
         """DATE_PART() — extract a date part from a date/timestamp.
 
@@ -1459,5 +1501,27 @@ def grouping_sets(*sets: tuple[Expression, ...]) -> Expression:
     converted_sets = tuple(tuple(e.state for e in group) for group in sets)
     return Expression(
         state=GroupingSets(sets=converted_sets),
+        factories=Factories(expr=Expression, rowset=RowSet),
+    )
+
+
+def interval(amount: int | float, unit: str, /) -> Expression:
+    """Create a DuckDB INTERVAL literal expression.
+
+    Args:
+        amount: The quantity of time units.
+        unit: The time unit (e.g., "day", "hour", "month", "year").
+
+    Returns:
+        An Expression wrapping an Interval state.
+
+    Example:
+        >>> col("created_at") + interval(1, "day")
+        >>> F.date_add(col("start"), interval(3, "month"))
+    """
+    from vw.core.states import Interval
+
+    return Expression(
+        state=Interval(amount=amount, unit=unit),
         factories=Factories(expr=Expression, rowset=RowSet),
     )

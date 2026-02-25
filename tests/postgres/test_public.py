@@ -9,6 +9,7 @@ from vw.core.states import (
     Cube,
     Exists,
     GroupingSets,
+    Interval,
     Literal,
     Parameter,
     Reference,
@@ -31,7 +32,6 @@ from vw.postgres.public import (
     values,
     when,
 )
-from vw.postgres.states import Interval
 
 
 def test_ref_factory() -> None:
