@@ -2,17 +2,17 @@
 
 Feature parity tracking for `vw/snowflake/` implementation.
 
-**Status:** ❌ Not Started
-**Current Phase:** None - waiting for core infrastructure from postgres
+**Status:** 🟡 In Progress
+**Current Phase:** Phase 1 complete — core infrastructure and rendering
 **Prerequisites:** Most PostgreSQL phases must be completed first
 
 ---
 
 ## Strategy
 
-Snowflake implementation will reuse core infrastructure from `vw/core/` and `vw/postgres/`, focusing on Snowflake-specific features and cloud data warehouse capabilities.
+Snowflake inherits from `vw/core/` only — not from `vw/postgres/`. This keeps dialects independent and avoids inheriting PostgreSQL-specific behaviour that doesn't apply to Snowflake.
 
-**Shared with PostgreSQL (via inheritance):**
+**Inherited from core:**
 - Core query building (SELECT, WHERE, GROUP BY, etc.)
 - Operators and expressions
 - Aggregate functions (COUNT, SUM, AVG, MIN, MAX)
@@ -21,58 +21,95 @@ Snowflake implementation will reuse core infrastructure from `vw/core/` and `vw/
 - Set operations (UNION, INTERSECT, EXCEPT)
 - CTEs (Common Table Expressions)
 - Subqueries and conditional expressions
+- ANSI scalar functions (COALESCE, NULLIF, GREATEST, LEAST, etc.)
 - Parameters and rendering
-- Most SQL standard features
 
 **Snowflake-Specific (new implementation required):**
+- Parameter style: `%s` (pyformat — Snowflake Python connector default)
+- Identifier quoting: double quotes, case-insensitive by default
 - VARIANT type (JSON/semi-structured data)
 - FLATTEN function for semi-structured data
 - Time travel queries (AT/BEFORE)
 - QUALIFY clause (post-window filtering)
 - Table functions (GENERATOR, LATERAL FLATTEN)
-- Snowflake-specific stages and file formats
 - MATCH_RECOGNIZE for pattern matching
-- Snowflake naming conventions (case-insensitive by default)
+
+**Testing approach:** Render-only (no live Snowflake account required). All tests verify SQL string output, not execution results.
 
 ---
 
-## Prerequisites (Inherited from PostgreSQL)
+## Prerequisites (Inherited from Core)
 
-These phases from PostgreSQL will be automatically available in Snowflake:
+These features from `vw/core/` are automatically available in Snowflake:
 
-### ✅ Phase 1-7: Core Features (inherited)
-- ✅ Query building, operators, expressions
-- ✅ Aggregate and window functions
-- ✅ Joins, subqueries, CTEs
-- ✅ Parameters and rendering
-- ✅ Scalar functions
+### ✅ Core Features (inherited)
+- ✅ Query building (SELECT, WHERE, GROUP BY, HAVING, ORDER BY, LIMIT, OFFSET, DISTINCT)
+- ✅ Operators and expressions (comparison, arithmetic, logical, pattern matching, NULL checks)
+- ✅ Aggregate and window functions (COUNT, SUM, AVG, MIN, MAX, ROW_NUMBER, RANK, etc.)
+- ✅ Joins (INNER, LEFT, RIGHT, FULL, CROSS), subqueries, CTEs, set operations
+- ✅ ANSI scalar functions (COALESCE, NULLIF, GREATEST, LEAST, date/time functions)
+- ✅ Parameters, literals, rendering infrastructure
 
 ---
 
-## 📋 Phase 1: Core Snowflake Implementation
+## ✅ Phase 1: Core Snowflake Implementation
 
-**Status:** ❌ Not Started
+**Status:** ✅ Complete
 
 ### Infrastructure Setup
-- [ ] Create `vw/snowflake/` directory
-- [ ] Create `vw/snowflake/base.py` with Snowflake-specific classes
-- [ ] Create `vw/snowflake/public.py` for public API
-- [ ] Create `vw/snowflake/render.py` for Snowflake SQL rendering
-- [ ] Set up `vw/snowflake/__init__.py` exports
-- [ ] Create `tests/snowflake/` directory structure
+- [x] Create `vw/snowflake/` directory
+- [x] Create `vw/snowflake/base.py` — `Expression` and `RowSet` inheriting from `CoreExpression`/`CoreRowSet`
+- [x] Create `vw/snowflake/render.py` — Snowflake SQL rendering (inherits from core, not postgres)
+- [x] Create `vw/snowflake/states.py` — Snowflake-specific states (placeholder for later phases)
+- [x] Create `vw/snowflake/types.py` — Snowflake type system (VARIANT, OBJECT, ARRAY, NUMBER, TIMESTAMP_NTZ/LTZ/TZ)
+- [x] Create `vw/snowflake/raw.py` — raw SQL escape hatches (`raw.expr`, `raw.rowset`, `raw.func`)
+- [x] Create `vw/snowflake/public.py` — factory functions wired to Snowflake Expression/RowSet
+- [x] Create `vw/snowflake/__init__.py` — public exports
+- [x] Create `tests/snowflake/` directory structure
 
 ### Snowflake-Specific Rendering
-- [ ] Handle Snowflake identifier quoting (double quotes, but case-insensitive by default)
-- [ ] Parameter style (named parameters: `:name` or `?`)
-- [ ] Type name differences from PostgreSQL
-- [ ] Function name variations
-- [ ] Override PostgreSQL-specific features that don't apply
+- [x] Parameter style: `%(name)s` (PYFORMAT — Snowflake Python connector default)
+- [x] Cast syntax: `CAST(expr AS type)` (not PostgreSQL's `::` shorthand)
+- [x] `DISTINCT ON` raises `RenderError` (not supported in Snowflake)
+- [x] Statement modifiers (FOR UPDATE etc.) raise `RenderError`
+- [x] ILIKE supported (Snowflake supports case-insensitive LIKE)
+- [x] LATERAL joins supported
+- [x] Render `TRUE`/`FALSE` for boolean literals
 
-### Testing Setup
-- [ ] Set up test database fixtures (Snowflake test account)
-- [ ] Port relevant postgres tests to snowflake
-- [ ] Create Snowflake-specific test utilities
-- [ ] Verify all inherited features work correctly
+### Public API (factory functions in `public.py`)
+- [x] `ref()`, `col()`, `param()`, `lit()` — column/table/value factories
+- [x] `when()` — CASE WHEN builder
+- [x] `exists()` — EXISTS subquery
+- [x] `values()` — VALUES clause
+- [x] `cte()` — Common Table Expressions
+- [x] `rollup()`, `cube()`, `grouping_sets()` — grouping constructs
+- [x] `interval()` — INTERVAL literals
+- [x] `render()` — render query to SQL string + params dict
+- [x] `F` — function namespace (inherits `CoreFunctions`)
+- [x] `raw` — raw SQL escape hatch
+- [x] `T` — type shorthand namespace
+
+### Testing
+- [x] `tests/snowflake/test_render.py` — unit tests per render function (86 tests)
+- [x] `tests/snowflake/integration/test_queries.py` — end-to-end rendering tests (45 tests)
+- [x] Verify `%(name)s` parameter style
+- [x] Verify `CAST(expr AS type)` syntax (no `::`)
+- [x] Verify all inherited ANSI SQL features produce correct SQL
+
+### Key Rendering Differences from PostgreSQL
+
+| Feature | PostgreSQL | Snowflake |
+|---|---|---|
+| Parameters | `$name` | `%(name)s` |
+| Cast | `expr::type` | `expr::type` (same) |
+| DISTINCT ON | supported | raises RenderError |
+| FOR UPDATE | supported | raises RenderError |
+| NOW() | supported | not in Phase 1 (use CURRENT_TIMESTAMP) |
+| DATE_TRUNC | supported | not in Phase 1 |
+| ILIKE | supported | supported |
+| LATERAL | supported | supported |
+
+---
 
 ---
 
@@ -183,18 +220,20 @@ source("orders").before(statement="query_id_123")
 **Status:** ❌ Not Started
 **Priority:** MEDIUM - Convenient window function filtering
 
+**Note:** QUALIFY is already implemented in `vw/duckdb`. If/when it makes sense to move QUALIFY state to `vw/core`, Snowflake can inherit it for free. Until then, implement it independently in `vw/snowflake`.
+
 ### QUALIFY Clause
 - [ ] Post-window function filtering via `.qualify(condition)`
 - [ ] QUALIFY with window functions
 - [ ] Multiple QUALIFY conditions (AND combined)
 
 ### Data Structures Needed
-- [ ] Qualify dataclass added to Statement
+- [ ] `qualify_conditions` field on `Statement` state (or shared via core)
 
 ### Examples
 ```python
 # Filter after window function
-source("sales").select(
+ref("sales").select(
     col("product"),
     col("amount"),
     F.rank().over(order_by=[col("amount").desc()]).alias("rank")
@@ -290,38 +329,38 @@ source("events").match_recognize(
 
 ## Implementation Strategy
 
-### 1. Start After Core PostgreSQL Complete
-- **Prerequisites:** PostgreSQL Phases 1-7 must be complete
-- Inherit all core infrastructure from `vw/core/` and `vw/postgres/`
-- Focus on Snowflake-specific features only
+### 1. Inherit from Core Only
+- `vw/snowflake/base.py` inherits `Expression`/`RowSet` from `vw/core/base.py`
+- `vw/snowflake/render.py` inherits from `vw/core/render.py`
+- No dependency on `vw/postgres/` anywhere
 
 ### 2. Incremental Approach
-- **Phase 1:** Basic setup and rendering
-- **Phase 2:** VARIANT type and semi-structured data 🌟 HIGH PRIORITY
-- **Phase 3:** FLATTEN and table functions 🌟 HIGH PRIORITY
+- **Phase 1:** Core infrastructure and rendering (all ANSI SQL works) ← start here
+- **Phase 2:** VARIANT type and semi-structured data 🌟
+- **Phase 3:** FLATTEN and table functions 🌟
 - **Phase 4-8:** Additional Snowflake features as needed
 
-### 3. Code Reuse Strategy
-- Inherit from postgres where possible
-- Override identifier quoting and parameter style
-- Add Snowflake-specific classes for VARIANT, FLATTEN, etc.
+### 3. Testing Strategy
+- Render-only tests — no live Snowflake account required
+- Port relevant postgres render tests, adapting for `%s` parameter style
+- Add Snowflake-specific tests for each new feature
 
 ---
 
 ## Priority Matrix
 
 ### HIGH Priority (Core Snowflake Value)
-1. ⭐ VARIANT type and semi-structured data access
-2. ⭐ FLATTEN function for unnesting
+1. ⭐ Phase 1: Core infrastructure (all ANSI SQL, correct parameter style)
+2. ⭐ VARIANT type and semi-structured data access
+3. ⭐ FLATTEN function for unnesting
 
 ### MEDIUM Priority (Common Use Cases)
-3. Time travel queries
-4. QUALIFY clause
-5. Snowflake-specific functions
+4. Time travel queries (AT/BEFORE)
+5. QUALIFY clause
+6. Snowflake-specific functions
 
 ### LOW Priority (Nice to Have)
-6. MATCH_RECOGNIZE
-7. Advanced stage operations
-8. File format operations
+7. MATCH_RECOGNIZE
+8. Stage operations and file formats
 
-**Total Progress:** 0% complete (waiting on postgres infrastructure)
+**Total Progress:** Phase 1 complete (8 phases total)
